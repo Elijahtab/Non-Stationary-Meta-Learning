@@ -8,6 +8,7 @@ import torch
 
 import gymnasium as gym
 import scripts.train_brain as train_brain_script
+from lifelong_learning.agents.brain.neuromod import BRAIN_ACTION_DIM
 
 
 def test_train_brain_parses_schedule_controls(monkeypatch):
@@ -88,11 +89,11 @@ def test_upgrade_legacy_brain_state_dict_pads_old_action_heads():
     upgraded, notices = train_brain_script._upgrade_legacy_brain_state_dict(
         legacy,
         target_obs_dim=19,
-        target_act_dim=15,
+        target_act_dim=BRAIN_ACTION_DIM,
     )
-    assert upgraded["actor_mean.weight"].shape == (15, 128)
-    assert upgraded["actor_mean.bias"].shape == (15,)
-    assert upgraded["actor_log_std"].shape == (15,)
+    assert upgraded["actor_mean.weight"].shape == (BRAIN_ACTION_DIM, 128)
+    assert upgraded["actor_mean.bias"].shape == (BRAIN_ACTION_DIM,)
+    assert upgraded["actor_log_std"].shape == (BRAIN_ACTION_DIM,)
     assert "actor_logstd" not in upgraded
     assert notices
     assert torch.allclose(upgraded["actor_mean.weight"][:7], legacy["actor_mean.weight"])

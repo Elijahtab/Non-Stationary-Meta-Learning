@@ -4,8 +4,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-# Dimensionality of the context code the Brain sends for neuromodulation
-CONTEXT_CODE_DIM = 8
+from lifelong_learning.agents.brain.neuromod import (
+    CONTEXT_CODE_DIM,
+    FeatureMaskNeuromodulator,
+)
 
 
 class CNNActorCritic(nn.Module):
@@ -42,16 +44,12 @@ class CNNActorCritic(nn.Module):
             flat_size = self.encoder(dummy).shape[1]
         self.flat_size = flat_size
 
-        # Context decoder: maps Brain's 8-dim context code -> suppression template.
-        # The actual mask is scaled by context magnitude so a zero code stays neutral.
-        self.context_decoder = nn.Sequential(
-            nn.Linear(CONTEXT_CODE_DIM, 256),
-            nn.ReLU(),
-            nn.Linear(256, flat_size),
+        # Keep the neuromodulation implementation isolated from the rest of the
+        # actor-critic so future research can iterate on it in one place.
+        self.neuromodulator = FeatureMaskNeuromodulator(
+            feature_dim=flat_size,
+            context_dim=CONTEXT_CODE_DIM,
         )
-
-        # Current neuromodulation mask (default: all 1s = no gating)
-        self.register_buffer('neuro_mask', torch.ones(1, flat_size))
 
         # Actor head (policy)
         self.actor_head = nn.Sequential(
@@ -93,6 +91,11 @@ class CNNActorCritic(nn.Module):
                 if layer.bias is not None:
                     nn.init.zeros_(layer.bias)
 
+    @property
+    def neuro_mask(self) -> torch.Tensor:
+        """Compatibility view of the current neuromodulation mask."""
+        return self.neuromodulator.current_mask
+
     def set_context_code(self, code: torch.Tensor):
         """
         Decode an 8-dim context code into a gating mask and store it.
@@ -100,34 +103,18 @@ class CNNActorCritic(nn.Module):
         Args:
             code: Tensor of shape (CONTEXT_CODE_DIM,) with values in [-1, 1]
         """
-        with torch.no_grad():
-            if code.dim() == 1:
-                code = code.unsqueeze(0)
-            self.neuro_mask = self.decode_context_code(code)
+        self.neuromodulator.set_context_code(code)
 
     def decode_context_code(self, code: torch.Tensor) -> torch.Tensor:
         """Map a context code to a suppressive mask, keeping zero-context neutral."""
-        if code.dim() == 1:
-            code = code.unsqueeze(0)
-
-        suppression_template = torch.sigmoid(self.context_decoder(code))
-        context_strength = torch.linalg.vector_norm(code, dim=-1, keepdim=True)
-        context_strength = context_strength / np.sqrt(CONTEXT_CODE_DIM)
-        context_strength = context_strength.clamp(0.0, 1.0)
-        return 1.0 - context_strength * suppression_template
+        return self.neuromodulator.decode_context_code(code)
 
     def clear_context(self):
         """Reset the neuro mask to all-ones (no gating)."""
-        self.neuro_mask = torch.ones(1, self.flat_size, device=self.neuro_mask.device)
+        self.neuromodulator.clear_context()
 
     def _expand_mask(self, features: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
-        if mask is None:
-            mask = self.neuro_mask
-        if mask.dim() == 1:
-            mask = mask.unsqueeze(0)
-        if mask.shape[0] == 1 and features.shape[0] != 1:
-            mask = mask.expand(features.shape[0], -1)
-        return mask
+        return self.neuromodulator.expand_mask(features, mask)
 
     def forward_with_mask(self, obs: torch.Tensor, mask: torch.Tensor | None = None):
         features = self.encoder(obs)

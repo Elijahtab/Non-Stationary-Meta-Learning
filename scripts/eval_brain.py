@@ -26,6 +26,7 @@ from lifelong_learning.agents.ppo.train import (
     run_inner_update,
     close_inner_training,
 )
+from lifelong_learning.agents.brain.neuromod import BRAIN_CONTEXT_SLICE
 from lifelong_learning.agents.brain.signals import SignalExtractor
 from lifelong_learning.agents.brain.meta_agent import MLPActorCritic
 from lifelong_learning.utils.logger import DataLogger
@@ -276,9 +277,9 @@ def eval_brain(args):
                 state.replay_prioritization = new_rp
                 state.cfg.anchoring_weight = new_aw
 
-            # Action[7:15]: neuromodulation context code
-            if len(action) > 7 and not args.disable_neuromodulation:
-                context_code = torch.tensor(action[7:15], dtype=torch.float32, device=device)
+            # Action[7:]: neuromodulation context code
+            if len(action) >= BRAIN_CONTEXT_SLICE.stop and not args.disable_neuromodulation:
+                context_code = torch.tensor(action[BRAIN_CONTEXT_SLICE], dtype=torch.float32, device=device)
                 state.model.set_context_code(context_code)
 
             # Log Brain decisions

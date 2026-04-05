@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from dataclasses import dataclass
 
+from lifelong_learning.agents.brain.neuromod import BRAIN_ACTION_DIM
 from lifelong_learning.agents.brain.signals import NUM_SIGNALS
 
 
@@ -35,11 +36,11 @@ class MLPActorCritic(nn.Module):
     Input: NUM_SIGNALS-dim observation of normalized inner-training signals.
     Output: (action_mean, action_log_std, value)
 
-    Uses a continuous Gaussian policy over a 15-dim action space:
+    Uses a continuous Gaussian policy over the shared Brain action layout:
     7 scalar learning levers plus an 8-dim neuromodulation context code.
     """
 
-    def __init__(self, obs_dim: int = NUM_SIGNALS, act_dim: int = 15, hidden_dim: int = 128):
+    def __init__(self, obs_dim: int = NUM_SIGNALS, act_dim: int = BRAIN_ACTION_DIM, hidden_dim: int = 128):
         super().__init__()
 
         self.shared = nn.Sequential(
@@ -159,7 +160,7 @@ class BrainRolloutBuffer:
     def get_batches(self, device: torch.device):
         """Return all data as flattened tensors for PPO update."""
         obs = np.array(self.obs, dtype=np.float32).reshape(-1, NUM_SIGNALS)
-        actions = np.array(self.actions, dtype=np.float32).reshape(-1, 15)
+        actions = np.array(self.actions, dtype=np.float32).reshape(-1, BRAIN_ACTION_DIM)
         log_probs = np.array(self.log_probs, dtype=np.float32).reshape(-1)
         advantages = self._advantages.reshape(-1)
         returns = self._returns.reshape(-1)

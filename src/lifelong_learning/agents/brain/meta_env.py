@@ -19,6 +19,11 @@ from lifelong_learning.agents.ppo.train import (
     run_inner_update,
     close_inner_training,
 )
+from lifelong_learning.agents.brain.neuromod import (
+    BRAIN_ACTION_DIM,
+    BRAIN_CONTEXT_SLICE,
+    log_neuromodulation_snapshot,
+)
 from lifelong_learning.agents.brain.signals import SignalExtractor, NUM_SIGNALS
 
 
@@ -26,7 +31,7 @@ class MetaEnv(gym.Env):
     """
     Gymnasium environment where:
       - Observation: 19-dim vector of normalized training signals
-      - Action: 15-dim continuous vector controlling hyperparameter adjustments
+      - Action: continuous vector controlling hyperparameter adjustments
         [0]  lr scale             in [-1, 1] -> mapped linearly to [lr_min, lr_max]
         [1]  ent_coef scale       in [-1, 1] -> mapped linearly to [ent_min, ent_max]
         [2]  intrinsic_coef       in [-1, 1] -> mapped linearly to [intr_min, intr_max]
@@ -34,7 +39,7 @@ class MetaEnv(gym.Env):
         [4]  replay_ratio         in [-1, 1] -> mapped linearly to [0.0, 0.5]
         [5]  replay_prioritization in [-1, 1] -> mapped linearly to [0.0, 1.0]
         [6]  anchoring_weight     in [-1, 1] -> mapped linearly to [0.0, 0.5]
-        [7:15] context_code       in [-1, 1]^8 -> neuromodulation mask via ContextDecoder
+        [7:] context_code         in [-1, 1]^8 -> neuromodulation mask via ContextDecoder
       - Reward: recovery-based metric (delta success_rate + alpha * delta return - beta * failure_rate)      - Episode: one full inner training run
     """
 
@@ -111,7 +116,7 @@ class MetaEnv(gym.Env):
             low=-10.0, high=10.0, shape=(NUM_SIGNALS,), dtype=np.float32
         )
         self.action_space = spaces.Box(
-            low=-1.0, high=1.0, shape=(15,), dtype=np.float32
+            low=-1.0, high=1.0, shape=(BRAIN_ACTION_DIM,), dtype=np.float32
         )
 
         # HP bounds (absolute min/max)
@@ -348,32 +353,26 @@ class MetaEnv(gym.Env):
         # Action[6]: anchoring_weight
         s.cfg.anchoring_weight = map_to_range(action[6], self.anchoring_weight_bounds)
 
-        # Action[7:15]: neuromodulation context code
-        if not self.disable_neuromodulation:
+        # Action[7:]: neuromodulation context code
+        if not self.disable_neuromodulation and len(action) >= BRAIN_CONTEXT_SLICE.stop:
             import torch
-            context_code = torch.tensor(action[7:15], dtype=torch.float32, device=s.device)
+            context_code = torch.tensor(action[BRAIN_CONTEXT_SLICE], dtype=torch.float32, device=s.device)
             s.model.set_context_code(context_code)
             self._log_neuromodulation_snapshot(context_code)
 
     def _log_neuromodulation_snapshot(self, context_code):
         """Record the Brain context code, decoded mask, and its effect on the current batch."""
         s = self._state
-        if s is None or getattr(s, 'logger', None) is None or getattr(s, 'obs_t', None) is None:
-            return
-        if not hasattr(s.model, 'describe_neuromodulation'):
+        if s is None:
             return
 
-        step = int(getattr(s, 'global_step', 0))
-        for idx, value in enumerate(context_code.detach().cpu().tolist()):
-            s.logger.scalar(f'brain_context/context_{idx}', float(value), step)
-
-        summary = s.model.describe_neuromodulation(s.obs_t)
-        for key in ('mask_mean', 'mask_std', 'mask_min', 'mask_max', 'policy_kl_vs_unmasked', 'entropy_delta_vs_unmasked', 'value_delta_abs_vs_unmasked'):
-            s.logger.scalar(f'brain_neuromod/{key}', float(summary[key]), step)
-
-        channel_means = summary.get('channel_means', [])
-        for idx, value in enumerate(channel_means):
-            s.logger.scalar(f'brain_neuromod/channel_mean_{idx}', float(value), step)
+        log_neuromodulation_snapshot(
+            logger=getattr(s, "logger", None),
+            model=s.model,
+            obs_t=getattr(s, "obs_t", None),
+            context_code=context_code,
+            step=int(getattr(s, "global_step", 0)),
+        )
 
     def get_resume_state(self) -> dict:
         """Return per-env state needed to smooth Brain checkpoint resumes."""

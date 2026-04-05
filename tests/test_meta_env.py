@@ -7,6 +7,7 @@ import torch
 
 from lifelong_learning.agents.ppo.ppo import PPOConfig
 from lifelong_learning.agents.brain.meta_env import MetaEnv
+from lifelong_learning.agents.brain.neuromod import BRAIN_ACTION_DIM, BRAIN_CONTEXT_SLICE
 from lifelong_learning.agents.brain.signals import NUM_SIGNALS
 from lifelong_learning.agents.ppo.train import configure_runtime_threads
 
@@ -43,10 +44,10 @@ class TestMetaEnv(unittest.TestCase):
         self.assertEqual(self.env.observation_space.shape, (NUM_SIGNALS,))
 
     def test_action_space(self):
-        """Action space should be Box(15,) in [-1, 1]."""
-        self.assertEqual(self.env.action_space.shape, (15,))
-        np.testing.assert_array_equal(self.env.action_space.low, -1.0 * np.ones(15))
-        np.testing.assert_array_equal(self.env.action_space.high, 1.0 * np.ones(15))
+        """Action space should match the shared Brain action layout."""
+        self.assertEqual(self.env.action_space.shape, (BRAIN_ACTION_DIM,))
+        np.testing.assert_array_equal(self.env.action_space.low, -1.0 * np.ones(BRAIN_ACTION_DIM))
+        np.testing.assert_array_equal(self.env.action_space.high, 1.0 * np.ones(BRAIN_ACTION_DIM))
 
     def test_reset_returns_correct_shape(self):
         """reset() should return (obs, info) with correct obs shape."""
@@ -177,7 +178,7 @@ class TestMetaEnv(unittest.TestCase):
         )
         try:
             env.reset(seed=0)
-            env.step(np.zeros(15, dtype=np.float32))
+            env.step(np.zeros(BRAIN_ACTION_DIM, dtype=np.float32))
             resume_state = env.get_resume_state()
 
             self.assertIn("np_random_state", resume_state)
@@ -311,8 +312,8 @@ class TestMetaEnv(unittest.TestCase):
         )
         env._state = state
 
-        action = np.zeros(15, dtype=np.float32)
-        action[7:15] = np.linspace(-1.0, 1.0, 8, dtype=np.float32)
+        action = np.zeros(BRAIN_ACTION_DIM, dtype=np.float32)
+        action[BRAIN_CONTEXT_SLICE] = np.linspace(-1.0, 1.0, BRAIN_CONTEXT_SLICE.stop - BRAIN_CONTEXT_SLICE.start, dtype=np.float32)
         env._apply_action(action)
 
         model.set_context_code.assert_called_once()

@@ -1,0 +1,45 @@
+[trial_limits]
+max_trials = 20
+max_new_python_files = 2
+max_net_new_lines = 600
+
+[validation]
+tests_command = "python -m pytest tests/test_benchmarking.py tests/test_network.py tests/test_meta_env.py tests/test_signal_extraction.py tests/test_dyna_logic.py tests/test_train_brain_cli.py tests/test_eval_brain_state_dict.py -q"
+tests_timeout_seconds = 1800
+research_timeout_seconds = 1800
+
+[benchmark]
+primary = "fast_switch_scout_v1"
+holdout = ["fast_switch_holdout_v1"]
+device = "cuda"
+primary_improvement_epsilon = 1e-6
+holdout_regression_tolerance = 0.0
+
+[stopping]
+max_stale_trials = 5
+target_composite_score = 0.75
+
+[outputs]
+ledger_path = "autoresearch/trial_results.jsonl"
+scratch_dir = "autoresearch"
+
+[editable_surface]
+paths = [
+  "src/lifelong_learning/agents/brain/neuromod.py",
+  "src/lifelong_learning/agents/ppo/network.py",
+]
+
+[optional_editable_surface]
+paths = [
+  "src/lifelong_learning/agents/brain/signals.py",
+  "src/lifelong_learning/agents/brain/meta_agent.py",
+]
+
+[immutable_surface]
+paths = [
+  "scripts/run_frozen_benchmark.py",
+  "src/lifelong_learning/research/benchmarking.py",
+  "scripts/analyze_runs.py",
+  "scripts/plot_high_scale.py",
+  "src/lifelong_learning/envs",
+]

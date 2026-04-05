@@ -24,6 +24,7 @@ from lifelong_learning.agents.brain.meta_agent import (
     BrainRolloutBuffer,
     brain_ppo_update,
 )
+from lifelong_learning.agents.brain.neuromod import BRAIN_ACTION_DIM, compose_brain_action
 from lifelong_learning.utils.logger import DataLogger
 
 
@@ -463,7 +464,7 @@ def train_brain(args):
                 # Index 1 is success_rate (from signals.py)
                 success_rates = obs[:, 1]
                 
-                target_actions = np.zeros((args.brain_num_envs, 15), dtype=np.float32)
+                target_actions = np.zeros((args.brain_num_envs, BRAIN_ACTION_DIM), dtype=np.float32)
                 for i in range(args.brain_num_envs):
                     if args.pretrain_mode == "recovery":
                         # Recovery pretrain: multi-tier, surprise-reactive heuristic
@@ -477,27 +478,27 @@ def train_brain(args):
                         if spike_signal < -0.5:
                             # Just saw a surprise spike = likely regime switch
                             # Slam into explore mode regardless of success rate
-                            target_actions[i] = [0.7, 0.7, 0.7, 0.7, -0.3, 0.8, -0.8, 0,0,0,0,0,0,0,0]
+                            target_actions[i] = compose_brain_action([0.7, 0.7, 0.7, 0.7, -0.3, 0.8, -0.8])
                         elif raw_sr < 0.3:
                             # Deep recovery: strong explore
-                            target_actions[i] = [0.5, 0.6, 0.6, 0.5, -0.2, 0.6, -0.6, 0,0,0,0,0,0,0,0]
+                            target_actions[i] = compose_brain_action([0.5, 0.6, 0.6, 0.5, -0.2, 0.6, -0.6])
                         elif raw_sr < 0.6:
                             # Mid recovery: moderate explore
-                            target_actions[i] = [0.3, 0.3, 0.4, 0.3, 0.0, 0.3, -0.2, 0,0,0,0,0,0,0,0]
+                            target_actions[i] = compose_brain_action([0.3, 0.3, 0.4, 0.3, 0.0, 0.3, -0.2])
                         elif raw_sr < 0.8:
                             # Almost recovered: start tapering
-                            target_actions[i] = [0.0, 0.0, 0.1, 0.1, 0.2, 0.0, 0.2, 0,0,0,0,0,0,0,0]
+                            target_actions[i] = compose_brain_action([0.0, 0.0, 0.1, 0.1, 0.2, 0.0, 0.2])
                         else:
                             # Recovered: moderate exploit (not extreme)
-                            target_actions[i] = [-0.2, -0.3, -0.1, -0.1, 0.3, -0.5, 0.5, 0,0,0,0,0,0,0,0]
+                            target_actions[i] = compose_brain_action([-0.2, -0.3, -0.1, -0.1, 0.3, -0.5, 0.5])
                     else:
                         # Basic pretrain: original binary heuristic
                         if success_rates[i] < 0.5:
                             # Explore: map towards higher values (actions > 0)
-                            target_actions[i] = [0.8, 0.8, 0.8, 0.8, -0.9, 0.8, -0.8, 0,0,0,0,0,0,0,0]
+                            target_actions[i] = compose_brain_action([0.8, 0.8, 0.8, 0.8, -0.9, 0.8, -0.8])
                         else:
                             # Exploit: map towards lower values (actions < 0)
-                            target_actions[i] = [-0.8, -0.8, -0.8, -0.8, 0.8, -0.8, 0.8, 0,0,0,0,0,0,0,0]
+                            target_actions[i] = compose_brain_action([-0.8, -0.8, -0.8, -0.8, 0.8, -0.8, 0.8])
 
                 obs_t = torch.tensor(obs, dtype=torch.float32, device=device)
                 target_a_t = torch.tensor(target_actions, dtype=torch.float32, device=device)
@@ -573,7 +574,7 @@ def train_brain(args):
             with torch.no_grad():
                 action, log_prob, entropy, value = brain_model.act(obs_t)
 
-            action_np = action.cpu().numpy()  # Shape: [num_envs, 15]
+            action_np = action.cpu().numpy()  # Shape: [num_envs, Brain action dim]
             next_obs, rewards, terminations, truncations, infos = meta_env.step(action_np)
             
             # Track inner hyperparameter stats from envs
@@ -796,7 +797,7 @@ def main():
     p.add_argument("--reward_mode", type=str, default="auc", choices=["auc", "recovery", "curriculum"],
                    help="Brain reward mode: 'auc' (original), 'recovery' (hybrid delta + urgency), or 'curriculum' (exponential multiplier for returning regimes)")
     p.add_argument("--disable_neuromodulation", action="store_true",
-                   help="Disable neuromodulation gating (Brain still outputs 15 dims but context code is ignored)")
+                   help="Disable neuromodulation gating (Brain still outputs the full action vector but context code is ignored)")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,
