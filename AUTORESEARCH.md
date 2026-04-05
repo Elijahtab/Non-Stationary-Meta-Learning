@@ -18,6 +18,7 @@ These files are intended to stay outside the future editable allowlist.
 
 The first two frozen benchmark specs are:
 
+- `fast_switch_pilot_v1`
 - `fast_switch_scout_v1`
 - `fast_switch_holdout_v1`
 
@@ -117,7 +118,7 @@ and writes separate stdout/stderr plus the final assistant message to disk.
 Recommended setup:
 
 ```powershell
-$env:AUTORESEARCH_AGENT_COMMAND = 'powershell -ExecutionPolicy Bypass -File scripts\invoke_codex_exec.ps1 -PromptFile "{prompt_file}" -RepoRoot "{repo_root}" -FinalMessageFile "{final_message_file}" -StdoutFile "{agent_stdout_file}" -StderrFile "{agent_stderr_file}"'
+$env:AUTORESEARCH_AGENT_COMMAND = 'powershell -ExecutionPolicy Bypass -File scripts\invoke_codex_exec.ps1 -PromptFile "{prompt_file}" -RepoRoot "{repo_root}" -FinalMessageFile "{final_message_file}" -StdoutFile "{agent_stdout_file}" -StderrFile "{agent_stderr_file}" -Sandbox danger-full-access -Model gpt-5.4-mini'
 ```
 
 Then run:
@@ -135,7 +136,9 @@ Why this wrapper uses these defaults:
 - `codex exec` is the documented non-interactive mode.
 - `PROMPT = -` lets us pipe the rendered prompt from stdin.
 - `-C` sets the repo workspace explicitly.
-- `-a never -s workspace-write` is a better unattended automation default than `--full-auto`, because the docs recommend `never` for non-interactive runs and `--full-auto` maps to `on-request` approvals.
+- `-a never` is the recommended unattended approval mode for non-interactive runs.
+- On this Windows setup, `workspace-write` sandboxing fails once the agent tries to use tools, so the pilot wrapper uses `-s danger-full-access` and relies on the outer autoresearch supervisor for the real safety boundary.
+- `-m gpt-5.4-mini` keeps pilot trials short enough to validate the loop before spending time on full runs.
 - `--json` plus `-o` gives machine-readable event logs and a separate final message file.
 
 ## Editable Surface
@@ -205,3 +208,21 @@ the runner/scorer boundary. Future research is expected to explore:
 
 The cleanup in Part 1 centralized the current implementation so these changes
 can happen without giving the agent write access to the benchmark pipeline.
+
+## Pilot Mode
+
+Use `research_manifest_pilot.toml` for the first end-to-end smoke test.
+It switches to the tiny `fast_switch_pilot_v1` benchmark, removes holdout runs,
+cuts the test suite down, limits the session to one small trial, and uses a
+shorter research timeout so stuck agent runs fail fast.
+
+Recommended pilot command:
+
+```powershell
+$env:PYTHONPATH='src'
+.\myenv\Scripts\python.exe scripts\run_autoresearch.py `
+  --manifest research_manifest_pilot.toml `
+  --program program_neuromod.md `
+  --research-command ".\myenv\Scripts\python.exe scripts\run_research_trial.py --program {program} --manifest {manifest} --trial {trial} --trial-dir {trial_dir} --repo-root {repo_root} --baseline-file {baseline_file}" `
+  --max-trials 1
+```

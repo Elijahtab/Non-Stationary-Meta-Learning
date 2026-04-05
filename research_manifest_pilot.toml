@@ -1,0 +1,46 @@
+[trial_limits]
+max_trials = 1
+max_new_python_files = 1
+max_net_new_lines = 160
+
+[validation]
+tests_command = "python -m pytest tests/test_trial_prompt.py tests/test_autoresearch.py tests/test_benchmarking.py tests/test_network.py tests/test_meta_env.py -q"
+tests_timeout_seconds = 600
+research_timeout_seconds = 240
+
+[benchmark]
+primary = "fast_switch_pilot_v1"
+holdout = []
+device = "cpu"
+primary_improvement_epsilon = 1e-6
+holdout_regression_tolerance = 0.0
+benchmark_timeout_seconds = 900
+
+[stopping]
+max_stale_trials = 1
+target_composite_score = 0.99
+
+[outputs]
+ledger_path = "autoresearch/trial_results_pilot.jsonl"
+scratch_dir = "autoresearch"
+
+[editable_surface]
+paths = [
+  "src/lifelong_learning/agents/brain/neuromod.py",
+  "src/lifelong_learning/agents/ppo/network.py",
+]
+
+[optional_editable_surface]
+paths = [
+  "src/lifelong_learning/agents/brain/signals.py",
+  "src/lifelong_learning/agents/brain/meta_agent.py",
+]
+
+[immutable_surface]
+paths = [
+  "scripts/run_frozen_benchmark.py",
+  "src/lifelong_learning/research/benchmarking.py",
+  "scripts/analyze_runs.py",
+  "scripts/plot_high_scale.py",
+  "src/lifelong_learning/envs",
+]

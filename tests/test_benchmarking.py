@@ -3,6 +3,7 @@ import json
 from lifelong_learning.research.benchmarking import (
     detect_regime_switch_steps,
     find_first_sustained_threshold_step,
+    get_frozen_benchmark,
     parse_run_config,
     score_brain_run,
     summarize_threshold_recovery,
@@ -19,6 +20,24 @@ def test_detect_regime_switch_steps_finds_value_changes():
     ]
 
     assert detect_regime_switch_steps(regime_points) == [20, 40]
+
+
+def test_get_frozen_benchmark_includes_pilot_spec():
+    spec = get_frozen_benchmark("fast_switch_pilot_v1")
+
+    assert spec.fixed_train_args["inner_total_timesteps"] == 12_000
+    assert spec.fixed_train_args["brain_episodes"] == 1
+    assert spec.sustained_points_required == 2
+
+
+def test_get_frozen_benchmark_uses_async_outer_vectorization_for_full_runs():
+    scout = get_frozen_benchmark("fast_switch_scout_v1")
+    holdout = get_frozen_benchmark("fast_switch_holdout_v1")
+
+    assert scout.fixed_train_args["brain_num_envs"] == 4
+    assert scout.fixed_train_args["brain_vectorization"] == "async"
+    assert holdout.fixed_train_args["brain_num_envs"] == 4
+    assert holdout.fixed_train_args["brain_vectorization"] == "async"
 
 
 def test_find_first_sustained_threshold_step_ignores_single_spike():

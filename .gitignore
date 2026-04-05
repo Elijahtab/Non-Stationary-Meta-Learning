@@ -11,6 +11,8 @@ venv/
 myenv/
 wandb/
 runs/
+autoresearch/
+benchmarks/
 checkpoints/
 data/
 *.pt
