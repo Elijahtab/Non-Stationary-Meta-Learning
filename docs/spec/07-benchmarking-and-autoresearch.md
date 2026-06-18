@@ -84,13 +84,16 @@ dead zone.
 ([`_compute_composite_score`](../../src/lifelong_learning/research/benchmarking.py#L624)):
 
 ```text
-composite_score = 0.50 · mean_post_switch_window_success_rate
-                + 0.25 · hit_rate_80
-                + 0.25 · normalized_median_steps_to_80
+composite_score = mean_post_switch_window_success_rate
 ```
 
-where `normalized_median_steps_to_80 = max(0, 1 − clipped_elapsed / usable_window)` rewards
-faster recovery ([`_normalize_recovery_steps`](../../src/lifelong_learning/research/benchmarking.py#L650)).
+The composite is the **post-switch window success rate** alone. Because that window average
+already integrates recovery *speed and level* over the first half of each post-switch regime
+(see `summarize_post_switch_success`), it is the most direct measure of the optimization target.
+The threshold terms (`hit_rate_80/95`, `median_steps_to_80/95`) are still computed and reported as
+standalone diagnostics, but they no longer enter the composite — at the calibration scale they
+were near-saturated and inverted condition rankings. A 0.95-threshold reliability/speed facet is
+planned for the final scored benchmark. See [docs/research-log/0001](../research-log/0001-2026-06-18-calibration-scoring.md).
 The supervisor compares trials on this single scalar (averaged across seeds by
 [`aggregate_benchmark_summary`](../../src/lifelong_learning/research/autoresearch.py#L421)).
 

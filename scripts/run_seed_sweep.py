@@ -109,6 +109,39 @@ PRESETS: dict[str, dict] = {
         },
         "score": {"sustained_points_required": 3, "post_switch_window_ratio": 0.5, "post_switch_buffer_steps": 500},
     },
+    # Harder calibration: paper8x8's task + inner-exploration settings, but calib5x5's cheap
+    # execution model (brain_num_envs=1 sync so cells parallelize via --max-parallel,
+    # decision_interval=10, no pretrain, 30 brain episodes). The 5x5 calibration saturated the
+    # scorer (everyone recovers; hit_rate_80~0.99) so conditions were indistinguishable; 8x8 is
+    # meant to open post-switch headroom so the signal-detection sweep can actually separate
+    # conditions before we trust the autoresearch loop. See docs/research-log/0001. NOTE: the
+    # inner_total_timesteps / inner_num_envs here are a best-guess starting point — validate with
+    # a single pilot cell (one condition, one seed) before committing a full 12-cell sweep, and
+    # adjust if 8x8 over- or under-saturates.
+    "calib8x8": {
+        "script": "train_brain",
+        "base": {
+            "env_id": "MiniGrid-MultiGoal-8x8-v0",
+            "num_regimes": 2,
+            "inner_total_timesteps": 800000,
+            "inner_steps_per_regime": 100000,
+            "inner_num_envs": 16,
+            "inner_num_steps": 128,
+            "inner_mode": "dyna",
+            "inner_intrinsic_coef": 0.015,
+            "inner_imagined_horizon": 10,
+            "inner_wm_lr": 0.0001,
+            "brain_episodes": 30,
+            "brain_num_envs": 1,
+            "brain_vectorization": "sync",
+            "pretrain_episodes": 0,
+            "decision_interval": 10,
+            "reward_mode": "recovery",
+            "save_every_episodes": 0,
+            "plot_every_episodes": 0,
+        },
+        "score": {"sustained_points_required": 3, "post_switch_window_ratio": 0.5, "post_switch_buffer_steps": 500},
+    },
     # Paper-faithful config: matches the paper's neuromodulated Brain run
     # (runs/brain_2_regimes_8x8_neuromod) so headline numbers are directly comparable to the
     # paper (0.7498 reference). 8x8 grid, 800k/100k inner, inner_num_envs=16, brain_num_envs=8

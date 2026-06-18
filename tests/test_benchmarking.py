@@ -259,4 +259,7 @@ def test_score_brain_run_aggregates_recovery_and_neuromodulation(tmp_path):
     assert score.mean_post_switch_policy_kl == pytest.approx(0.04)
     assert score.mean_post_switch_value_delta_abs == pytest.approx(0.4)
     assert score.mean_post_switch_neuromod_activity == pytest.approx(0.404)
-    assert score.composite_score == pytest.approx(0.93375)
+    # Composite is now the pure post-switch window success rate (see research-log/0001);
+    # the threshold terms remain as standalone diagnostics but no longer enter the composite.
+    assert score.composite_score == pytest.approx(0.8875)
+    assert score.composite_score == pytest.approx(score.mean_post_switch_window_success_rate)

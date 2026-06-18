@@ -563,10 +563,6 @@ def score_brain_run(
 
     composite_score = _compute_composite_score(
         mean_post_switch_window_success_rate=mean_post_switch_window_success_rate,
-        hit_rate_80=threshold_80_summary.hit_rate,
-        median_steps_to_80=threshold_80_summary.median_steps,
-        steps_per_regime=steps_per_regime,
-        post_switch_buffer_steps=post_switch_buffer_steps,
     )
 
     return BrainRunScore(
@@ -624,41 +620,21 @@ def _find_single_json(folder: str | Path) -> Path | None:
 def _compute_composite_score(
     *,
     mean_post_switch_window_success_rate: float | None,
-    hit_rate_80: float | None,
-    median_steps_to_80: float | None,
-    steps_per_regime: int,
-    post_switch_buffer_steps: int,
 ) -> float | None:
-    if (
-        mean_post_switch_window_success_rate is None
-        and hit_rate_80 is None
-        and median_steps_to_80 is None
-    ):
-        return None
-    normalized_steps_to_80 = _normalize_recovery_steps(
-        median_steps_to_80,
-        steps_per_regime=steps_per_regime,
-        post_switch_buffer_steps=post_switch_buffer_steps,
-    )
-    return float(
-        0.5 * (mean_post_switch_window_success_rate or 0.0)
-        + 0.25 * (hit_rate_80 or 0.0)
-        + 0.25 * (normalized_steps_to_80 or 0.0)
-    )
+    """Composite score for the calibration phase: the post-switch window success rate.
 
-
-def _normalize_recovery_steps(
-    median_steps: float | None,
-    *,
-    steps_per_regime: int,
-    post_switch_buffer_steps: int,
-) -> float | None:
-    if median_steps is None:
+    The post-switch window average already integrates recovery *speed and level* over the
+    first half of each post-switch regime (see ``summarize_post_switch_success``), so it is
+    the most direct measure of the thing the Brain is optimized for. The prior threshold
+    terms (``hit_rate_80`` + normalized ``steps_to_80``) were largely redundant with it and,
+    being near-saturated at the calibration scale, injected noise that inverted condition
+    rankings — so they are excluded from the composite here. They are still reported as
+    standalone diagnostics on ``BrainRunScore``. A 0.95-threshold reliability/speed facet is
+    planned for the final scored benchmark. See docs/research-log/0001.
+    """
+    if mean_post_switch_window_success_rate is None:
         return None
-    usable_window = max(1.0, float(steps_per_regime - post_switch_buffer_steps))
-    elapsed_after_buffer = max(0.0, float(median_steps) - float(post_switch_buffer_steps))
-    clipped_elapsed = min(elapsed_after_buffer, usable_window)
-    return float(max(0.0, 1.0 - (clipped_elapsed / usable_window)))
+    return float(mean_post_switch_window_success_rate)
 
 
 def _series_final_step(
