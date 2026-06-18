@@ -22,8 +22,11 @@ from lifelong_learning.agents.ppo.train import (
 from lifelong_learning.agents.brain.neuromod import (
     BRAIN_ACTION_DIM,
     BRAIN_CONTEXT_SLICE,
+    CONTEXT_CODE_DIM,
     log_neuromodulation_snapshot,
 )
+
+CONTEXT_CODE_SOURCES = ("brain", "random", "oracle", "zero")
 from lifelong_learning.agents.brain.signals import SignalExtractor, NUM_SIGNALS
 
 
@@ -76,9 +79,15 @@ class MetaEnv(gym.Env):
         max_intrinsic_coef: float = 0.5,
         start_episode: int = 1,
         disable_neuromodulation: bool = False,
+        context_code_source: str = "brain",
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
+
+        if context_code_source not in CONTEXT_CODE_SOURCES:
+            raise ValueError(
+                f"context_code_source must be one of {CONTEXT_CODE_SOURCES}, got {context_code_source!r}"
+            )
 
         self.start_episode = start_episode
         self.env_index = env_index
@@ -109,6 +118,8 @@ class MetaEnv(gym.Env):
         self.min_intrinsic_coef = min_intrinsic_coef
         self.max_intrinsic_coef = max_intrinsic_coef
         self.disable_neuromodulation = disable_neuromodulation
+        self.context_code_source = context_code_source
+        self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
 
         # Spaces
@@ -151,6 +162,14 @@ class MetaEnv(gym.Env):
             start_regime = int(self.np_random.integers(0, self.num_regimes))
         else:
             start_regime = self.start_regime
+
+        # For the "random" code ablation, draw one fixed, regime-agnostic code per episode.
+        # It controls for code *content*: the Brain still sets levers, but its learned code
+        # is replaced by uninformative noise of comparable magnitude.
+        if self.context_code_source == "random":
+            self._random_context_code = self.np_random.uniform(
+                -1.0, 1.0, size=CONTEXT_CODE_DIM
+            ).astype(np.float32)
 
         # Clean up any previous inner training
         if self._state is not None:
@@ -353,12 +372,40 @@ class MetaEnv(gym.Env):
         # Action[6]: anchoring_weight
         s.cfg.anchoring_weight = map_to_range(action[6], self.anchoring_weight_bounds)
 
-        # Action[7:]: neuromodulation context code
+        # Action[7:]: neuromodulation context code (source selectable for ablations)
         if not self.disable_neuromodulation and len(action) >= BRAIN_CONTEXT_SLICE.stop:
             import torch
-            context_code = torch.tensor(action[BRAIN_CONTEXT_SLICE], dtype=torch.float32, device=s.device)
+            code = self._resolve_context_code(action)
+            context_code = torch.tensor(code, dtype=torch.float32, device=s.device)
             s.model.set_context_code(context_code)
             self._log_neuromodulation_snapshot(context_code)
+
+    def _resolve_context_code(self, action: np.ndarray) -> np.ndarray:
+        """Select the neuromodulation context code per ``context_code_source``.
+
+        Scalar HP levers (action[0:7]) are always applied by the caller regardless of
+        source; only the 8-d code feeding the neuromodulator is swapped, which isolates
+        the contribution of the *code* from the contribution of the levers.
+
+        - ``brain``  : the Brain's emitted code (default; current behavior)
+        - ``zero``   : all-zeros → identity mask (modulation off, code path still logged)
+        - ``random`` : a per-episode fixed random code (controls for code *content*)
+        - ``oracle`` : a fixed one-hot of the otherwise-hidden current regime (upper bound)
+        """
+        source = self.context_code_source
+        if source == "zero":
+            return np.zeros(CONTEXT_CODE_DIM, dtype=np.float32)
+        if source == "random":
+            if self._random_context_code is None:
+                self._random_context_code = np.zeros(CONTEXT_CODE_DIM, dtype=np.float32)
+            return self._random_context_code
+        if source == "oracle":
+            code = np.zeros(CONTEXT_CODE_DIM, dtype=np.float32)
+            regime = int(getattr(self._state, "current_mode_regime", 0) or 0)
+            code[regime % CONTEXT_CODE_DIM] = 1.0
+            return code
+        # default: "brain"
+        return np.asarray(action[BRAIN_CONTEXT_SLICE], dtype=np.float32)
 
     def _log_neuromodulation_snapshot(self, context_code):
         """Record the Brain context code, decoded mask, and its effect on the current batch."""

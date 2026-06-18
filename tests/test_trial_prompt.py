@@ -89,7 +89,8 @@ def test_render_research_trial_prompt_includes_baseline_and_constraints(tmp_path
         "primary_benchmark": {
             "aggregate": {
                 "composite_score": 0.42,
-                "mean_episode_avg_success_rate": 0.51,
+                "mean_post_switch_window_success_rate": 0.68,
+                "mean_inner_time_avg_success_rate": 0.74,
                 "median_steps_to_80": 120.0,
                 "median_steps_to_95": 240.0,
                 "hit_rate_80": 0.9,
@@ -114,6 +115,8 @@ def test_render_research_trial_prompt_includes_baseline_and_constraints(tmp_path
 
     assert "Trial 2" in prompt
     assert "Baseline composite score: `0.42`" in prompt
+    assert "Baseline mean post-switch window success rate: `0.68`" in prompt
+    assert "Baseline mean inner time-avg success rate: `0.74`" in prompt
     assert "src/lifelong_learning/agents/brain/neuromod.py" in prompt
     assert "Try a better decoder." in prompt
     assert "16`, `32`, or `64`" in prompt

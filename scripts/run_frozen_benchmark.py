@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+import scripts.plot_high_scale as plot_high_scale
 import scripts.train_brain as train_brain_script
 from lifelong_learning.research.benchmarking import (
     FrozenBenchmarkSpec,
@@ -23,6 +24,7 @@ from lifelong_learning.research.benchmarking import (
 
 DEFAULT_RUN_ROOT = Path("runs")
 DEFAULT_BENCHMARK_REPORT_ROOT = Path("benchmarks")
+DEFAULT_HIGH_SCALE_SMOOTHING = 0.05
 
 
 def build_frozen_train_args(
@@ -62,6 +64,57 @@ def locate_new_run_dir(run_name: str, before_paths: set[Path], run_root: Path) -
     return new_paths[0]
 
 
+def iter_inner_run_dirs(run_dir: str | Path):
+    run_path = Path(run_dir)
+    for episode_dir in sorted(run_path.glob("episode_*")):
+        if not episode_dir.is_dir():
+            continue
+        for inner_dir in sorted(episode_dir.glob("ep*_env*")):
+            if inner_dir.is_dir():
+                yield inner_dir
+
+
+def derive_high_scale_interval(spec: FrozenBenchmarkSpec) -> int:
+    steps_per_regime = int(spec.fixed_train_args.get("inner_steps_per_regime", 50_000))
+    return max(1_000, steps_per_regime // 2)
+
+
+def generate_benchmark_plots(
+    run_dir: str | Path,
+    *,
+    interval: int,
+    smoothing: float = DEFAULT_HIGH_SCALE_SMOOTHING,
+) -> dict:
+    plotted_dirs: list[dict[str, object]] = []
+    errors: list[dict[str, str]] = []
+
+    for inner_dir in iter_inner_run_dirs(run_dir):
+        try:
+            plot_high_scale.generate_high_scale_plots(
+                str(inner_dir),
+                interval=interval,
+                smoothing=smoothing,
+            )
+        except Exception as exc:  # pragma: no cover - defensive guard for plotting only
+            errors.append({"folder": str(inner_dir), "error": str(exc)})
+            continue
+
+        png_paths = sorted(str(path) for path in inner_dir.glob("*.png"))
+        plotted_dirs.append(
+            {
+                "folder": str(inner_dir),
+                "png_paths": png_paths,
+                "png_count": len(png_paths),
+            }
+        )
+
+    return {
+        "folder_count": len(plotted_dirs),
+        "folders": plotted_dirs,
+        "errors": errors,
+    }
+
+
 def run_benchmark(spec: FrozenBenchmarkSpec, *, device: str) -> dict:
     run_root = DEFAULT_RUN_ROOT
     run_root.mkdir(parents=True, exist_ok=True)
@@ -87,10 +140,17 @@ def run_benchmark(spec: FrozenBenchmarkSpec, *, device: str) -> dict:
             run_dir,
             sustained_points_required=spec.sustained_points_required,
             post_switch_window_ratio=spec.post_switch_window_ratio,
+            post_switch_buffer_steps=spec.post_switch_buffer_steps,
+        )
+        plot_summary = generate_benchmark_plots(
+            run_dir,
+            interval=derive_high_scale_interval(spec),
         )
         score_payload = score.to_dict()
         score_payload["seed"] = seed
         score_payload["benchmark"] = spec.name
+        score_payload["run_dir"] = str(run_dir)
+        score_payload["high_scale_plots"] = plot_summary
         seed_reports.append(score_payload)
         write_score_report(report_dir / f"seed_{seed}_score.json", score_payload)
 
@@ -103,6 +163,7 @@ def run_benchmark(spec: FrozenBenchmarkSpec, *, device: str) -> dict:
         "fixed_train_args": spec.fixed_train_args,
         "sustained_points_required": spec.sustained_points_required,
         "post_switch_window_ratio": spec.post_switch_window_ratio,
+        "post_switch_buffer_steps": spec.post_switch_buffer_steps,
         "seed_reports": seed_reports,
     }
     write_score_report(report_dir / "summary.json", summary)
@@ -155,6 +216,7 @@ def main():
                     "fixed_train_args": spec.fixed_train_args,
                     "sustained_points_required": spec.sustained_points_required,
                     "post_switch_window_ratio": spec.post_switch_window_ratio,
+                    "post_switch_buffer_steps": spec.post_switch_buffer_steps,
                 },
                 indent=2,
             ))

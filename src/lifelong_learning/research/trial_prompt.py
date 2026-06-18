@@ -51,7 +51,12 @@ def build_trial_context_payload(
         },
         "baseline": {
             "primary_composite_score": primary_aggregate.get("composite_score"),
-            "primary_success_rate": primary_aggregate.get("mean_episode_avg_success_rate"),
+            "primary_mean_post_switch_window_success_rate": primary_aggregate.get(
+                "mean_post_switch_window_success_rate"
+            ),
+            "primary_inner_time_avg_success_rate": primary_aggregate.get(
+                "mean_inner_time_avg_success_rate"
+            ),
             "primary_median_steps_to_80": primary_aggregate.get("median_steps_to_80"),
             "primary_median_steps_to_95": primary_aggregate.get("median_steps_to_95"),
             "primary_hit_rate_80": primary_aggregate.get("hit_rate_80"),
@@ -108,7 +113,8 @@ def render_research_trial_prompt(
         "## Baseline Snapshot\n\n"
         f"- Primary benchmark: `{context['benchmark']['primary']}`\n"
         f"- Baseline composite score: `{baseline['primary_composite_score']}`\n"
-        f"- Baseline mean success rate: `{baseline['primary_success_rate']}`\n"
+        f"- Baseline mean post-switch window success rate: `{baseline['primary_mean_post_switch_window_success_rate']}`\n"
+        f"- Baseline mean inner time-avg success rate: `{baseline['primary_inner_time_avg_success_rate']}`\n"
         f"- Baseline median steps to 80%: `{baseline['primary_median_steps_to_80']}`\n"
         f"- Baseline median steps to 95%: `{baseline['primary_median_steps_to_95']}`\n"
         f"- Baseline hit rate 80%: `{baseline['primary_hit_rate_80']}`\n"

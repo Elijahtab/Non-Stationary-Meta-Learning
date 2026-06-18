@@ -1,4 +1,5 @@
 import json
+import pytest
 
 from lifelong_learning.research.benchmarking import (
     detect_regime_switch_steps,
@@ -6,6 +7,7 @@ from lifelong_learning.research.benchmarking import (
     get_frozen_benchmark,
     parse_run_config,
     score_brain_run,
+    summarize_post_switch_success,
     summarize_threshold_recovery,
 )
 
@@ -83,6 +85,7 @@ def test_summarize_threshold_recovery_returns_median_hit_rate():
         regime_points,
         threshold=0.80,
         sustained_points_required=3,
+        post_switch_buffer_steps=0,
     )
 
     assert summary.switch_count == 2
@@ -90,6 +93,62 @@ def test_summarize_threshold_recovery_returns_median_hit_rate():
     assert summary.hit_rate == 1.0
     assert summary.per_switch_steps == [2, 2]
     assert summary.median_steps == 2.0
+
+
+def test_summarize_threshold_recovery_applies_post_switch_buffer():
+    regime_points = [
+        [0, 0.0],
+        [1000, 1.0],
+        [2000, 1.0],
+    ]
+    success_points = [
+        [1020, 0.81],
+        [1040, 0.82],
+        [1060, 0.83],
+        [1520, 0.84],
+        [1540, 0.85],
+        [1560, 0.86],
+    ]
+
+    summary = summarize_threshold_recovery(
+        success_points,
+        regime_points,
+        threshold=0.80,
+        sustained_points_required=3,
+        post_switch_buffer_steps=500,
+    )
+
+    assert summary.switch_count == 1
+    assert summary.hit_count == 1
+    assert summary.per_switch_steps == [520]
+    assert summary.median_steps == 520.0
+
+
+def test_summarize_post_switch_success_uses_buffered_window():
+    regime_points = [
+        [0, 0.0],
+        [1000, 1.0],
+        [2000, 1.0],
+    ]
+    success_points = [
+        [1100, 0.20],
+        [1520, 0.80],
+        [1540, 0.90],
+        [1560, 1.00],
+    ]
+
+    summary = summarize_post_switch_success(
+        success_points,
+        regime_points,
+        steps_per_regime=1000,
+        post_switch_window_ratio=0.5,
+        post_switch_buffer_steps=500,
+    )
+
+    assert summary["switch_count"] == 1
+    assert summary["window_count"] == 1
+    assert summary["mean_success_rate"] == pytest.approx(0.9)
+    assert summary["per_window_success_rate"] == pytest.approx([0.9])
 
 
 def test_parse_run_config_reads_scalars(tmp_path):
@@ -129,7 +188,7 @@ def test_score_brain_run_aggregates_recovery_and_neuromodulation(tmp_path):
                 "Brain Training Configuration:",
                 "----------------------------------------",
                 "brain_episodes: 4",
-                "inner_steps_per_regime: 100000",
+                "inner_steps_per_regime: 1000",
                 "reward_mode: recovery",
             ]
         ),
@@ -149,32 +208,40 @@ def test_score_brain_run_aggregates_recovery_and_neuromodulation(tmp_path):
             {
                 "charts/regime_id": [
                     [0, 0.0],
-                    [100000, 1.0],
-                    [200000, 0.0],
+                    [1000, 1.0],
+                    [2000, 0.0],
                 ],
                 "charts/success_rate": [
-                    [100020, 0.81],
-                    [100040, 0.82],
-                    [100060, 0.83],
-                    [100100, 0.95],
-                    [100120, 0.96],
-                    [100140, 0.97],
-                    [200020, 0.80],
-                    [200040, 0.81],
-                    [200060, 0.82],
-                    [200100, 0.95],
-                    [200120, 0.96],
-                    [200140, 0.97],
+                    [1100, 0.81],
+                    [1520, 0.81],
+                    [1540, 0.82],
+                    [1560, 0.83],
+                    [1700, 0.95],
+                    [1720, 0.96],
+                    [1740, 0.97],
+                    [2100, 0.80],
+                    [2520, 0.80],
+                    [2540, 0.81],
+                    [2560, 0.82],
+                    [2700, 0.95],
+                    [2720, 0.96],
+                    [2740, 0.97],
                 ],
                 "brain_neuromod/policy_kl_vs_unmasked": [
-                    [100010, 0.01],
-                    [150000, 0.02],
-                    [200010, 0.03],
+                    [1100, 0.01],
+                    [1510, 0.02],
+                    [1700, 0.03],
+                    [2100, 0.04],
+                    [2510, 0.05],
+                    [2700, 0.06],
                 ],
                 "brain_neuromod/value_delta_abs_vs_unmasked": [
-                    [100010, 0.10],
-                    [150000, 0.20],
-                    [200010, 0.30],
+                    [1100, 0.10],
+                    [1510, 0.20],
+                    [1700, 0.30],
+                    [2100, 0.40],
+                    [2510, 0.50],
+                    [2700, 0.60],
                 ],
             },
             handle,
@@ -183,11 +250,13 @@ def test_score_brain_run_aggregates_recovery_and_neuromodulation(tmp_path):
     score = score_brain_run(run_dir)
 
     assert score.mean_episode_avg_success_rate == 0.6
-    assert score.median_steps_to_80 == 20.0
-    assert score.median_steps_to_95 == 100.0
+    assert score.mean_inner_time_avg_success_rate == pytest.approx(0.8757142857142858)
+    assert score.mean_post_switch_window_success_rate == pytest.approx(0.8875)
+    assert score.median_steps_to_80 == 520.0
+    assert score.median_steps_to_95 == 700.0
     assert score.hit_rate_80 == 1.0
     assert score.hit_rate_95 == 1.0
-    assert score.mean_post_switch_policy_kl is not None
-    assert score.mean_post_switch_value_delta_abs is not None
-    assert score.mean_post_switch_neuromod_activity is not None
-    assert score.composite_score is not None
+    assert score.mean_post_switch_policy_kl == pytest.approx(0.04)
+    assert score.mean_post_switch_value_delta_abs == pytest.approx(0.4)
+    assert score.mean_post_switch_neuromod_activity == pytest.approx(0.404)
+    assert score.composite_score == pytest.approx(0.93375)

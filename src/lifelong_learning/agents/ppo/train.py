@@ -50,6 +50,25 @@ def configure_runtime_threads(num_threads: int | None):
         pass
 
 
+def resolve_inner_save_dir(*, save_dir: str, log_dir: str, logger_full_dir: str) -> str:
+    """
+    Keep inner checkpoints colocated with the concrete logger directory.
+
+    MetaEnv launches multiple async outer workers that share an episode-level
+    parent folder. When the caller points `save_dir` at `<episode>/inner_checkpoints`,
+    redirect checkpoints into each worker's actual logger directory instead so
+    workers do not contend over the same checkpoint folder.
+    """
+    normalized_parent = os.path.normpath(os.path.dirname(save_dir))
+    normalized_log_dir = os.path.normpath(log_dir)
+    if (
+        os.path.basename(save_dir) == "inner_checkpoints"
+        and normalized_parent == normalized_log_dir
+    ):
+        return os.path.join(logger_full_dir, "inner_checkpoints")
+    return save_dir
+
+
 # =========================================================================
 # Inner Training State (exposed for Meta-RL "Brain" controller)
 # =========================================================================
@@ -237,6 +256,11 @@ def init_inner_training(
         run_name = f"ppo_{env_id}_s{cfg.seed}"
 
     logger = DataLogger(run_name=run_name, log_dir=log_dir)
+    save_dir = resolve_inner_save_dir(
+        save_dir=save_dir,
+        log_dir=log_dir,
+        logger_full_dir=logger.full_dir,
+    )
     os.makedirs(save_dir, exist_ok=True)
 
     obs, info = envs.reset(seed=cfg.seed)
@@ -680,6 +704,7 @@ def run_inner_update(state: InnerTrainState) -> dict:
 
     if update % s.save_every_updates == 0 or update == s.num_updates:
         ckpt_path = os.path.join(s.save_dir, f"{s.run_name}_update{update}.pt")
+        os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
         torch.save(
             {
                 "model_state_dict": s.model.state_dict(),

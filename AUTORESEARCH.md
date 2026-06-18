@@ -171,6 +171,8 @@ future trials may continue editing it.
 The scorer reports:
 
 - `mean_episode_avg_success_rate`
+- `mean_inner_time_avg_success_rate`
+- `mean_post_switch_window_success_rate`
 - `median_steps_to_80`
 - `median_steps_to_95`
 - `hit_rate_80`
@@ -187,13 +189,25 @@ The scorer reports:
 
 For each regime switch:
 
-1. Look only between that switch and the next switch.
-2. Find the first point where the threshold is sustained for `K` consecutive
+1. Ignore the first `500` steps after the switch.
+2. Look only between that buffered start and the next switch.
+3. Find the first point where the threshold is sustained for `K` consecutive
    logged success-rate points.
-3. Measure steps from the switch to the first point in that sustained block.
-4. Aggregate across all switch windows using the median.
+4. Measure steps from the switch to the first point in that sustained block.
+5. Aggregate across all switch windows using the median.
 
 This avoids a single noisy point counting as recovery.
+
+### Composite Score
+
+`composite_score` is now switch-centered instead of whole-run centered:
+
+- `50%` `mean_post_switch_window_success_rate`
+- `25%` `hit_rate_80`
+- `25%` normalized `median_steps_to_80`
+
+`mean_post_switch_window_success_rate` is computed over a fixed post-switch
+window after the same `500`-step dead zone.
 
 ## Neuromodulation Freedom
 

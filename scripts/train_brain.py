@@ -381,6 +381,7 @@ def train_brain(args):
             max_intrinsic_coef=args.max_intrinsic_coef,
             start_episode=start_episode,
             disable_neuromodulation=args.disable_neuromodulation,
+            context_code_source=getattr(args, "context_code_source", "brain"),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -798,6 +799,12 @@ def main():
                    help="Brain reward mode: 'auc' (original), 'recovery' (hybrid delta + urgency), or 'curriculum' (exponential multiplier for returning regimes)")
     p.add_argument("--disable_neuromodulation", action="store_true",
                    help="Disable neuromodulation gating (Brain still outputs the full action vector but context code is ignored)")
+    p.add_argument("--context_code_source", type=str, default="brain",
+                   choices=["brain", "random", "oracle", "zero"],
+                   help="Source of the neuromodulation context code: 'brain' (learned, default), "
+                        "'random' (fixed per-episode noise control), 'oracle' (one-hot of the "
+                        "hidden regime; upper bound), or 'zero' (identity mask). Scalar HP levers "
+                        "are always Brain-controlled; only the code is swapped.")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

@@ -21,6 +21,7 @@ class FrozenBenchmarkSpec:
     fixed_train_args: dict[str, Any]
     sustained_points_required: int = 3
     post_switch_window_ratio: float = 0.5
+    post_switch_buffer_steps: int = 500
 
 
 FROZEN_BENCHMARKS: dict[str, FrozenBenchmarkSpec] = {
@@ -170,6 +171,8 @@ class BrainRunScore:
     inner_run_count: int
     switch_count: int
     mean_episode_avg_success_rate: float | None
+    mean_inner_time_avg_success_rate: float | None
+    mean_post_switch_window_success_rate: float | None
     median_steps_to_80: float | None
     median_steps_to_95: float | None
     hit_rate_80: float | None
@@ -264,12 +267,60 @@ def find_first_sustained_threshold_step(
     return None
 
 
+def summarize_post_switch_success(
+    success_points: list[list[float]] | list[tuple[float, float]],
+    regime_points: list[list[float]] | list[tuple[float, float]],
+    *,
+    steps_per_regime: int,
+    post_switch_window_ratio: float = 0.5,
+    post_switch_buffer_steps: int = 500,
+) -> dict[str, Any]:
+    switches = detect_regime_switch_steps(regime_points)
+    if not switches:
+        return {
+            "switch_count": 0,
+            "window_count": 0,
+            "mean_success_rate": None,
+            "per_window_success_rate": [],
+        }
+
+    final_step = _series_final_step(success_points, regime_points)
+    window_width = max(1, int(math.ceil(steps_per_regime * post_switch_window_ratio)))
+    per_window_success_rate: list[float] = []
+
+    for index, switch_step in enumerate(switches):
+        next_switch_step = switches[index + 1] if index + 1 < len(switches) else final_step
+        window_start = switch_step + post_switch_buffer_steps
+        window_end = min(next_switch_step, window_start + window_width)
+        if window_start >= window_end:
+            continue
+
+        window_success = [
+            float(value)
+            for step, value in success_points
+            if int(step) > window_start and int(step) <= window_end
+        ]
+        if not window_success:
+            continue
+        per_window_success_rate.append(float(np.mean(window_success)))
+
+    return {
+        "switch_count": len(switches),
+        "window_count": len(per_window_success_rate),
+        "mean_success_rate": (
+            float(np.mean(per_window_success_rate)) if per_window_success_rate else None
+        ),
+        "per_window_success_rate": per_window_success_rate,
+    }
+
+
 def summarize_threshold_recovery(
     success_points: list[list[float]] | list[tuple[float, float]],
     regime_points: list[list[float]] | list[tuple[float, float]],
     *,
     threshold: float,
     sustained_points_required: int,
+    post_switch_buffer_steps: int = 500,
 ) -> ThresholdRecoverySummary:
     switches = detect_regime_switch_steps(regime_points)
     if not switches:
@@ -282,10 +333,7 @@ def summarize_threshold_recovery(
             median_steps=None,
         )
 
-    if success_points:
-        final_step = int(max(point[0] for point in success_points)) + 1
-    else:
-        final_step = int(max(point[0] for point in regime_points)) + 1
+    final_step = _series_final_step(success_points, regime_points)
 
     per_switch_steps: list[int] = []
     for index, switch_step in enumerate(switches):
@@ -293,7 +341,7 @@ def summarize_threshold_recovery(
         sustained_step = find_first_sustained_threshold_step(
             success_points,
             threshold=threshold,
-            start_step=switch_step,
+            start_step=switch_step + post_switch_buffer_steps,
             end_step=next_switch_step,
             sustained_points_required=sustained_points_required,
         )
@@ -320,6 +368,7 @@ def summarize_post_switch_neuromodulation(
     *,
     steps_per_regime: int,
     post_switch_window_ratio: float = 0.5,
+    post_switch_buffer_steps: int = 500,
 ) -> dict[str, Any]:
     regime_points = data.get("charts/regime_id", [])
     switches = detect_regime_switch_steps(regime_points)
@@ -345,7 +394,7 @@ def summarize_post_switch_neuromodulation(
             "per_window_activity": [],
         }
 
-    final_step = int(max(point[0] for point in regime_points)) + 1
+    final_step = _series_final_step(regime_points, policy_points, value_points)
     window_width = max(1, int(math.ceil(steps_per_regime * post_switch_window_ratio)))
 
     policy_window_means: list[float] = []
@@ -354,17 +403,20 @@ def summarize_post_switch_neuromodulation(
 
     for index, switch_step in enumerate(switches):
         next_switch_step = switches[index + 1] if index + 1 < len(switches) else final_step
-        window_end = min(next_switch_step, switch_step + window_width)
+        window_start = switch_step + post_switch_buffer_steps
+        window_end = min(next_switch_step, window_start + window_width)
+        if window_start >= window_end:
+            continue
 
         window_policy = [
             float(value)
             for step, value in policy_points
-            if int(step) > switch_step and int(step) <= window_end
+            if int(step) > window_start and int(step) <= window_end
         ]
         window_value = [
             float(value)
             for step, value in value_points
-            if int(step) > switch_step and int(step) <= window_end
+            if int(step) > window_start and int(step) <= window_end
         ]
 
         if not window_policy and not window_value:
@@ -391,6 +443,7 @@ def score_brain_run(
     *,
     sustained_points_required: int = 3,
     post_switch_window_ratio: float = 0.5,
+    post_switch_buffer_steps: int = 500,
 ) -> BrainRunScore:
     run_path = Path(run_dir)
     config = parse_run_config(run_path)
@@ -408,25 +461,38 @@ def score_brain_run(
     policy_kl_values: list[float] = []
     value_delta_values: list[float] = []
     activity_values: list[float] = []
+    inner_time_avg_success_rates: list[float] = []
+    post_switch_success_rates: list[float] = []
 
     for inner_json in iter_inner_run_json_logs(run_path):
         data = load_json_log(inner_json)
+        success_points = data.get("charts/success_rate", [])
+        post_switch_success = summarize_post_switch_success(
+            success_points,
+            data.get("charts/regime_id", []),
+            steps_per_regime=steps_per_regime,
+            post_switch_window_ratio=post_switch_window_ratio,
+            post_switch_buffer_steps=post_switch_buffer_steps,
+        )
         threshold_80 = summarize_threshold_recovery(
-            data.get("charts/success_rate", []),
+            success_points,
             data.get("charts/regime_id", []),
             threshold=0.80,
             sustained_points_required=sustained_points_required,
+            post_switch_buffer_steps=post_switch_buffer_steps,
         )
         threshold_95 = summarize_threshold_recovery(
-            data.get("charts/success_rate", []),
+            success_points,
             data.get("charts/regime_id", []),
             threshold=0.95,
             sustained_points_required=sustained_points_required,
+            post_switch_buffer_steps=post_switch_buffer_steps,
         )
         neuromod = summarize_post_switch_neuromodulation(
             data,
             steps_per_regime=steps_per_regime,
             post_switch_window_ratio=post_switch_window_ratio,
+            post_switch_buffer_steps=post_switch_buffer_steps,
         )
 
         total_switches += threshold_80.switch_count
@@ -434,16 +500,27 @@ def score_brain_run(
         hit_count_95 += threshold_95.hit_count
         all_steps_80.extend(threshold_80.per_switch_steps)
         all_steps_95.extend(threshold_95.per_switch_steps)
+        if post_switch_success["mean_success_rate"] is not None:
+            post_switch_success_rates.append(float(post_switch_success["mean_success_rate"]))
         if neuromod["mean_policy_kl"] is not None:
             policy_kl_values.append(float(neuromod["mean_policy_kl"]))
         if neuromod["mean_value_delta_abs"] is not None:
             value_delta_values.append(float(neuromod["mean_value_delta_abs"]))
         if neuromod["mean_activity"] is not None:
             activity_values.append(float(neuromod["mean_activity"]))
+        time_avg_success_rate = (
+            float(np.mean([float(point[1]) for point in success_points]))
+            if success_points
+            else None
+        )
+        if time_avg_success_rate is not None:
+            inner_time_avg_success_rates.append(time_avg_success_rate)
 
         inner_run_scores.append(
             {
                 "log_path": str(inner_json),
+                "time_avg_success_rate": time_avg_success_rate,
+                "post_switch_success": post_switch_success,
                 "threshold_80": asdict(threshold_80),
                 "threshold_95": asdict(threshold_95),
                 "neuromodulation": neuromod,
@@ -457,6 +534,12 @@ def score_brain_run(
         float(np.mean([float(point[1]) for point in episode_success_points]))
         if episode_success_points
         else None
+    )
+    mean_inner_time_avg_success_rate = (
+        float(np.mean(inner_time_avg_success_rates)) if inner_time_avg_success_rates else None
+    )
+    mean_post_switch_window_success_rate = (
+        float(np.mean(post_switch_success_rates)) if post_switch_success_rates else None
     )
 
     threshold_80_summary = ThresholdRecoverySummary(
@@ -479,12 +562,11 @@ def score_brain_run(
     )
 
     composite_score = _compute_composite_score(
-        mean_episode_avg_success_rate=mean_episode_avg_success_rate,
+        mean_post_switch_window_success_rate=mean_post_switch_window_success_rate,
         hit_rate_80=threshold_80_summary.hit_rate,
-        hit_rate_95=threshold_95_summary.hit_rate,
         median_steps_to_80=threshold_80_summary.median_steps,
-        median_steps_to_95=threshold_95_summary.median_steps,
         steps_per_regime=steps_per_regime,
+        post_switch_buffer_steps=post_switch_buffer_steps,
     )
 
     return BrainRunScore(
@@ -493,6 +575,8 @@ def score_brain_run(
         inner_run_count=len(inner_run_scores),
         switch_count=total_switches,
         mean_episode_avg_success_rate=mean_episode_avg_success_rate,
+        mean_inner_time_avg_success_rate=mean_inner_time_avg_success_rate,
+        mean_post_switch_window_success_rate=mean_post_switch_window_success_rate,
         median_steps_to_80=threshold_80_summary.median_steps,
         median_steps_to_95=threshold_95_summary.median_steps,
         hit_rate_80=threshold_80_summary.hit_rate,
@@ -539,32 +623,54 @@ def _find_single_json(folder: str | Path) -> Path | None:
 
 def _compute_composite_score(
     *,
-    mean_episode_avg_success_rate: float | None,
+    mean_post_switch_window_success_rate: float | None,
     hit_rate_80: float | None,
-    hit_rate_95: float | None,
     median_steps_to_80: float | None,
-    median_steps_to_95: float | None,
     steps_per_regime: int,
+    post_switch_buffer_steps: int,
 ) -> float | None:
-    if mean_episode_avg_success_rate is None:
+    if (
+        mean_post_switch_window_success_rate is None
+        and hit_rate_80 is None
+        and median_steps_to_80 is None
+    ):
         return None
-
-    norm_80 = _normalize_recovery_steps(median_steps_to_80, steps_per_regime)
-    norm_95 = _normalize_recovery_steps(median_steps_to_95, steps_per_regime)
-    score = (
-        0.55 * mean_episode_avg_success_rate
-        + 0.20 * (hit_rate_80 or 0.0)
-        + 0.10 * (hit_rate_95 or 0.0)
-        + 0.10 * norm_80
-        + 0.05 * norm_95
+    normalized_steps_to_80 = _normalize_recovery_steps(
+        median_steps_to_80,
+        steps_per_regime=steps_per_regime,
+        post_switch_buffer_steps=post_switch_buffer_steps,
     )
-    return float(score)
+    return float(
+        0.5 * (mean_post_switch_window_success_rate or 0.0)
+        + 0.25 * (hit_rate_80 or 0.0)
+        + 0.25 * (normalized_steps_to_80 or 0.0)
+    )
 
 
-def _normalize_recovery_steps(median_steps_value: float | None, steps_per_regime: int) -> float:
-    if median_steps_value is None or steps_per_regime <= 0:
-        return 0.0
-    return max(0.0, 1.0 - float(median_steps_value) / float(steps_per_regime))
+def _normalize_recovery_steps(
+    median_steps: float | None,
+    *,
+    steps_per_regime: int,
+    post_switch_buffer_steps: int,
+) -> float | None:
+    if median_steps is None:
+        return None
+    usable_window = max(1.0, float(steps_per_regime - post_switch_buffer_steps))
+    elapsed_after_buffer = max(0.0, float(median_steps) - float(post_switch_buffer_steps))
+    clipped_elapsed = min(elapsed_after_buffer, usable_window)
+    return float(max(0.0, 1.0 - (clipped_elapsed / usable_window)))
+
+
+def _series_final_step(
+    *point_series: list[list[float]] | list[tuple[float, float]],
+) -> int:
+    max_step: float | None = None
+    for series in point_series:
+        for point in series:
+            point_step = float(point[0])
+            if max_step is None or point_step > max_step:
+                max_step = point_step
+    return int(max_step or 0) + 1
 
 
 def _parse_scalar(raw_value: str) -> Any:

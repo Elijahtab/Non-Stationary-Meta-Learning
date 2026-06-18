@@ -12,6 +12,7 @@ research_timeout_seconds = 1800
 primary = "fast_switch_scout_v1"
 holdout = ["fast_switch_holdout_v1"]
 device = "cuda"
+reuse_cached_baseline = true
 primary_improvement_epsilon = 1e-6
 holdout_regression_tolerance = 0.0
 

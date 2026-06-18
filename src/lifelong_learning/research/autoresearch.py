@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -43,6 +44,16 @@ MANAGED_FILE_SUFFIXES = {
 DEFAULT_PRIMARY_IMPROVEMENT_EPSILON = 1e-9
 DEFAULT_HOLDOUT_REGRESSION_TOLERANCE = 0.0
 DEFAULT_TESTS_TIMEOUT_SECONDS = 1_800
+DEFAULT_REUSE_CACHED_BASELINE = True
+DEFAULT_BASELINE_FINGERPRINT_PATHS = (
+    "scripts/run_frozen_benchmark.py",
+    "scripts/train_brain.py",
+    "scripts/plot_high_scale.py",
+    "src/lifelong_learning/research/benchmarking.py",
+    "src/lifelong_learning/agents/brain",
+    "src/lifelong_learning/agents/ppo",
+    "src/lifelong_learning/envs",
+)
 
 
 @dataclass(frozen=True)
@@ -67,6 +78,7 @@ class BenchmarkConfig:
     primary_improvement_epsilon: float = DEFAULT_PRIMARY_IMPROVEMENT_EPSILON
     holdout_regression_tolerance: float = DEFAULT_HOLDOUT_REGRESSION_TOLERANCE
     benchmark_timeout_seconds: int | None = None
+    reuse_cached_baseline: bool = DEFAULT_REUSE_CACHED_BASELINE
 
 
 @dataclass(frozen=True)
@@ -244,6 +256,9 @@ def load_research_manifest(path: str | Path) -> AutoresearchManifest:
                 )
             ),
             benchmark_timeout_seconds=_optional_int(benchmark.get("benchmark_timeout_seconds")),
+            reuse_cached_baseline=bool(
+                benchmark.get("reuse_cached_baseline", DEFAULT_REUSE_CACHED_BASELINE)
+            ),
         ),
         stopping=StoppingConfig(
             max_stale_trials=int(stopping["max_stale_trials"]),
@@ -410,6 +425,12 @@ def aggregate_benchmark_summary(summary: dict[str, Any], *, report_dir: str | No
         "seed_count": len(seed_reports),
         "composite_score": _mean_field(seed_reports, "composite_score"),
         "mean_episode_avg_success_rate": _mean_field(seed_reports, "mean_episode_avg_success_rate"),
+        "mean_inner_time_avg_success_rate": _mean_field(
+            seed_reports, "mean_inner_time_avg_success_rate"
+        ),
+        "mean_post_switch_window_success_rate": _mean_field(
+            seed_reports, "mean_post_switch_window_success_rate"
+        ),
         "median_steps_to_80": _mean_field(seed_reports, "median_steps_to_80"),
         "median_steps_to_95": _mean_field(seed_reports, "median_steps_to_95"),
         "hit_rate_80": _mean_field(seed_reports, "hit_rate_80"),
@@ -578,6 +599,7 @@ class AutoresearchSupervisor:
             if self.research_command
             else None
         )
+        baseline_cache_preview = self._build_baseline_cache_preview()
         return {
             "repo_root": str(self.repo_root),
             "manifest_path": str(self.manifest_path),
@@ -586,6 +608,7 @@ class AutoresearchSupervisor:
             "research_command_template": self.research_command or None,
             "trial_1_command_preview": preview_command,
             "manifest": self.manifest.to_dict(),
+            "baseline_cache": baseline_cache_preview,
         }
 
     def run(self, *, max_trials: int | None = None, dry_run: bool = False) -> dict[str, Any]:
@@ -657,6 +680,41 @@ class AutoresearchSupervisor:
     def _run_baseline(self) -> tuple[dict[str, Any], float | None, dict[str, float | None]]:
         baseline_dir = self.session_dir / "baseline"
         baseline_dir.mkdir(parents=True, exist_ok=True)
+        baseline_cache = self._build_baseline_cache_preview()
+
+        if baseline_cache["enabled"] and baseline_cache["cache_hit"]:
+            cached_entry = json.loads(
+                Path(baseline_cache["source_baseline_summary"]).read_text(encoding="utf-8")
+            )
+            cached_entry["session_id"] = self.session_id
+            cached_entry["timestamp_utc"] = _timestamp_utc()
+            cached_entry["status"] = "accepted"
+            cached_entry["reason"] = "baseline_cache_hit"
+            cached_entry["baseline_cache"] = {
+                **cached_entry.get("baseline_cache", {}),
+                "enabled": True,
+                "reused": True,
+                "fingerprint": baseline_cache["fingerprint"],
+                "fingerprint_paths": baseline_cache["fingerprint_paths"],
+                "source_session_id": baseline_cache["source_session_id"],
+                "source_baseline_summary": baseline_cache["source_baseline_summary"],
+            }
+            cache_note = (
+                f"Reused cached baseline from session {baseline_cache['source_session_id']}\n"
+                f"Source summary: {baseline_cache['source_baseline_summary']}\n"
+                f"Fingerprint: {baseline_cache['fingerprint']}\n"
+            )
+            (baseline_dir / "cache_hit.txt").write_text(cache_note, encoding="utf-8")
+            baseline_summary_path = self.session_dir / "baseline_summary.json"
+            baseline_summary_path.write_text(json.dumps(cached_entry, indent=2), encoding="utf-8")
+            return (
+                cached_entry,
+                cached_entry["primary_benchmark"]["aggregate"].get("composite_score"),
+                {
+                    item["name"]: item["aggregate"].get("composite_score")
+                    for item in cached_entry.get("holdout_benchmarks", [])
+                },
+            )
 
         primary_execution = self.benchmark_runner(
             self.repo_root,
@@ -689,6 +747,14 @@ class AutoresearchSupervisor:
             "primary_benchmark": _benchmark_payload(primary_execution),
             "holdout_benchmarks": [_benchmark_payload(item) for item in holdout_executions],
             "best_primary_score": primary_execution.aggregate.get("composite_score"),
+            "baseline_cache": {
+                "enabled": baseline_cache["enabled"],
+                "reused": False,
+                "fingerprint": baseline_cache["fingerprint"],
+                "fingerprint_paths": baseline_cache["fingerprint_paths"],
+                "source_session_id": None,
+                "source_baseline_summary": None,
+            },
         }
         baseline_summary_path = self.session_dir / "baseline_summary.json"
         baseline_summary_path.write_text(json.dumps(baseline_entry, indent=2), encoding="utf-8")
@@ -951,6 +1017,83 @@ class AutoresearchSupervisor:
             handle.write(json.dumps(record, sort_keys=True))
             handle.write("\n")
 
+    def _build_baseline_cache_preview(self) -> dict[str, Any]:
+        fingerprint_payload = self._build_baseline_fingerprint_payload()
+        cached_summary_path, cached_entry = self._find_cached_baseline(
+            fingerprint_payload["fingerprint"]
+        )
+        return {
+            "enabled": self.manifest.benchmark.reuse_cached_baseline,
+            "fingerprint": fingerprint_payload["fingerprint"],
+            "fingerprint_paths": fingerprint_payload["fingerprint_paths"],
+            "cache_hit": cached_summary_path is not None and cached_entry is not None,
+            "source_session_id": None if cached_entry is None else cached_entry.get("session_id"),
+            "source_baseline_summary": (
+                None if cached_summary_path is None else str(cached_summary_path)
+            ),
+        }
+
+    def _build_baseline_fingerprint_payload(self) -> dict[str, Any]:
+        benchmark_names = (self.manifest.benchmark.primary, *self.manifest.benchmark.holdout)
+        benchmark_specs = [asdict(get_frozen_benchmark(name)) for name in benchmark_names]
+        fingerprint_paths = _collect_repo_fingerprint_paths(
+            self.repo_root,
+            DEFAULT_BASELINE_FINGERPRINT_PATHS,
+        )
+        runtime = {
+            "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
+            "platform": sys.platform,
+            "torch_version": _safe_torch_version(),
+        }
+        payload = {
+            "device": self.device,
+            "primary_benchmark": self.manifest.benchmark.primary,
+            "holdout_benchmarks": list(self.manifest.benchmark.holdout),
+            "benchmark_specs": benchmark_specs,
+            "runtime": runtime,
+        }
+        digest = hashlib.sha256()
+        digest.update(json.dumps(payload, sort_keys=True).encode("utf-8"))
+        for relative_path in fingerprint_paths:
+            digest.update(relative_path.encode("utf-8"))
+            digest.update((self.repo_root / relative_path).read_bytes())
+        return {
+            "fingerprint": digest.hexdigest(),
+            "fingerprint_paths": list(fingerprint_paths),
+            "payload": payload,
+        }
+
+    def _find_cached_baseline(
+        self,
+        fingerprint: str,
+    ) -> tuple[Path | None, dict[str, Any] | None]:
+        if not self.manifest.benchmark.reuse_cached_baseline:
+            return None, None
+
+        scratch_root = self.repo_root / self.manifest.outputs.scratch_dir
+        if not scratch_root.exists():
+            return None, None
+
+        summary_paths = sorted(
+            scratch_root.glob("*/baseline_summary.json"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        for summary_path in summary_paths:
+            if summary_path.parent.parent.resolve() == self.session_dir.resolve():
+                continue
+            try:
+                entry = json.loads(summary_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+            cache_info = entry.get("baseline_cache", {})
+            if cache_info.get("fingerprint") != fingerprint:
+                continue
+            if not _baseline_reports_exist(entry):
+                continue
+            return summary_path, entry
+        return None, None
+
     def _write_session_summary(
         self,
         *,
@@ -1060,6 +1203,48 @@ def _mean_field(items: list[dict[str, Any]], key: str) -> float | None:
     if not values:
         return None
     return float(sum(values) / len(values))
+
+
+def _collect_repo_fingerprint_paths(
+    repo_root: Path,
+    entries: tuple[str, ...],
+) -> tuple[str, ...]:
+    fingerprint_paths: set[str] = set()
+    for entry in entries:
+        normalized_entry = _normalize_relative_path(entry)
+        absolute_path = repo_root / normalized_entry
+        if absolute_path.is_file():
+            if _is_managed_file(normalized_entry):
+                fingerprint_paths.add(normalized_entry)
+            continue
+        if not absolute_path.is_dir():
+            continue
+        for nested_path in absolute_path.rglob("*"):
+            if not nested_path.is_file():
+                continue
+            relative_path = _normalize_relative_path(nested_path.relative_to(repo_root).as_posix())
+            if _is_managed_file(relative_path):
+                fingerprint_paths.add(relative_path)
+    return tuple(sorted(fingerprint_paths))
+
+
+def _safe_torch_version() -> str | None:
+    try:
+        import torch
+    except Exception:  # pragma: no cover - import fallback only
+        return None
+    return getattr(torch, "__version__", None)
+
+
+def _baseline_reports_exist(entry: dict[str, Any]) -> bool:
+    benchmark_payloads = [entry.get("primary_benchmark"), *entry.get("holdout_benchmarks", [])]
+    for payload in benchmark_payloads:
+        if not isinstance(payload, dict):
+            return False
+        report_dir = payload.get("report_dir")
+        if report_dir is not None and not Path(report_dir).exists():
+            return False
+    return True
 
 
 def _benchmark_payload(execution: BenchmarkExecution) -> dict[str, Any]:

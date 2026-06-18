@@ -131,6 +131,8 @@ def _fake_benchmark_runner_factory(scores_by_name: dict[str, list[float]]):
                 {
                     "composite_score": score,
                     "mean_episode_avg_success_rate": score,
+                    "mean_inner_time_avg_success_rate": score,
+                    "mean_post_switch_window_success_rate": score,
                     "median_steps_to_80": 10.0,
                     "median_steps_to_95": 20.0,
                     "hit_rate_80": 1.0,
@@ -151,6 +153,8 @@ def _fake_benchmark_runner_factory(scores_by_name: dict[str, list[float]]):
                 "seed_count": 1,
                 "composite_score": score,
                 "mean_episode_avg_success_rate": score,
+                "mean_inner_time_avg_success_rate": score,
+                "mean_post_switch_window_success_rate": score,
                 "median_steps_to_80": 10.0,
                 "median_steps_to_95": 20.0,
                 "hit_rate_80": 1.0,
@@ -165,6 +169,73 @@ def _fake_benchmark_runner_factory(scores_by_name: dict[str, list[float]]):
         )
 
     return _runner
+
+
+def _write_cached_baseline(
+    repo_root: Path,
+    *,
+    session_id: str,
+    fingerprint: str,
+    primary_score: float,
+    holdout_scores: dict[str, float] | None = None,
+) -> Path:
+    holdout_scores = holdout_scores or {}
+    session_dir = repo_root / "autoresearch" / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+
+    primary_report_dir = repo_root / "benchmarks" / f"cached_primary_{session_id}"
+    primary_report_dir.mkdir(parents=True, exist_ok=True)
+    holdout_payloads = []
+    for benchmark_name, score in holdout_scores.items():
+        report_dir = repo_root / "benchmarks" / f"{benchmark_name}_{session_id}"
+        report_dir.mkdir(parents=True, exist_ok=True)
+        holdout_payloads.append(
+            {
+                "name": benchmark_name,
+                "duration_seconds": 1.0,
+                "report_dir": str(report_dir),
+                "stdout_path": str(session_dir / f"{benchmark_name}.stdout.log"),
+                "stderr_path": str(session_dir / f"{benchmark_name}.stderr.log"),
+                "aggregate": {
+                    "benchmark": benchmark_name,
+                    "composite_score": score,
+                },
+                "summary": {"benchmark": benchmark_name, "seed_reports": []},
+            }
+        )
+
+    baseline_entry = {
+        "session_id": session_id,
+        "record_type": "baseline",
+        "timestamp_utc": "2026-04-05T00:00:00+00:00",
+        "status": "accepted",
+        "reason": "baseline_snapshot",
+        "primary_benchmark": {
+            "name": "fast_switch_scout_v1",
+            "duration_seconds": 1.0,
+            "report_dir": str(primary_report_dir),
+            "stdout_path": str(session_dir / "primary.stdout.log"),
+            "stderr_path": str(session_dir / "primary.stderr.log"),
+            "aggregate": {
+                "benchmark": "fast_switch_scout_v1",
+                "composite_score": primary_score,
+            },
+            "summary": {"benchmark": "fast_switch_scout_v1", "seed_reports": []},
+        },
+        "holdout_benchmarks": holdout_payloads,
+        "best_primary_score": primary_score,
+        "baseline_cache": {
+            "enabled": True,
+            "reused": False,
+            "fingerprint": fingerprint,
+            "fingerprint_paths": ["src/lifelong_learning/agents/brain/neuromod.py"],
+            "source_session_id": None,
+            "source_baseline_summary": None,
+        },
+    }
+    summary_path = session_dir / "baseline_summary.json"
+    summary_path.write_text(json.dumps(baseline_entry, indent=2), encoding="utf-8")
+    return summary_path
 
 
 def test_audit_repo_diff_allows_new_python_files_under_editable_parent(tmp_path):
@@ -266,3 +337,104 @@ def test_supervisor_dry_run_returns_command_preview(tmp_path):
     assert preview["mode"] == "dry_run"
     assert "trial-1" in preview["trial_1_command_preview"]
     assert "notes.md" in preview["trial_1_command_preview"]
+
+
+def test_supervisor_reuses_matching_cached_baseline(tmp_path):
+    manifest_path = _make_repo(tmp_path, include_holdout=True)
+    supervisor = AutoresearchSupervisor(
+        repo_root=tmp_path,
+        manifest_path=manifest_path,
+        research_command="trial-{trial}",
+    )
+    fingerprint = supervisor._build_baseline_fingerprint_payload()["fingerprint"]
+    cached_summary = _write_cached_baseline(
+        tmp_path,
+        session_id="20260405-000000",
+        fingerprint=fingerprint,
+        primary_score=0.42,
+        holdout_scores={"fast_switch_holdout_v1": 0.31},
+    )
+
+    benchmark_calls: list[str] = []
+
+    def _unexpected_benchmark_runner(*args, **kwargs):
+        benchmark_calls.append(args[1])
+        raise AssertionError("benchmark runner should not execute when baseline cache matches")
+
+    supervisor = AutoresearchSupervisor(
+        repo_root=tmp_path,
+        manifest_path=manifest_path,
+        research_command="trial-{trial}",
+        benchmark_runner=_unexpected_benchmark_runner,
+    )
+
+    summary = supervisor.run(max_trials=0)
+    ledger_lines = (tmp_path / "autoresearch" / "trial_results.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    baseline_record = json.loads(ledger_lines[0])
+
+    assert benchmark_calls == []
+    assert summary["trial_count"] == 0
+    assert baseline_record["reason"] == "baseline_cache_hit"
+    assert baseline_record["baseline_cache"]["reused"] is True
+    assert baseline_record["baseline_cache"]["source_baseline_summary"] == str(cached_summary)
+
+
+def test_supervisor_invalidates_cached_baseline_after_relevant_code_change(tmp_path):
+    manifest_path = _make_repo(tmp_path, include_holdout=True)
+    seed_supervisor = AutoresearchSupervisor(
+        repo_root=tmp_path,
+        manifest_path=manifest_path,
+        research_command="trial-{trial}",
+    )
+    fingerprint = seed_supervisor._build_baseline_fingerprint_payload()["fingerprint"]
+    _write_cached_baseline(
+        tmp_path,
+        session_id="20260405-000000",
+        fingerprint=fingerprint,
+        primary_score=0.42,
+        holdout_scores={"fast_switch_holdout_v1": 0.31},
+    )
+
+    target_file = tmp_path / "src" / "lifelong_learning" / "agents" / "brain" / "neuromod.py"
+    target_file.write_text("VALUE = 2\n", encoding="utf-8")
+
+    benchmark_calls: list[str] = []
+
+    def _counting_benchmark_runner(repo_root: Path, benchmark_name: str, device: str, timeout, stdout_path: Path, stderr_path: Path):
+        benchmark_calls.append(benchmark_name)
+        stdout_path.parent.mkdir(parents=True, exist_ok=True)
+        stdout_path.write_text("", encoding="utf-8")
+        stderr_path.write_text("", encoding="utf-8")
+        score = 0.55 if benchmark_name == "fast_switch_scout_v1" else 0.44
+        return BenchmarkExecution(
+            name=benchmark_name,
+            duration_seconds=0.01,
+            report_dir=str(repo_root / "benchmarks" / f"{benchmark_name}_fresh"),
+            summary={"benchmark": benchmark_name, "seed_reports": []},
+            aggregate={
+                "benchmark": benchmark_name,
+                "composite_score": score,
+            },
+            stdout_path=str(stdout_path),
+            stderr_path=str(stderr_path),
+        )
+
+    supervisor = AutoresearchSupervisor(
+        repo_root=tmp_path,
+        manifest_path=manifest_path,
+        research_command="trial-{trial}",
+        benchmark_runner=_counting_benchmark_runner,
+    )
+
+    summary = supervisor.run(max_trials=0)
+    ledger_lines = (tmp_path / "autoresearch" / "trial_results.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    baseline_record = json.loads(ledger_lines[0])
+
+    assert summary["baseline_primary_score"] == 0.55
+    assert benchmark_calls == ["fast_switch_scout_v1", "fast_switch_holdout_v1"]
+    assert baseline_record["reason"] == "baseline_snapshot"
+    assert baseline_record["baseline_cache"]["reused"] is False
