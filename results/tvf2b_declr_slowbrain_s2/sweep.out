@@ -1,0 +1,9 @@
+[sweep] preset=calib8x8 conditions=['brain_neuromod_trainable_declr_slowbrain'] seeds=[2]
+[sweep] 1 cells, max_parallel=1 -> sweeps/tvf2b_declr_slowbrain_s2
+[sweep] (1/1) brain_neuromod_trainable_declr_slowbrain seed=2 -> scored composite=0.5108326304256042
+
+[sweep] done. per-run -> sweeps/tvf2b_declr_slowbrain_s2/runs.csv | summary -> sweeps/tvf2b_declr_slowbrain_s2/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod_trainable_declr_slowbrain 0.5108 [0.5108, 0.5108]  (n=1)
+[run_sweep] sweep exited ec=0
