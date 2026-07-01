@@ -162,6 +162,7 @@ def init_inner_training(
     replay_ratio: float = 0.0,
     replay_prioritization: float = 0.0,
     cpu_threads: int | None = None,
+    trainable_neuromod: bool = False,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -207,10 +208,10 @@ def init_inner_training(
     # Model & Optimizer Setup
     # -----------------------------------------------------------------
 
-    model = CNNActorCritic(obs_shape, n_actions).to(device)
+    model = CNNActorCritic(obs_shape, n_actions, trainable_neuromod=trainable_neuromod).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr, eps=1e-5)
 
-    anchor_model = CNNActorCritic(obs_shape, n_actions).to(device)
+    anchor_model = CNNActorCritic(obs_shape, n_actions, trainable_neuromod=trainable_neuromod).to(device)
     anchor_model.load_state_dict(model.state_dict())
     anchor_model.eval()
 

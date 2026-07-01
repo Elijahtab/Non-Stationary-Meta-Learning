@@ -82,7 +82,7 @@ component **linearly to an absolute hyperparameter value** via `map_to_range(a, 
 | 6 | anchoring weight | `[0.0, 0.5]` |
 | 7:15 | neuromodulation context code → `model.set_context_code(...)` | (raw `[-1,1]^8`) |
 
-> **Implementation vs. paper.** The paper (and `PLAN.md`) describe the action as
+> **Implementation vs. paper.** The paper (and `docs/plans/PLAN.md`) describe the action as
 > "multiplicative scaling." The current code applies an **absolute linear mapping to fixed
 > bounds**, not a multiplier on the previous value. Trust the code.
 

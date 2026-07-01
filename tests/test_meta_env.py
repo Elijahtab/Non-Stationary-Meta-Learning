@@ -322,6 +322,80 @@ class TestMetaEnv(unittest.TestCase):
         self.assertIn("brain_neuromod/policy_kl_vs_unmasked", logged_tags)
         self.assertIn("brain_neuromod/channel_mean_63", logged_tags)
 
+    def _make_reward_env(self, reward_mode):
+        """A MetaEnv set up to exercise reward logic only (no inner loop runs)."""
+        inner_cfg = PPOConfig(
+            total_timesteps=10_000, num_envs=4, num_steps=32, seed=0, device="cpu", mode="dyna"
+        )
+        env = MetaEnv(
+            env_id="MiniGrid-MultiGoal-8x8-v0",
+            inner_cfg=inner_cfg,
+            decision_interval=1,
+            steps_per_regime=10_000,
+            reward_mode=reward_mode,
+            intrinsic_coef=0.015,
+            imagined_horizon=3,
+        )
+        env._state = object()  # bypass the reset() assertion; we never touch the real inner loop
+        env._signal_extractor = SimpleNamespace(
+            extract=lambda stats: np.zeros(NUM_SIGNALS, dtype=np.float32)
+        )
+        return env
+
+    def _reward_for(self, env, *, success_rate, regime, failure_rate=0.0):
+        stats = {
+            "success_rate": success_rate,
+            "mean_episodic_return": 0.0,
+            "failure_rate": failure_rate,
+            "current_mode_regime": regime,
+            "done": False,
+        }
+        with mock.patch.object(env, "_apply_action"), \
+             mock.patch.object(env, "_run_n_updates", return_value=stats):
+            _, reward, _, _, _ = env.step(np.zeros(BRAIN_ACTION_DIM, dtype=np.float32))
+        return reward
+
+    def test_recovery_v2_progress_is_symmetric(self):
+        """The progress term must telescope to zero over an up-then-down oscillation.
+
+        This is the core fix vs 'recovery': a fake dip-and-recover can no longer be farmed,
+        because the downswing costs exactly what the upswing pays. Only the maintenance
+        (level) term survives the oscillation.
+        """
+        env = self._make_reward_env("recovery_v2")
+        try:
+            # Pretend we are just inside a post-switch window (progress weight = 5.0).
+            env._prev_success_rate = 0.5
+            env._last_switch_regime = 0
+            env._steps_since_switch = 0
+
+            r_up = self._reward_for(env, success_rate=0.9, regime=0)    # +0.4 delta, in window
+            r_down = self._reward_for(env, success_rate=0.5, regime=0)  # -0.4 delta, in window
+
+            maint_up, maint_down = 0.5 * 0.9, 0.5 * 0.5
+            # progress contributions cancel -> only maintenance remains
+            self.assertAlmostEqual((r_up - maint_up) + (r_down - maint_down), 0.0, places=6)
+            self.assertAlmostEqual(r_up, 5.0 * 0.4 + maint_up, places=6)
+            self.assertAlmostEqual(r_down, 5.0 * -0.4 + maint_down, places=6)
+        finally:
+            env._state = None  # dummy state; nothing real to close
+
+    def test_recovery_v2_switch_gates_progress_weight(self):
+        """Progress is weighted 1.5 outside the post-switch window and 5.0 just after a switch."""
+        env = self._make_reward_env("recovery_v2")
+        try:
+            env._prev_success_rate = 0.0
+            # No switch seen yet -> outside window -> weight 1.5
+            r_out = self._reward_for(env, success_rate=0.6, regime=0)
+            self.assertAlmostEqual((r_out - 0.5 * 0.6) / 0.6, 1.5, places=6)
+
+            # Regime changes -> switch detected -> inside window -> weight 5.0
+            r_in = self._reward_for(env, success_rate=0.2, regime=1)
+            self.assertEqual(env._steps_since_switch, 0)
+            self.assertAlmostEqual((r_in - 0.5 * 0.2) / (0.2 - 0.6), 5.0, places=6)
+        finally:
+            env._state = None  # dummy state; nothing real to close
+
     def test_episode_terminates(self):
         """Episode should terminate once inner training is done."""
         self.env.reset()

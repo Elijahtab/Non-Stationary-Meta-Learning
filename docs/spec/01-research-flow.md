@@ -166,7 +166,7 @@ and environment are **immutable**. Each trial that fails any gate is rolled back
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '14px', 'textColor': '#111827', 'lineColor': '#4b5563', 'edgeLabelBackground': '#ffffff'}}}%%
 flowchart TB
-    START["run_autoresearch.py --manifest research_manifest.toml --program program_neuromod.md"]
+    START["run_autoresearch.py --manifest config/research_manifest.toml --program config/program_neuromod.md"]
     BASE["Baseline: run primary (+holdout) benchmark<br/>(fingerprint-cached)"]
     SNAP["Snapshot repo"]
     AGENT["Render trial prompt + context →<br/>invoke external agent (Codex)<br/>edits neuromod.py / network.py"]

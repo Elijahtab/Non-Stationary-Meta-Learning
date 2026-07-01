@@ -76,6 +76,15 @@ def log_neuromodulation_snapshot(
     for idx, value in enumerate(channel_means):
         logger.scalar(f"{NEUROMOD_LOG_PREFIX}/channel_mean_{idx}", float(value), step)
 
+    # Decoder weight norm: flat over training ⇒ frozen; drifting ⇒ trainable decoder is learning.
+    neuromodulator = getattr(model, "neuromodulator", None)
+    if neuromodulator is not None and hasattr(neuromodulator, "decoder_weight_norm"):
+        logger.scalar(
+            f"{NEUROMOD_LOG_PREFIX}/decoder_weight_norm",
+            neuromodulator.decoder_weight_norm(),
+            step,
+        )
+
 
 class FeatureMaskNeuromodulator(nn.Module):
     """
@@ -91,10 +100,12 @@ class FeatureMaskNeuromodulator(nn.Module):
         *,
         context_dim: int = CONTEXT_CODE_DIM,
         hidden_dim: int = 256,
+        trainable: bool = False,
     ):
         super().__init__()
         self.feature_dim = feature_dim
         self.context_dim = context_dim
+        self.trainable = trainable
 
         self.decoder = nn.Sequential(
             nn.Linear(context_dim, hidden_dim),
@@ -102,6 +113,10 @@ class FeatureMaskNeuromodulator(nn.Module):
             nn.Linear(hidden_dim, feature_dim),
         )
         self.register_buffer("current_mask", torch.ones(1, feature_dim))
+        # Raw code retained so the mask can be RE-decoded in-graph when trainable=True
+        # (so gradient reaches the decoder). Non-persistent: excluded from state_dict, so
+        # frozen behavior and loading of pre-existing checkpoints are unaffected.
+        self.register_buffer("current_code", torch.zeros(1, context_dim), persistent=False)
 
     def decode_context_code(self, code: torch.Tensor) -> torch.Tensor:
         """Map a context code to a suppressive mask, keeping zero-context neutral."""
@@ -116,11 +131,36 @@ class FeatureMaskNeuromodulator(nn.Module):
 
     def set_context_code(self, code: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            self.current_mask = self.decode_context_code(code)
+            code_2d = code.unsqueeze(0) if code.dim() == 1 else code
+            self.current_code = code_2d.detach().to(
+                device=self.current_mask.device, dtype=self.current_mask.dtype
+            )
+            self.current_mask = self.decode_context_code(self.current_code)
         return self.current_mask
+
+    def active_mask(self) -> torch.Tensor:
+        """Return the mask consumed by the live forward pass.
+
+        Frozen (default): the detached snapshot buffer, so no gradient reaches the decoder
+        and the code->mask converter stays at its random initialization (paper behavior).
+
+        Trainable: re-decode the stored code IN-GRAPH so the inner optimizer trains the
+        decoder alongside the encoder/heads. The code itself is detached, so only the
+        decoder learns to interpret the Brain's signal — the Brain is unaffected.
+        """
+        if self.trainable:
+            return self.decode_context_code(self.current_code)
+        return self.current_mask
+
+    def decoder_weight_norm(self) -> float:
+        """L2 norm of all decoder parameters (diagnostic: is the decoder actually moving?)."""
+        with torch.no_grad():
+            total = sum(float(p.detach().pow(2).sum().cpu()) for p in self.decoder.parameters())
+        return math.sqrt(total)
 
     def clear_context(self) -> None:
         self.current_mask = torch.ones(1, self.feature_dim, device=self.current_mask.device)
+        self.current_code = torch.zeros(1, self.context_dim, device=self.current_mask.device)
 
     def expand_mask(
         self,

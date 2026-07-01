@@ -12,7 +12,7 @@ things fast, then **verify against the source code**, which is the only source o
 ## What this repo is (the 10-second version)
 
 A two-level RL system for catastrophic forgetting — the **Meta-Learning / "double-RL"** strategy
-from `Combating Catastrophic Forgetting.pdf` (§3.7):
+from `docs/references/Combating Catastrophic Forgetting.pdf` (§3.7):
 
 - **inner** Dyna-PPO agent learns a MiniGrid task whose rewarded goal flips periodically, and
 - **outer** "Brain" (PPO) treats the inner training run as its environment and tunes the inner
@@ -46,8 +46,8 @@ eval consumes one.
 
 4. **Respect the research boundary.** If the task touches autoresearch, remember the editable
    surface is narrow (`neuromod.py`, `network.py`; optionally `signals.py`, `meta_agent.py`) and
-   the benchmark/scorer/env are immutable. See `research_manifest.toml` and
-   [program_neuromod.md](../../../program_neuromod.md).
+   the benchmark/scorer/env are immutable. See `config/research_manifest.toml` and
+   [program_neuromod.md](../../../config/program_neuromod.md).
 
 5. **Report your orientation.** Summarize for the user: what the task touches, the relevant
    files (with paths), any spec-vs-code drift you found, and your proposed entry point. Don't
@@ -60,5 +60,5 @@ eval consumes one.
 - One known spec-vs-paper nuance to watch for: the Brain action maps **linearly to absolute HP
   bounds** in code (`MetaEnv._apply_action`), even though the paper/PLAN describe "multiplicative
   scaling." When in doubt, read the code.
-- If `docs/spec/` is missing or stale, fall back to: `README.md`, `PLAN.md`, `AUTORESEARCH.md`,
+- If `docs/spec/` is missing or stale, fall back to: `README.md`, `docs/plans/PLAN.md`, `AUTORESEARCH.md`,
   the PDF (§3.7, §4.3, §4.3.1), and a direct read of `src/lifelong_learning/`.

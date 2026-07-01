@@ -8,7 +8,7 @@ This is the automation layer sitting above the two RL loops. It has two parts:
    append-only research trials, keeping only the changes the frozen benchmark says helped.
 
 The governing contract is [AUTORESEARCH.md](../../AUTORESEARCH.md); the per-trial research
-brief is [program_neuromod.md](../../program_neuromod.md).
+brief is [program_neuromod.md](../../config/program_neuromod.md).
 
 ---
 
@@ -139,7 +139,7 @@ unchanged repo reuses prior scores —
 The session stops on `max_trials`, `target_composite_score`, or `max_stale_trials` consecutive
 non-improving trials, then writes `session_summary.{json,md}`.
 
-### The manifest — [`research_manifest.toml`](../../research_manifest.toml)
+### The manifest — [`research_manifest.toml`](../../config/research_manifest.toml)
 
 Loaded by [`load_research_manifest`](../../src/lifelong_learning/research/autoresearch.py#L217):
 
@@ -154,15 +154,15 @@ Loaded by [`load_research_manifest`](../../src/lifelong_learning/research/autore
 | `[optional_editable_surface]` | `signals.py`, `meta_agent.py` |
 | `[immutable_surface]` | `run_frozen_benchmark.py`, `benchmarking.py`, `analyze_runs.py`, `plot_high_scale.py`, `envs/` |
 
-Variants: [`research_manifest_pilot.toml`](../../research_manifest_pilot.toml) (tiny smoke
-test) and [`research_manifest_085.toml`](../../research_manifest_085.toml) (a higher target).
+Variants: [`research_manifest_pilot.toml`](../../config/research_manifest_pilot.toml) (tiny smoke
+test) and [`research_manifest_085.toml`](../../config/research_manifest_085.toml) (a higher target).
 
 ### The per-trial worker & agent launcher
 
 [`scripts/run_research_trial.py`](../../scripts/run_research_trial.py) is the recommended
 per-trial worker: it renders the trial prompt
 ([`research/trial_prompt.py`](../../src/lifelong_learning/research/trial_prompt.py)) from
-[program_neuromod.md](../../program_neuromod.md), writes a JSON context payload, and invokes a
+[program_neuromod.md](../../config/program_neuromod.md), writes a JSON context payload, and invokes a
 configurable external runner (via `AUTORESEARCH_AGENT_COMMAND` / `--runner-template`). For Codex
 specifically, [`scripts/invoke_codex_exec.ps1`](../../scripts/invoke_codex_exec.ps1) pipes the
 prompt into `codex exec` and captures stdout/stderr + the final message. This indirection keeps

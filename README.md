@@ -5,9 +5,9 @@ Continual reinforcement learning experiments focused on catastrophic forgetting 
 This project studies how an agent can adapt to changing reward regimes without erasing previously learned behavior. The codebase combines an inner Dyna-PPO learner with a higher-level meta-controller ("the Brain") that adjusts learning dynamics online.
 
 Relevant reading:
-- [Combating Catastrophic Forgetting](./Combating%20Catastrophic%20Forgetting.pdf)
-- [Project roadmap](./PLAN.md)
-- [Reference bibliography](./references.bib)
+- [Combating Catastrophic Forgetting](./docs/references/Combating%20Catastrophic%20Forgetting.pdf)
+- [Project roadmap](./docs/plans/PLAN.md)
+- [Reference bibliography](./docs/references/references.bib)
 
 ## Overview
 
@@ -40,8 +40,8 @@ Lifelong-Learning/
 |- runs/                   # Training outputs written by experiments
 |- evals/                  # Evaluation outputs written by experiments
 |- checkpoints/            # Saved checkpoints
-|- PLAN.md                 # Project roadmap
-`- Combating Catastrophic Forgetting.pdf
+|- config/                 # Autoresearch manifests and the research brief
+`- docs/                   # Spec, plans, research log, and reference papers
 ```
 
 ## Core Ideas
@@ -205,6 +205,6 @@ This repository is an active research workspace rather than a finished library. 
 
 If you are reviewing the background for this project, start with the local paper linked here:
 
-- [Combating Catastrophic Forgetting](./Combating%20Catastrophic%20Forgetting.pdf)
+- [Combating Catastrophic Forgetting](./docs/references/Combating%20Catastrophic%20Forgetting.pdf)
 
-Supporting references used during development live in [references.bib](./references.bib).
+Supporting references used during development live in [references.bib](./docs/references/references.bib).

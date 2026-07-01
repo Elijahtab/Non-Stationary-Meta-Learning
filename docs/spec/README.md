@@ -11,7 +11,7 @@ actually does, module by module, grounded in the source — not in aspiration.
 ## What this repository is
 
 This repo implements **one of the five strategies** studied in the paper
-[Combating Catastrophic Forgetting](../../Combating%20Catastrophic%20Forgetting.pdf):
+[Combating Catastrophic Forgetting](../references/Combating%20Catastrophic%20Forgetting.pdf):
 the **Meta-Learning / "double-RL" approach** (paper §3.7 and §4.3). The other four
 strategies (standard PPO, Dyna-PPO baseline, Mixture-of-World-Models, and the
 Context-Aware Transformer World Model) are described in the paper but are **not** the
@@ -55,6 +55,7 @@ everything together — then drill into whichever subsystem you need.
 | [03-inner-dyna-ppo.md](./03-inner-dyna-ppo.md) | The inner continual learner: PPO, world model, curiosity, dreaming, replay, anchoring, and the per-update cycle |
 | [04-outer-brain-and-metaenv.md](./04-outer-brain-and-metaenv.md) | The Brain meta-agent, `MetaEnv`, the 19-dim observation, the 15-dim action, and the meta-reward modes |
 | [05-neuromodulation.md](./05-neuromodulation.md) | The context decoder, the feature-wise mask, and the neuromodulation diagnostics |
+| &nbsp;&nbsp;↳ [neuromodulation-box-diagram.md](./neuromodulation-box-diagram.md) | Visual companion to 05: a numbered box diagram of the forward pass (learned vs frozen pieces) |
 | [06-runs-and-evals.md](./06-runs-and-evals.md) | The artifact contract: `runs/` vs `evals/` vs `benchmarks/` vs `autoresearch/` |
 | [07-benchmarking-and-autoresearch.md](./07-benchmarking-and-autoresearch.md) | The frozen benchmark, the scorer/composite score, and the autoresearch supervisor |
 | [08-cli-reference.md](./08-cli-reference.md) | Every script in [`scripts/`](../../scripts/): purpose, key flags, and what it writes |
@@ -90,7 +91,7 @@ src/lifelong_learning/
 
 ## Background reading
 
-- [Combating Catastrophic Forgetting](../../Combating%20Catastrophic%20Forgetting.pdf) — focus on §3.7 (Meta-Learning and Neuromodulation), §4.3 (Meta-Learning results), and §4.3.1 (the neuromodulation diagnostic dashboard).
-- [PLAN.md](../../PLAN.md) — original project roadmap (note: predates some of the code; the spec reflects the current code).
+- [Combating Catastrophic Forgetting](../references/Combating%20Catastrophic%20Forgetting.pdf) — focus on §3.7 (Meta-Learning and Neuromodulation), §4.3 (Meta-Learning results), and §4.3.1 (the neuromodulation diagnostic dashboard).
+- [PLAN.md](../plans/PLAN.md) — original project roadmap (note: predates some of the code; the spec reflects the current code).
 - [AUTORESEARCH.md](../../AUTORESEARCH.md) — the immutable benchmark/trial contract for autoresearch.
-- [program_neuromod.md](../../program_neuromod.md) — the research brief handed to the autoresearch agent each trial.
+- [program_neuromod.md](../../config/program_neuromod.md) — the research brief handed to the autoresearch agent each trial.

@@ -1,7 +1,7 @@
 # 0001 — `calib_signal` null result + composite-score redesign
 
 - **Date:** 2026-06-18
-- **Status:** Proposed (awaiting confirmation before implementing)
+- **Status:** Accepted (implemented in commit `72aac91`; sweep outcome pending — see [0002](./0002-2026-06-18-calib8x8-cloud-sweep-plan.md))
 - **Touches:** `src/lifelong_learning/research/benchmarking.py` (**immutable_surface** — human
   infra change, invalidates all cached baselines/fingerprints); a new harder calibration preset
   (8×8). No autoresearch-agent-editable files.
@@ -74,7 +74,7 @@ Two complementary changes, made in **one pass**, then **re-baseline once**:
 - **`hit_rate_95`/`steps_to_95` belong in the final benchmark**, where cross-switch reliability
   ("did it sustain ≥95% on *each* switch") matters more than detection power. Note these already
   *spread* in the 5×5 data (`hit_rate_95`: 0.83→0.89), confirming they carry signal once promoted.
-- **Constraint:** `benchmarking.py` is in `research_manifest.toml` `[immutable_surface]`. Changing
+- **Constraint:** `benchmarking.py` is in `config/research_manifest.toml` `[immutable_surface]`. Changing
   the scorer is a legitimate *human* infra decision, but it invalidates every cached baseline and
   fingerprint — all post-change composite numbers are incomparable to prior ones. Re-baseline
   before any autoresearch session.

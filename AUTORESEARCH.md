@@ -85,8 +85,8 @@ The first recommended supervisor command is:
 ```powershell
 $env:PYTHONPATH='src'
 .\myenv\Scripts\python.exe scripts\run_autoresearch.py `
-  --manifest research_manifest.toml `
-  --program program_neuromod.md `
+  --manifest config/research_manifest.toml `
+  --program config/program_neuromod.md `
   --research-command ".\myenv\Scripts\python.exe scripts\run_research_trial.py --program {program} --manifest {manifest} --trial {trial} --trial-dir {trial_dir} --repo-root {repo_root} --baseline-file {baseline_file}"
 ```
 
@@ -126,8 +126,8 @@ Then run:
 ```powershell
 $env:PYTHONPATH='src'
 .\myenv\Scripts\python.exe scripts\run_autoresearch.py `
-  --manifest research_manifest.toml `
-  --program program_neuromod.md `
+  --manifest config/research_manifest.toml `
+  --program config/program_neuromod.md `
   --research-command ".\myenv\Scripts\python.exe scripts\run_research_trial.py --program {program} --manifest {manifest} --trial {trial} --trial-dir {trial_dir} --repo-root {repo_root} --baseline-file {baseline_file}"
 ```
 
@@ -225,7 +225,7 @@ can happen without giving the agent write access to the benchmark pipeline.
 
 ## Pilot Mode
 
-Use `research_manifest_pilot.toml` for the first end-to-end smoke test.
+Use `config/research_manifest_pilot.toml` for the first end-to-end smoke test.
 It switches to the tiny `fast_switch_pilot_v1` benchmark, removes holdout runs,
 cuts the test suite down, limits the session to one small trial, and uses a
 shorter research timeout so stuck agent runs fail fast.
@@ -235,8 +235,8 @@ Recommended pilot command:
 ```powershell
 $env:PYTHONPATH='src'
 .\myenv\Scripts\python.exe scripts\run_autoresearch.py `
-  --manifest research_manifest_pilot.toml `
-  --program program_neuromod.md `
+  --manifest config/research_manifest_pilot.toml `
+  --program config/program_neuromod.md `
   --research-command ".\myenv\Scripts\python.exe scripts\run_research_trial.py --program {program} --manifest {manifest} --trial {trial} --trial-dir {trial_dir} --repo-root {repo_root} --baseline-file {baseline_file}" `
   --max-trials 1
 ```

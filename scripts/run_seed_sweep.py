@@ -136,7 +136,7 @@ PRESETS: dict[str, dict] = {
             "brain_vectorization": "sync",
             "pretrain_episodes": 0,
             "decision_interval": 10,
-            "reward_mode": "recovery",
+            "reward_mode": "recovery_v2",
             "save_every_episodes": 0,
             "plot_every_episodes": 0,
         },
@@ -186,6 +186,13 @@ CONDITIONS: dict[str, dict] = {
     "brain_random_code": {"context_code_source": "random"},  # control: code content
     "brain_oracle_code": {"context_code_source": "oracle"},  # upper bound: hidden regime
     "brain_zero_code": {"context_code_source": "zero"},  # identity mask sanity check
+    # Reward A/B: same as brain_neuromod but on the OLD recovery reward (preset base now uses
+    # recovery_v2). Matched control to isolate the reward's effect. See docs/research-log/0003.
+    "brain_neuromod_recovery": {"reward_mode": "recovery"},
+    # Trainable decoder: the inner agent learns to interpret the Brain's code (decoder
+    # co-adapts) instead of the frozen random projection. Head-to-head vs brain_neuromod.
+    # See docs/research-notes/0001-trainable-vs-frozen-decoder.md.
+    "brain_neuromod_trainable": {"trainable_neuromod": True},
 }
 
 # Metrics pulled from each scored run into the per-run table.

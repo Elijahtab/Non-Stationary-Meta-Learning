@@ -382,6 +382,7 @@ def train_brain(args):
             start_episode=start_episode,
             disable_neuromodulation=args.disable_neuromodulation,
             context_code_source=getattr(args, "context_code_source", "brain"),
+            trainable_neuromod=getattr(args, "trainable_neuromod", False),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -795,8 +796,12 @@ def main():
     # Reward shaping
     p.add_argument("--reward_alpha", type=float, default=0.1)
     p.add_argument("--reward_beta", type=float, default=0.5)
-    p.add_argument("--reward_mode", type=str, default="auc", choices=["auc", "recovery", "curriculum"],
-                   help="Brain reward mode: 'auc' (original), 'recovery' (hybrid delta + urgency), or 'curriculum' (exponential multiplier for returning regimes)")
+    p.add_argument("--reward_mode", type=str, default="auc",
+                   choices=["auc", "recovery", "recovery_v2", "curriculum"],
+                   help="Brain reward mode: 'auc' (original), 'recovery' (hybrid delta + urgency), "
+                        "'recovery_v2' (symmetric/potential-based progress with switch-gated recovery "
+                        "weighting; fixes recovery's oscillation farming), or 'curriculum' (exponential "
+                        "multiplier for returning regimes)")
     p.add_argument("--disable_neuromodulation", action="store_true",
                    help="Disable neuromodulation gating (Brain still outputs the full action vector but context code is ignored)")
     p.add_argument("--context_code_source", type=str, default="brain",
@@ -805,6 +810,11 @@ def main():
                         "'random' (fixed per-episode noise control), 'oracle' (one-hot of the "
                         "hidden regime; upper bound), or 'zero' (identity mask). Scalar HP levers "
                         "are always Brain-controlled; only the code is swapped.")
+    p.add_argument("--trainable_neuromod", action="store_true",
+                   help="Let the neuromodulation decoder TRAIN (mask re-decoded in-graph so inner "
+                        "PPO gradient reaches it) instead of staying frozen at random init. "
+                        "Default off = paper-faithful frozen decoder. The inner agent then learns "
+                        "to interpret the Brain's context code.")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

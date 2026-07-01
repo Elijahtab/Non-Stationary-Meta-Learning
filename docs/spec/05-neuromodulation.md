@@ -10,6 +10,10 @@ Sources:
 [`agents/brain/neuromod.py`](../../src/lifelong_learning/agents/brain/neuromod.py),
 [`agents/ppo/network.py`](../../src/lifelong_learning/agents/ppo/network.py).
 
+> **📊 Visual companion:** [neuromodulation-box-diagram.md](./neuromodulation-box-diagram.md) —
+> a numbered box diagram of the whole forward pass (context code → frozen decoder → mask →
+> gated features), with a per-box reference table.
+
 ## The action layout
 
 The last 8 of the Brain's 15 action dims are the context code
@@ -101,7 +105,7 @@ policy/value effect), rendered per inner run as `*_neuromodulation_dashboard.png
 
 The decoder architecture and masking scheme are *deliberately isolated* in `neuromod.py` so
 that autoresearch can iterate on them without touching the benchmark, scorer, or environment.
-The research brief ([program_neuromod.md](../../program_neuromod.md)) directs the agent to
+The research brief ([program_neuromod.md](../../config/program_neuromod.md)) directs the agent to
 explore exactly this space: decoder width/depth, mask parameterization, where modulation is
 applied (actor-only vs critic-only vs shared), suppressive vs gain-based masking, and larger
 context dimensions. The **editable surface** for trials is `neuromod.py` + `network.py` (see

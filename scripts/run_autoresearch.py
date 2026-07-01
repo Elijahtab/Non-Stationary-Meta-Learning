@@ -21,7 +21,7 @@ def main() -> None:
     parser.add_argument(
         "--manifest",
         type=str,
-        default="research_manifest.toml",
+        default="config/research_manifest.toml",
         help="Path to the autoresearch manifest.",
     )
     parser.add_argument(

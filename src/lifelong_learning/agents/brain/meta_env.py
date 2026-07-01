@@ -80,6 +80,7 @@ class MetaEnv(gym.Env):
         start_episode: int = 1,
         disable_neuromodulation: bool = False,
         context_code_source: str = "brain",
+        trainable_neuromod: bool = False,
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
@@ -119,6 +120,7 @@ class MetaEnv(gym.Env):
         self.max_intrinsic_coef = max_intrinsic_coef
         self.disable_neuromodulation = disable_neuromodulation
         self.context_code_source = context_code_source
+        self.trainable_neuromod = trainable_neuromod
         self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
 
@@ -150,6 +152,20 @@ class MetaEnv(gym.Env):
         self._regime_exposures = {}
         self._current_regime = None
         self._pending_resume_state = None
+
+        # Switch tracking for reward_mode="recovery_v2": count Brain steps since the last
+        # regime switch so the recovery bonus can be gated to a post-switch window. The window
+        # mirrors the scorer's 0.5*steps_per_regime, expressed in Brain steps.
+        self._steps_since_switch = None
+        self._last_switch_regime = None
+        inner_steps_per_brain_step = max(
+            1, self.inner_cfg.num_envs * self.inner_cfg.num_steps * self.decision_interval
+        )
+        if self.steps_per_regime:
+            brain_steps_per_regime = self.steps_per_regime / inner_steps_per_brain_step
+            self._post_switch_window_steps = max(1, int(round(0.5 * brain_steps_per_regime)))
+        else:
+            self._post_switch_window_steps = 10
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
@@ -194,6 +210,7 @@ class MetaEnv(gym.Env):
             wm_lr=self.wm_lr,
             episodic_memory_capacity=self.episodic_memory_capacity,
             cpu_threads=self.runtime_cpu_threads,
+            trainable_neuromod=self.trainable_neuromod,
         )
         if self.inner_log_dir is not None:
             ep_log_dir = os.path.join(self.inner_log_dir, f"{self._episode_prefix}_{self._episode_counter}")
@@ -226,6 +243,8 @@ class MetaEnv(gym.Env):
         self._prev_failure_rate = 0.0
         self._regime_exposures = {}
         self._current_regime = None
+        self._steps_since_switch = None
+        self._last_switch_regime = None
 
         # Run initial updates to get a meaningful first observation
         stats = self._run_n_updates(self.decision_interval)
@@ -251,7 +270,35 @@ class MetaEnv(gym.Env):
         mean_return = stats.get("mean_episodic_return", 0.0)
         failure_rate = stats.get("failure_rate", 0.0)
 
-        if self.reward_mode == "recovery":
+        # Track Brain steps since the last regime switch (used by recovery_v2).
+        regime_now = stats.get("current_mode_regime", 0)
+        if self._last_switch_regime is None:
+            self._last_switch_regime = regime_now
+        elif regime_now != self._last_switch_regime:
+            self._last_switch_regime = regime_now
+            self._steps_since_switch = 0
+        elif self._steps_since_switch is not None:
+            self._steps_since_switch += 1
+
+        if self.reward_mode == "recovery_v2":
+            # Fixes the oscillation-farming pathology of "recovery" (see docs/research-log/0003):
+            # the progress term is SYMMETRIC (a potential-based delta that telescopes to net
+            # change), so up/down noise nets to zero and within-regime forgetting is penalized
+            # rather than free. Fast recovery is incentivized by up-weighting that same symmetric
+            # progress inside a post-switch window — not by an asymmetric bonus that rewards any
+            # upswing. A maintenance (level) term anchors the optimum at "high and stable", and a
+            # failure penalty is retained.
+            delta_sr = success_rate - self._prev_success_rate
+            in_post_switch = (
+                self._steps_since_switch is not None
+                and self._steps_since_switch <= self._post_switch_window_steps
+            )
+            progress_weight = 5.0 if in_post_switch else 1.5
+            progress = delta_sr * progress_weight        # symmetric: drops cost as much as gains
+            maintenance = success_rate * 0.5
+            failure_penalty = -failure_rate * 0.5
+            reward = progress + maintenance + failure_penalty
+        elif self.reward_mode == "recovery":
             # Hybrid recovery reward: incentivizes fast recovery after regime switches
             delta_sr = success_rate - self._prev_success_rate
             recovery = max(0.0, delta_sr) * 5.0

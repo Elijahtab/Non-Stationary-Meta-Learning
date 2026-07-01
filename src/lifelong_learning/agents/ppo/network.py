@@ -23,7 +23,7 @@ class CNNActorCritic(nn.Module):
     Output: (logits, value)
     """
 
-    def __init__(self, obs_shape: tuple[int, int, int], n_actions: int):
+    def __init__(self, obs_shape: tuple[int, int, int], n_actions: int, *, trainable_neuromod: bool = False):
         super().__init__()
         self.c, self.h, self.w = obs_shape
         self.feature_channels = 64
@@ -49,6 +49,7 @@ class CNNActorCritic(nn.Module):
         self.neuromodulator = FeatureMaskNeuromodulator(
             feature_dim=flat_size,
             context_dim=CONTEXT_CODE_DIM,
+            trainable=trainable_neuromod,
         )
 
         # Actor head (policy)
@@ -151,7 +152,10 @@ class CNNActorCritic(nn.Module):
             }
 
     def forward(self, obs: torch.Tensor):
-        return self.forward_with_mask(obs, self.neuro_mask)
+        # active_mask() returns the frozen snapshot buffer (default) or, when the
+        # neuromodulator is trainable, re-decodes the code in-graph so gradient reaches
+        # the decoder. Frozen mode is byte-identical to using self.neuro_mask directly.
+        return self.forward_with_mask(obs, self.neuromodulator.active_mask())
 
     def act(self, obs: torch.Tensor):
         """Sample an action and return (action, log_prob, entropy, value)."""

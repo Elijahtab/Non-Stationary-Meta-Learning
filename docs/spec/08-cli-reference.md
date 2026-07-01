@@ -92,4 +92,4 @@ benchmark to render per-inner-run PNGs. **Immutable** under autoresearch.
 
 `pytest tests/` covers environments, signal extraction, the network, `MetaEnv`, Dyna logic,
 benchmarking/scoring, and the train/eval CLIs. The autoresearch manifest runs a focused subset
-(see [`research_manifest.toml`](../../research_manifest.toml) `[validation].tests_command`).
+(see [`research_manifest.toml`](../../config/research_manifest.toml) `[validation].tests_command`).
