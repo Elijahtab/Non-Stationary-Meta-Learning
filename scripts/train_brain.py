@@ -383,6 +383,7 @@ def train_brain(args):
             disable_neuromodulation=args.disable_neuromodulation,
             context_code_source=getattr(args, "context_code_source", "brain"),
             trainable_neuromod=getattr(args, "trainable_neuromod", False),
+            neuromod_decoder_lr=getattr(args, "neuromod_decoder_lr", None),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -815,6 +816,11 @@ def main():
                         "PPO gradient reaches it) instead of staying frozen at random init. "
                         "Default off = paper-faithful frozen decoder. The inner agent then learns "
                         "to interpret the Brain's context code.")
+    p.add_argument("--neuromod_decoder_lr", type=float, default=None,
+                   help="Give the trainable decoder its OWN Adam LR in a separate param group "
+                        "instead of riding the inner LR the Brain controls. Decouples the two "
+                        "co-adapting learners to stabilize training. Only used with "
+                        "--trainable_neuromod (usually smaller than the inner LR, e.g. 1e-5).")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

@@ -34,3 +34,4 @@ Rough division of labor:
 ## Index
 
 - [0001 — Trainable vs. Frozen Neuromodulation Decoder](./0001-trainable-vs-frozen-decoder.md)
+- [0002 — Stabilizing the Trainable Decoder (slowbrain / declr / long / combo)](./0002-stabilizing-trainable-decoder.md)

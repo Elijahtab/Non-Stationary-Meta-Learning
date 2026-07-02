@@ -163,6 +163,7 @@ def init_inner_training(
     replay_prioritization: float = 0.0,
     cpu_threads: int | None = None,
     trainable_neuromod: bool = False,
+    neuromod_decoder_lr: float | None = None,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -209,7 +210,24 @@ def init_inner_training(
     # -----------------------------------------------------------------
 
     model = CNNActorCritic(obs_shape, n_actions, trainable_neuromod=trainable_neuromod).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr, eps=1e-5)
+    if trainable_neuromod and neuromod_decoder_lr is not None:
+        # Give the neuromodulation decoder its own param group + (smaller) LR so it no longer rides
+        # the inner LR the Brain controls via lever 0 — decoupling the two co-adapting learners to
+        # stabilize the trainable-decoder regime (docs/multi_agent/0002). Group 0 stays the main
+        # net, so the Brain's LR control / anneal (which only touch param_groups[0]) never move the
+        # decoder; group 1 (decoder) holds a fixed neuromod_decoder_lr.
+        decoder_params = list(model.neuromodulator.decoder.parameters())
+        decoder_ids = {id(p) for p in decoder_params}
+        main_params = [p for p in model.parameters() if id(p) not in decoder_ids]
+        optimizer = torch.optim.Adam(
+            [
+                {"params": main_params, "lr": cfg.lr},
+                {"params": decoder_params, "lr": neuromod_decoder_lr},
+            ],
+            eps=1e-5,
+        )
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr, eps=1e-5)
 
     anchor_model = CNNActorCritic(obs_shape, n_actions, trainable_neuromod=trainable_neuromod).to(device)
     anchor_model.load_state_dict(model.state_dict())
@@ -703,7 +721,12 @@ def run_inner_update(state: InnerTrainState) -> dict:
     s.logger.scalar("charts/replay_prioritization", s.replay_prioritization, s.global_step)
     s.logger.scalar("charts/episodic_memory_fullness", s.episodic_memory.fullness if s.episodic_memory else 0.0, s.global_step)
 
-    if update % s.save_every_updates == 0 or update == s.num_updates:
+    # Save periodic checkpoints, and a final one only when periodic saving is actually enabled.
+    # meta_env signals "no inner checkpoints" via save_every_updates=9999 (> num_updates); without
+    # this guard the `update == num_updates` case still force-saved a 54 MB checkpoint every episode
+    # (~12 GB per sweep) despite checkpoints being off. Enable with save_checkpoints=True.
+    save_final = update == s.num_updates and s.save_every_updates <= s.num_updates
+    if update % s.save_every_updates == 0 or save_final:
         ckpt_path = os.path.join(s.save_dir, f"{s.run_name}_update{update}.pt")
         os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
         torch.save(

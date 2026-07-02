@@ -40,16 +40,30 @@ echo "[run_sweep] preset=$PRESET cores=$CORES cores_per_cell=$CORES_PER_CELL max
 echo "[run_sweep] conditions=[$CONDITIONS] seeds=[$SEEDS] -> $OUT_DIR"
 echo "[run_sweep] streaming to $LOG (tail -f to watch); detached via nohup."
 
+# Auto send-back (docs/multi_agent/0001): after the sweep finishes, push the light results bundle
+# to the `results` branch (needs GH_TOKEN on the box; otherwise skips non-fatally). Disable with
+# AUTO_PUSH=0.
+AUTO_PUSH="${AUTO_PUSH:-1}"
+
+# Run the sweep and the post-run push as one detached group so the push fires on completion and
+# still survives an SSH disconnect. Braces keep $CONDITIONS/$SEEDS word-splitting intact.
 # shellcheck disable=SC2086
-PYTHONPATH=src PYTHONUNBUFFERED=1 nohup python scripts/run_seed_sweep.py \
-    --preset "$PRESET" \
-    --conditions $CONDITIONS \
-    --seeds $SEEDS \
-    --max-parallel "$MAX_PARALLEL" \
-    --device "$DEVICE" \
-    $RESUME_FLAG \
-    --out "$OUT_DIR" \
-    > "$LOG" 2>&1 &
+{
+    PYTHONPATH=src PYTHONUNBUFFERED=1 python scripts/run_seed_sweep.py \
+        --preset "$PRESET" \
+        --conditions $CONDITIONS \
+        --seeds $SEEDS \
+        --max-parallel "$MAX_PARALLEL" \
+        --device "$DEVICE" \
+        $RESUME_FLAG \
+        --out "$OUT_DIR"
+    sweep_ec=$?
+    echo "[run_sweep] sweep exited ec=$sweep_ec"
+    if [ "$AUTO_PUSH" = "1" ]; then
+        bash scripts/cloud/push_results.sh "$OUT_DIR" || echo "[run_sweep] push_results.sh failed (non-fatal)"
+    fi
+} > "$LOG" 2>&1 &
+disown 2>/dev/null || true
 
 echo "[run_sweep] PID $! — results land in ${OUT_DIR}/runs.csv + summary.csv"
-echo "[run_sweep] watch: tail -f $LOG   |   GPU: watch -n5 nvidia-smi"
+echo "[run_sweep] auto-push=$AUTO_PUSH (needs GH_TOKEN to actually push); watch: tail -f $LOG"

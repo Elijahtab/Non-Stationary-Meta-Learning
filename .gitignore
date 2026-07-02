@@ -35871,3 +35871,8 @@ myenv/Lib/site-packages/imageio-2.37.2.dist-info/entry_points.txt
 
 # Sweep outputs (research artifacts, like runs/ evals/ benchmarks/)
 sweeps/
+
+# Local secrets — never commit (docs/multi_agent/0001 policy)
+.secrets/
+*.token
+.git-credentials

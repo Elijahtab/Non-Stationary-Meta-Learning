@@ -34,6 +34,21 @@ if command -v apt-get >/dev/null 2>&1; then
     $SUDO apt-get install -y git build-essential libgl1 libglib2.0-0 || true
 fi
 
+# --- auto send-back credentials (docs/multi_agent/0001, option A) -------------------------
+# Best set GH_TOKEN as a Vast *launch* env var: this box's disk is wiped on recycle/destroy, so a
+# launch env var is what makes every future box arm itself automatically. When present, configure
+# git so `git push` and push_results.sh work in any shell (incl. detached sweeps) without prompting.
+GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+if [ -n "$GH_TOKEN" ]; then
+    git config --global credential.helper store
+    printf 'https://x-access-token:%s@github.com\n' "$GH_TOKEN" > "$HOME/.git-credentials"
+    chmod 600 "$HOME/.git-credentials"
+    echo "[bootstrap] GH_TOKEN found -> git push credentials configured; auto send-back armed."
+else
+    echo "[bootstrap] WARNING: no GH_TOKEN/GITHUB_TOKEN in env -> auto send-back will SKIP."
+    echo "[bootstrap]          Set GH_TOKEN as a Vast launch env var so every new box is ready."
+fi
+
 # --- python env --------------------------------------------------------------------------
 PY=python3
 if [ "$CREATE_VENV" = "1" ]; then

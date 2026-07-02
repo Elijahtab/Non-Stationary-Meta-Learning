@@ -240,3 +240,94 @@ $env:PYTHONPATH='src'
   --research-command ".\myenv\Scripts\python.exe scripts\run_research_trial.py --program {program} --manifest {manifest} --trial {trial} --trial-dir {trial_dir} --repo-root {repo_root} --baseline-file {baseline_file}" `
   --max-trials 1
 ```
+
+## Cloud Execution & Long-Running Loops (Operational Notes, 2026-07-01)
+
+How trials/sweeps actually run on a rented cloud GPU box — reference for when the autoresearch
+supervisor runs unattended on cloud infra. Learned from the trainable-vs-frozen stabilizer sweeps;
+full detail in [`docs/multi_agent/0001-reduce-gpu-artifacts.md`](docs/multi_agent/0001-reduce-gpu-artifacts.md)
+and [`docs/handoffs/2026-07-01-trainable-vs-frozen-cloud-sweep.md`](docs/handoffs/2026-07-01-trainable-vs-frozen-cloud-sweep.md).
+
+### Free compute — sweeps parallelize far cheaper than the old budget assumed (headline)
+
+The earlier plan budgeted **16 cores per cell** (`MAX_PARALLEL = nproc/16`). Measured reality on a
+128-vCPU / 4× RTX 3090 box: a `calib8x8` cell uses **~1.5 CPU cores** and ~0.5–1 GB VRAM.
+
+- **8 cells:** load ~12/128, RAM 23/251 GB, GPUs ~1 GB/24 GB at 23–61% util — box ~90% idle.
+- **Packed to 12 cells** (added a 4-seed condition into the spare capacity): load 15/128; existing
+  cells slowed only **~7%** (1347→1249 SPS); one GPU reached 93% util at 3 cells/GPU.
+- **The binding constraint is GPU utilization, not CPU or RAM.** Budget by GPU: ~3 cells/GPU stays
+  healthy (~1200+ SPS); ~4–6/GPU is likely before ~1300 SPS degrades materially (inferred from the
+  util headroom — validate before relying on the top end).
+- **Because the box bills per hour regardless, idle GPUs are wasted money.** A parallel trial/sweep
+  that fits inside the current window is effectively free. Long loops should pack trials up to the
+  GPU-util ceiling rather than the `nproc/16` rule.
+- **Still cap threads:** `OMP_NUM_THREADS=16` (+ `MKL`/`OPENBLAS`/`NUMEXPR`) is mandatory to stop
+  torch's thread explosion (uncapped → ~131 threads/cell → load 321, GPUs idle, no progress). The
+  16 is a *thread cap*, not a per-cell core budget — do not use it to size `MAX_PARALLEL`.
+
+### Right-sizing the box (measured — provision leaner next time)
+
+Measured with 12 cells running: **~14–16 CPU cores used of 128** (~1.2–1.5 cores/cell), **31 GB
+RAM of 251**, **~1.6 GB VRAM of 24 GB per GPU**. The 128-vCPU / 4× RTX 3090 box used for the first
+sweeps is **5–8× over-provisioned on CPU** and hugely over-provisioned on VRAM.
+
+- **Sizing rule:** vCPU ≈ **2 × max concurrent cells** (each cell ≈ 1.5 cores), RAM ≈ 2 GB/cell.
+  A full 4-GPU pack (12–16 cells) needs only **~32 vCPU + ~64 GB**.
+- **Recommended next box:** **4× GPU, ~32 vCPU, ~64 GB RAM**, and scale the thread cap down with
+  the core count (`OMP_NUM_THREADS=8`). Zero performance loss for this workload.
+- **Vast pricing** is a bundled per-host offer dominated by the **GPUs**, not linear in vCPU — a
+  leaner box isn't *guaranteed* cheaper, but leaner-vCPU 4×GPU offers usually run ~20–40% cheaper
+  with no downside here. (This supersedes the "prioritize 48–64 vCPU, `max_parallel = vCPU/16`"
+  guidance in research-log 0002, which was based on a wrong 16-cores/cell estimate.)
+- **Bigger cost lever:** the GPU *tier* is over-provisioned too (~1.6 GB/24 GB, modest util). Keep
+  the GPU **count** at 4 (parallelism = one condition per GPU) but a cheaper card class
+  (RTX 3060 12 GB / A4000 / 2080-class) runs each cell fine and cuts price more than vCPU, since
+  GPU class drives most of the Vast cost.
+
+### Launch mechanics (proven shape)
+
+- `run_seed_sweep.py` passes `--device cuda` (= `cuda:0`), so **all cells of one invocation land on
+  the first visible GPU**. Spread by pinning one invocation per GPU with `CUDA_VISIBLE_DEVICES`:
+  ```bash
+  CUDA_VISIBLE_DEVICES=N MAX_PARALLEL=k RESUME=1 \
+    bash scripts/cloud/run_sweep.sh <preset> "<condition>" "<seeds>" <outdir>
+  ```
+- **Healthy signal:** ~1300–1400 SPS/cell, load ≪ nproc, ~1 GB VRAM/cell.
+- **Detachment:** `run_sweep.sh` backgrounds + disowns and survives SSH exit (verified from a fresh
+  session). It calls `push_results.sh` on completion (`AUTO_PUSH=1`).
+- **SSH gotchas:** filter the 3-line vast banner (`grep -vE "Welcome to vast|Have fun|AI agents"`);
+  non-interactive shells do **not** auto-activate the venv (`source /venv/main/bin/activate`); `scp`
+  uses `-P` (not `-p`); kill with the bracket trick — `pkill -9 -f "[t]rain_brain.py"` — so the
+  pattern doesn't match your own SSH command and kill the shell.
+
+### Box ephemerality & results durability (critical for unattended loops)
+
+- **`/workspace` is NOT persistent** (overlay fs); recycle/destroy wipes everything. Check with
+  `vast-capabilities | jq '.instance.workspace_is_volume'`. The SSH endpoint (ip:port) also changes
+  per box — read it from the dashboard Connect button; don't hardcode (it went stale mid-session).
+- **Auto send-back:** on completion `run_sweep.sh` → `scripts/cloud/push_results.sh` pushes a *light*
+  bundle (summary/runs/logs + per-run `brain_trends`/`brain_model.pt`) to the **`results` branch**
+  under `results/<sweep>/`. Survives box destroy. Pull for analysis with `scripts/cloud/pull_results.sh`
+  (excludes the heavy `episode_*/`).
+- **Token policy:** the GitHub PAT lives ONLY in gitignored `.secrets/gh_token`;
+  `scripts/cloud/upload_secrets.sh` installs it on a box at start (or set `GH_TOKEN` as a Vast launch
+  env var → `bootstrap.sh` arms git creds automatically). Never commit the token.
+- **Disk:** a raw sweep leaves ~19 GB, almost all derived/step-level. Reductions are shipped
+  (`docs/multi_agent/0001`): PNG rendering gated behind `LL_RENDER_CHARTS=1` (regenerate locally with
+  `scripts/render_charts.py`), compact JSON, and the inner-checkpoint leak fixed (with
+  `save_checkpoints=False`, the default, none are written). Run dir ~800 MB → a few MB.
+
+### Scorer constraint (a trial must not break scoring)
+
+`composite_score` reads per-episode `charts/success_rate` + `charts/regime_id` from each run's
+`*_data.json`, and **scoring runs on the box**. Do not prune those series (only whitespace-compaction
+is safe). `benchmarking.py` stays immutable per the manifest.
+
+### Current experiment context (pointer)
+
+Trainable neuromod decoder ≈ frozen on composite but **unstable** (late collapse; two co-adapting
+learners = risk R1). Stabilizer sweep in flight — `slowbrain` (`brain_lr`), `declr` (separate
+`--neuromod_decoder_lr`), `long` (60 ep), `slow_long`, plus the `declr_slowbrain` combo. New
+conditions live in `run_seed_sweep.py::CONDITIONS`. See
+[`docs/research-notes/0001-trainable-vs-frozen-decoder.md`](docs/research-notes/0001-trainable-vs-frozen-decoder.md).

@@ -81,6 +81,7 @@ class MetaEnv(gym.Env):
         disable_neuromodulation: bool = False,
         context_code_source: str = "brain",
         trainable_neuromod: bool = False,
+        neuromod_decoder_lr: float | None = None,
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
@@ -121,6 +122,7 @@ class MetaEnv(gym.Env):
         self.disable_neuromodulation = disable_neuromodulation
         self.context_code_source = context_code_source
         self.trainable_neuromod = trainable_neuromod
+        self.neuromod_decoder_lr = neuromod_decoder_lr
         self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
 
@@ -211,6 +213,7 @@ class MetaEnv(gym.Env):
             episodic_memory_capacity=self.episodic_memory_capacity,
             cpu_threads=self.runtime_cpu_threads,
             trainable_neuromod=self.trainable_neuromod,
+            neuromod_decoder_lr=self.neuromod_decoder_lr,
         )
         if self.inner_log_dir is not None:
             ep_log_dir = os.path.join(self.inner_log_dir, f"{self._episode_prefix}_{self._episode_counter}")

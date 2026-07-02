@@ -30,15 +30,23 @@ class DataLogger:
             return
             
         os.makedirs(save_dir, exist_ok=True)
-        
-        # Dump raw data to JSON for independent manual viewing
+
+        # Dump raw data to JSON for independent manual viewing. Compact separators (no indent)
+        # keep this ~3x smaller than pretty-printed with zero information loss; the scorer and
+        # scripts/render_charts.py read it back identically.
         json_path = os.path.join(save_dir, f"{self.run_name}_data.json")
         try:
             with open(json_path, 'w') as f:
-                json.dump(self.data, f, indent=4)
+                json.dump(self.data, f, separators=(",", ":"))
         except Exception as e:
             print(f"Warning: Failed to save raw JSON data: {e}")
-        
+
+        # Rendering the PNG charts is expensive and, on a multi-cell cloud sweep, produces ~1.4 GB
+        # of purely-derived images. Skip it by default; the JSON above is the source of truth and
+        # scripts/render_charts.py rebuilds these figures on demand. Opt in with LL_RENDER_CHARTS=1.
+        if os.environ.get("LL_RENDER_CHARTS", "0") != "1":
+            return
+
         # Determine grid size based on number of tracked metrics
         tags = list(self.data.keys())
         n_metrics = len(tags)

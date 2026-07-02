@@ -193,6 +193,25 @@ CONDITIONS: dict[str, dict] = {
     # co-adapts) instead of the frozen random projection. Head-to-head vs brain_neuromod.
     # See docs/research-notes/0001-trainable-vs-frozen-decoder.md.
     "brain_neuromod_trainable": {"trainable_neuromod": True},
+    # --- Stabilizing the trainable decoder (docs/multi_agent/0002) -----------------------
+    # Trainable ≈ frozen on composite but UNSTABLE (late collapse; growing variance = R1
+    # co-adaptation). These test fixes, all compared against the existing brain_neuromod
+    # (frozen) + brain_neuromod_trainable baselines already on the `results` branch.
+    #   slowbrain : slow the controller so the code is a more stationary target for the decoder
+    #   long      : just run longer (control for the "needs more time" hypothesis)
+    #   slow_long : stabilize AND extend (predicted winner)
+    #   declr     : give the decoder its own small LR, decoupled from the Brain-controlled inner LR
+    "brain_neuromod_trainable_slowbrain": {"trainable_neuromod": True, "brain_lr": 3e-5},
+    "brain_neuromod_trainable_long": {"trainable_neuromod": True, "brain_episodes": 60},
+    "brain_neuromod_trainable_slow_long": {"trainable_neuromod": True, "brain_lr": 3e-5, "brain_episodes": 60},
+    "brain_neuromod_trainable_declr": {"trainable_neuromod": True, "neuromod_decoder_lr": 1e-5},
+    # Combined stabilizer: decouple the decoder LR AND slow the controller — tests whether the two
+    # cleanest levers stack (the "belt-and-suspenders" targeted fix). Run in spare box capacity.
+    "brain_neuromod_trainable_declr_slowbrain": {"trainable_neuromod": True, "neuromod_decoder_lr": 1e-5, "brain_lr": 3e-5},
+    # Frozen decoder at the 60-ep horizon: the CONTROL for the trainable_long climb (note 0002
+    # preview). If frozen also keeps rising past ep 30, the climb is about horizon, not the
+    # trainable decoder.
+    "brain_neuromod_long": {"brain_episodes": 60},
 }
 
 # Metrics pulled from each scored run into the per-run table.

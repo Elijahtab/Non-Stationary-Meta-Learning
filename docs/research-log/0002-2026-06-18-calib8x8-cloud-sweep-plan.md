@@ -39,6 +39,12 @@ the repo moved): `https://github.com/Elijahtab/Non-Stationary-Meta-Learning.git`
 
 ### Box spec (prioritize vCPU, never an H100)
 
+> **⚠️ Superseded (2026-07-01).** This section assumed ~16 cores/cell (`max_parallel = vCPU/16`).
+> Measured reality: a `calib8x8` cell uses **~1.5 cores**, so 12 cells burned only ~14–16 of 128
+> vCPU. Provision **~32 vCPU + ~64 GB + 4× GPU** (GPU util, not vCPU, is the limit) and set
+> `OMP_NUM_THREADS=8`. See `AUTORESEARCH.md` → "Right-sizing the box" and
+> `docs/multi_agent/0001`. The table below is kept for the record only.
+
 | Spec | Pick | Why |
 | --- | --- | --- |
 | vCPU | **48–64** | the bottleneck; `max_parallel = vCPU / 16` for `calib8x8` |
