@@ -324,6 +324,65 @@ sweeps is **5–8× over-provisioned on CPU** and hugely over-provisioned on VRA
 `*_data.json`, and **scoring runs on the box**. Do not prune those series (only whitespace-compaction
 is safe). `benchmarking.py` stays immutable per the manifest.
 
+## Brainstorm: Long-Running Loop Architecture (2026-07-01, pre-design)
+
+Ideas for the unattended loop that will eventually drive cloud experiments end-to-end. Not a
+contract yet — a brainstorm grounded in what this session did manually. The manual flow it should
+automate: *pick conditions → launch across GPUs → monitor → pull trajectories → interpret against
+a registered prediction → write the research note → queue the follow-up*.
+
+### Loop skeleton (observe → decide → launch → record)
+
+1. **Observe:** poll box state (cells running, per-cell episode progress, GPU util) and the
+   `results` branch (completed sweeps auto-push there).
+2. **Decide:** compare finished results against the *registered prediction* written before launch
+   (notes 0001/0002 pattern). Outcomes route to: extend (more seeds), escalate (longer horizon /
+   next lever), or close (write the null, pivot to the next mechanism family).
+3. **Launch:** new conditions are one-line entries in `run_seed_sweep.py::CONDITIONS`; spread via
+   `CUDA_VISIBLE_DEVICES`, `RESUME=1` for spot-safety.
+4. **Record:** append to the research note (never silently edit a prediction), push docs + data
+   to git. The ledger/trial-record contract from the Trial Model section applies.
+
+### REQUIRED: compute check after any run completion
+
+**Every time a run/sweep completes (or the loop wakes), re-measure capacity and backfill.** The
+box bills per hour whether GPUs work or idle — this session repeatedly found 60–90% of paid
+capacity sitting idle after a wave finished, and each backfill (combo condition, frozen-long
+control, extra seeds) was effectively free.
+
+Concrete rule:
+- On any completion event: read cells-per-GPU (`nvidia-smi` util/mem + `ps` cell count).
+- If any GPU is below the packing density (**~3 cells/GPU** healthy; validate 4+ before relying
+  on it), pop the next item off the experiment queue and launch it into the gap immediately.
+- Queue priorities when backfilling: (1) missing controls for in-flight results (e.g. the
+  frozen-long control), (2) extra seeds on the currently-leading hypothesis (tighter CIs beat new
+  conditions), (3) next-lever conditions, (4) dose-response variants.
+- If the queue is empty and all cells are done: pull/push everything, then **destroy the box**
+  (idle box = pure waste; recreation is cheap and `bootstrap.sh` + launch env vars re-arm it).
+
+### Experiment queue (what "next" means)
+
+A small ordered file (e.g. `autoresearch/queue.toml`) of {condition, seeds, horizon, prediction,
+priority} the loop can pop from — so backfilling never has to invent science, only schedule it.
+Humans and the decide-step both append to it.
+
+### Safety rails carried over from the Trial Model
+
+- Immutable surface stays immutable (scorer/benchmark; see manifest) — the loop only adds
+  CONDITIONS entries and launches.
+- Budget caps: max cells in flight, max box-hours per day, hard stop if `results` pushes fail
+  (never accumulate unpushed results on an ephemeral disk).
+- Registered predictions are append-only; a surprised prediction is a *finding*, not an error.
+
+### Open questions
+
+- Where does the loop live — local machine (survives box death, needs SSH out) vs on-box
+  (cheaper, dies with the box) vs both (on-box worker + local/cron supervisor)?
+- Trigger mechanism: poll interval vs watching the `results` branch vs `run_sweep.sh` calling a
+  webhook on completion.
+- How much of the decide-step to trust to the agent unattended vs gate on human review (start:
+  backfill/extend autonomous, escalate/close gated).
+
 ### Current experiment context (pointer)
 
 Trainable neuromod decoder ≈ frozen on composite but **unstable** (late collapse; two co-adapting
