@@ -1,0 +1,12 @@
+[sweep] preset=calib8x8 conditions=['brain_neuromod_trainable_slow_long'] seeds=[1, 2, 3, 4]
+[sweep] 4 cells, max_parallel=2 -> sweeps/tvf2_slow_long
+[sweep] (1/4) brain_neuromod_trainable_slow_long seed=1 -> scored composite=0.4994588693957945
+[sweep] (2/4) brain_neuromod_trainable_slow_long seed=2 -> scored composite=0.4948087727511004
+[sweep] (3/4) brain_neuromod_trainable_slow_long seed=3 -> scored composite=0.509440616069257
+[sweep] (4/4) brain_neuromod_trainable_slow_long seed=4 -> scored composite=0.5106825683650312
+
+[sweep] done. per-run -> sweeps/tvf2_slow_long/runs.csv | summary -> sweeps/tvf2_slow_long/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod_trainable_slow_long 0.5036 [0.4971, 0.5101]  (n=4)
+[run_sweep] sweep exited ec=0
