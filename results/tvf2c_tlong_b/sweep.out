@@ -1,0 +1,9 @@
+[sweep] preset=calib8x8 conditions=['brain_neuromod_trainable_long'] seeds=[8]
+[sweep] 1 cells, max_parallel=1 -> sweeps/tvf2c_tlong_b
+[sweep] (1/1) brain_neuromod_trainable_long seed=8 -> scored composite=0.5036638094656248
+
+[sweep] done. per-run -> sweeps/tvf2c_tlong_b/runs.csv | summary -> sweeps/tvf2c_tlong_b/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod_trainable_long 0.5037 [0.5037, 0.5037]  (n=1)
+[run_sweep] sweep exited ec=0
