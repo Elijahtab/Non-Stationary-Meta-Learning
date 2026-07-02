@@ -1,8 +1,43 @@
 # 0001 — Trainable vs. Frozen Neuromodulation Decoder
 
-**Status:** experiment ready (code landed 2026-06-30) · awaiting sweep results
+**Status:** ✅ RESOLVED 2026-07-01 — **H1 not supported** (trainable ≈ frozen; see Results below)
 **Owner:** Elijah · **Relates to:** [plan §3a](../plans/workshop-task-free-neuromodulation.md),
-[spec 05](../spec/05-neuromodulation.md), [box diagram](../spec/neuromodulation-box-diagram.md)
+[spec 05](../spec/05-neuromodulation.md), [box diagram](../spec/neuromodulation-box-diagram.md),
+[handoff](../handoffs/2026-07-01-trainable-vs-frozen-cloud-sweep.md)
+
+## Results (2026-07-01) — calib8x8, 4 seeds (cloud seeds 1–4; local seed-0 died)
+
+| Condition | composite [95% CI] | hit_rate_80 |
+| --- | --- | --- |
+| frozen | 0.5105 [0.499, 0.523] | 0.926 |
+| trainable | 0.5092 [0.505, 0.513] | 0.799 |
+
+- **H1 (trainable ≥ frozen): NOT supported.** Δ = −0.0013 on composite (within noise, CIs overlap).
+- **H3 (decoder drifts only when trainable): confirmed.**
+- Trainable is *worse* on `hit_rate_80` (0.80 vs 0.93) — same avg post-switch success but less
+  reliable at the threshold, consistent with **R1** (two co-adapting learners → instability).
+- **Outcome = branch 2/3:** even fully learned, this feature-gating neuromodulation doesn't help
+  recovery here → the Brain's scalar HP control (not context-code routing) is what drives
+  adaptation. Frozen decoder stands as a fair baseline; unfreezing is *not* the missing piece.
+- **Next levers before declaring neuromod inert:** affine/gain mask, input-conditioned (FiLM)
+  modulation, actor/critic-separate modulation, or a decoder-LR stability fix.
+
+### Brain reward over the whole run
+
+The Brain's meta-reward (`recovery_v2`) per episode across all 30 outer episodes — mean ± std
+across the 4 seeds (faint lines = individual seeds):
+
+![Frozen vs trainable — Brain episode reward over training](figures/0001-reward-frozen-vs-trainable.png)
+
+Both conditions climb to a **similar level** (mean over the run: frozen **4.11 ± 0.67**,
+trainable **3.73 ± 0.21**); frozen is slightly higher and steadier, while **trainable is
+markedly more volatile late in training** — individual trainable seeds swing to near-zero /
+negative final episodes (finals 1.0, 1.0, −0.35, 3.8) whereas frozen stays in the 4–7 band.
+This late-run instability is the same **R1** co-adaptation effect that surfaces as the lower
+`hit_rate_80`. Net: the reward curve corroborates the headline — unfreezing the decoder does
+not raise the outer-loop reward and, if anything, destabilizes it.
+*(Note: a single final-episode point is noisy — the run-mean / last-10 averages above are the
+reliable summary; per-seed numbers in `sweeps/cloud_tvf_results/reward_series.json`.)*
 
 ## Hypothesis (one sentence)
 
@@ -111,5 +146,5 @@ sharper, more novel hook than "we added neuromodulation." Whatever H1's sign, th
 (H2) + oracle gap (H4) give a mechanism story independent of the headline number.
 
 ---
-_Update this note with results once the sweep lands (fill in H1–H4 outcomes and pick the outcome
-branch above)._
+_Resolved 2026-07-01 — see the Results section at the top. H1 not supported; H2 (regime-decoding
+probe on the trained-decoder masks) and H4 (oracle gap) remain open follow-ups._
