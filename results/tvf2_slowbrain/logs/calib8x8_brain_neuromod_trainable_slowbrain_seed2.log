@@ -1,0 +1,1427 @@
+Saved configuration to: runs/calib8x8_brain_neuromod_trainable_slowbrain_seed2_20260701-180038/config.txt
+Training Brain on cuda for 30 RL episodes
+  Inner: 800000 timesteps, regime switch every 100000 steps
+  Parallel Envs: 1
+  Brain vectorization: sync
+  Decision interval: 10 inner updates
+
+--- Starting Meta-RL PPO Training (Target: 30) ---
+update 10/390 | step=20480 | SPS=1343
+update 20/390 | step=40960 | SPS=1345
+update 30/390 | step=61440 | SPS=1347
+update 40/390 | step=81920 | SPS=1389
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1405
+update 60/390 | step=122880 | SPS=1390
+update 70/390 | step=143360 | SPS=1385
+update 80/390 | step=163840 | SPS=1396
+update 90/390 | step=184320 | SPS=1405
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1416
+update 110/390 | step=225280 | SPS=1421
+update 120/390 | step=245760 | SPS=1427
+update 130/390 | step=266240 | SPS=1420
+update 140/390 | step=286720 | SPS=1417
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1421
+update 160/390 | step=327680 | SPS=1425
+update 170/390 | step=348160 | SPS=1427
+update 180/390 | step=368640 | SPS=1432
+update 190/390 | step=389120 | SPS=1432
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1436
+update 210/390 | step=430080 | SPS=1439
+update 220/390 | step=450560 | SPS=1442
+update 230/390 | step=471040 | SPS=1444
+update 240/390 | step=491520 | SPS=1446
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1448
+update 260/390 | step=532480 | SPS=1447
+update 270/390 | step=552960 | SPS=1442
+update 280/390 | step=573440 | SPS=1444
+update 290/390 | step=593920 | SPS=1439
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1434
+update 310/390 | step=634880 | SPS=1429
+update 320/390 | step=655360 | SPS=1425
+update 330/390 | step=675840 | SPS=1422
+update 340/390 | step=696320 | SPS=1418
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1414
+update 360/390 | step=737280 | SPS=1410
+update 370/390 | step=757760 | SPS=1406
+update 380/390 | step=778240 | SPS=1406
+update 390/390 | step=798720 | SPS=1407
+Episode 1/30 | reward=4.9569 | avg10=4.9569 | avg_success_rate=0.8500 | steps=38 | time=571.9s
+update 10/390 | step=20480 | SPS=1391
+update 20/390 | step=40960 | SPS=1357
+update 30/390 | step=61440 | SPS=1329
+update 40/390 | step=81920 | SPS=1331
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1326
+update 60/390 | step=122880 | SPS=1319
+update 70/390 | step=143360 | SPS=1317
+update 80/390 | step=163840 | SPS=1312
+update 90/390 | step=184320 | SPS=1311
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1312
+update 110/390 | step=225280 | SPS=1324
+update 120/390 | step=245760 | SPS=1333
+update 130/390 | step=266240 | SPS=1342
+update 140/390 | step=286720 | SPS=1337
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1336
+update 160/390 | step=327680 | SPS=1332
+update 170/390 | step=348160 | SPS=1330
+update 180/390 | step=368640 | SPS=1329
+update 190/390 | step=389120 | SPS=1326
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1324
+update 210/390 | step=430080 | SPS=1323
+update 220/390 | step=450560 | SPS=1321
+update 230/390 | step=471040 | SPS=1326
+update 240/390 | step=491520 | SPS=1333
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1338
+update 260/390 | step=532480 | SPS=1341
+update 270/390 | step=552960 | SPS=1345
+update 280/390 | step=573440 | SPS=1350
+update 290/390 | step=593920 | SPS=1350
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1347
+update 310/390 | step=634880 | SPS=1348
+update 320/390 | step=655360 | SPS=1350
+update 330/390 | step=675840 | SPS=1352
+update 340/390 | step=696320 | SPS=1349
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1348
+update 360/390 | step=737280 | SPS=1346
+update 370/390 | step=757760 | SPS=1345
+update 380/390 | step=778240 | SPS=1344
+update 390/390 | step=798720 | SPS=1346
+Episode 2/30 | reward=0.4898 | avg10=2.7233 | avg_success_rate=0.5000 | steps=38 | time=596.1s
+update 10/390 | step=20480 | SPS=1399
+update 20/390 | step=40960 | SPS=1455
+update 30/390 | step=61440 | SPS=1464
+update 40/390 | step=81920 | SPS=1473
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1475
+update 60/390 | step=122880 | SPS=1467
+update 70/390 | step=143360 | SPS=1470
+update 80/390 | step=163840 | SPS=1468
+update 90/390 | step=184320 | SPS=1459
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1445
+update 110/390 | step=225280 | SPS=1430
+update 120/390 | step=245760 | SPS=1415
+update 130/390 | step=266240 | SPS=1407
+update 140/390 | step=286720 | SPS=1407
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1400
+update 160/390 | step=327680 | SPS=1392
+update 170/390 | step=348160 | SPS=1387
+update 180/390 | step=368640 | SPS=1392
+update 190/390 | step=389120 | SPS=1393
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1395
+update 210/390 | step=430080 | SPS=1393
+update 220/390 | step=450560 | SPS=1395
+update 230/390 | step=471040 | SPS=1398
+update 240/390 | step=491520 | SPS=1402
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1399
+update 260/390 | step=532480 | SPS=1395
+update 270/390 | step=552960 | SPS=1397
+update 280/390 | step=573440 | SPS=1401
+update 290/390 | step=593920 | SPS=1404
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1406
+update 310/390 | step=634880 | SPS=1409
+update 320/390 | step=655360 | SPS=1411
+update 330/390 | step=675840 | SPS=1413
+update 340/390 | step=696320 | SPS=1414
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1411
+update 360/390 | step=737280 | SPS=1407
+update 370/390 | step=757760 | SPS=1404
+update 380/390 | step=778240 | SPS=1400
+update 390/390 | step=798720 | SPS=1398
+Episode 3/30 | reward=1.5644 | avg10=2.3370 | avg_success_rate=0.7300 | steps=38 | time=574.1s
+update 10/390 | step=20480 | SPS=1338
+update 20/390 | step=40960 | SPS=1346
+update 30/390 | step=61440 | SPS=1332
+update 40/390 | step=81920 | SPS=1334
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1327
+update 60/390 | step=122880 | SPS=1319
+update 70/390 | step=143360 | SPS=1329
+update 80/390 | step=163840 | SPS=1323
+update 90/390 | step=184320 | SPS=1320
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1322
+update 110/390 | step=225280 | SPS=1320
+update 120/390 | step=245760 | SPS=1318
+update 130/390 | step=266240 | SPS=1316
+update 140/390 | step=286720 | SPS=1312
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1311
+update 160/390 | step=327680 | SPS=1310
+update 170/390 | step=348160 | SPS=1310
+update 180/390 | step=368640 | SPS=1310
+update 190/390 | step=389120 | SPS=1308
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1308
+update 210/390 | step=430080 | SPS=1308
+update 220/390 | step=450560 | SPS=1306
+update 230/390 | step=471040 | SPS=1308
+update 240/390 | step=491520 | SPS=1315
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1320
+update 260/390 | step=532480 | SPS=1320
+update 270/390 | step=552960 | SPS=1323
+update 280/390 | step=573440 | SPS=1324
+update 290/390 | step=593920 | SPS=1323
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1321
+update 310/390 | step=634880 | SPS=1320
+update 320/390 | step=655360 | SPS=1319
+update 330/390 | step=675840 | SPS=1317
+update 340/390 | step=696320 | SPS=1315
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1315
+update 360/390 | step=737280 | SPS=1315
+update 370/390 | step=757760 | SPS=1316
+update 380/390 | step=778240 | SPS=1319
+update 390/390 | step=798720 | SPS=1319
+Episode 4/30 | reward=2.3865 | avg10=2.3494 | avg_success_rate=0.8100 | steps=38 | time=608.3s
+update 10/390 | step=20480 | SPS=1298
+update 20/390 | step=40960 | SPS=1282
+update 30/390 | step=61440 | SPS=1243
+update 40/390 | step=81920 | SPS=1245
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1259
+update 60/390 | step=122880 | SPS=1243
+update 70/390 | step=143360 | SPS=1251
+update 80/390 | step=163840 | SPS=1249
+update 90/390 | step=184320 | SPS=1241
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1238
+update 110/390 | step=225280 | SPS=1232
+update 120/390 | step=245760 | SPS=1229
+update 130/390 | step=266240 | SPS=1231
+update 140/390 | step=286720 | SPS=1227
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1228
+update 160/390 | step=327680 | SPS=1233
+update 170/390 | step=348160 | SPS=1235
+update 180/390 | step=368640 | SPS=1238
+update 190/390 | step=389120 | SPS=1239
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1239
+update 210/390 | step=430080 | SPS=1237
+update 220/390 | step=450560 | SPS=1236
+update 230/390 | step=471040 | SPS=1238
+update 240/390 | step=491520 | SPS=1236
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1234
+update 260/390 | step=532480 | SPS=1232
+update 270/390 | step=552960 | SPS=1231
+update 280/390 | step=573440 | SPS=1231
+update 290/390 | step=593920 | SPS=1230
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1229
+update 310/390 | step=634880 | SPS=1229
+update 320/390 | step=655360 | SPS=1228
+update 330/390 | step=675840 | SPS=1228
+update 340/390 | step=696320 | SPS=1228
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1227
+update 360/390 | step=737280 | SPS=1228
+update 370/390 | step=757760 | SPS=1228
+update 380/390 | step=778240 | SPS=1230
+update 390/390 | step=798720 | SPS=1232
+Episode 5/30 | reward=4.2332 | avg10=2.7262 | avg_success_rate=0.8800 | steps=38 | time=651.2s
+  [brain ckpt] runs/calib8x8_brain_neuromod_trainable_slowbrain_seed2_20260701-180038/episode_5/brain_ep5.pt
+update 10/390 | step=20480 | SPS=1238
+update 20/390 | step=40960 | SPS=1210
+update 30/390 | step=61440 | SPS=1204
+update 40/390 | step=81920 | SPS=1231
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1227
+update 60/390 | step=122880 | SPS=1233
+update 70/390 | step=143360 | SPS=1248
+update 80/390 | step=163840 | SPS=1247
+update 90/390 | step=184320 | SPS=1248
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1249
+update 110/390 | step=225280 | SPS=1241
+update 120/390 | step=245760 | SPS=1237
+update 130/390 | step=266240 | SPS=1245
+update 140/390 | step=286720 | SPS=1248
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1252
+update 160/390 | step=327680 | SPS=1253
+update 170/390 | step=348160 | SPS=1254
+update 180/390 | step=368640 | SPS=1254
+update 190/390 | step=389120 | SPS=1250
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1253
+update 210/390 | step=430080 | SPS=1250
+update 220/390 | step=450560 | SPS=1247
+update 230/390 | step=471040 | SPS=1249
+update 240/390 | step=491520 | SPS=1249
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1249
+update 260/390 | step=532480 | SPS=1251
+update 270/390 | step=552960 | SPS=1253
+update 280/390 | step=573440 | SPS=1256
+update 290/390 | step=593920 | SPS=1256
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1257
+update 310/390 | step=634880 | SPS=1258
+update 320/390 | step=655360 | SPS=1257
+update 330/390 | step=675840 | SPS=1258
+update 340/390 | step=696320 | SPS=1258
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1259
+update 360/390 | step=737280 | SPS=1259
+update 370/390 | step=757760 | SPS=1260
+update 380/390 | step=778240 | SPS=1261
+update 390/390 | step=798720 | SPS=1262
+Episode 6/30 | reward=2.6051 | avg10=2.7060 | avg_success_rate=0.8600 | steps=38 | time=636.0s
+update 10/390 | step=20480 | SPS=1332
+update 20/390 | step=40960 | SPS=1283
+update 30/390 | step=61440 | SPS=1288
+update 40/390 | step=81920 | SPS=1303
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1306
+update 60/390 | step=122880 | SPS=1305
+update 70/390 | step=143360 | SPS=1312
+update 80/390 | step=163840 | SPS=1297
+update 90/390 | step=184320 | SPS=1297
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1295
+update 110/390 | step=225280 | SPS=1292
+update 120/390 | step=245760 | SPS=1292
+update 130/390 | step=266240 | SPS=1293
+update 140/390 | step=286720 | SPS=1288
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1289
+update 160/390 | step=327680 | SPS=1287
+update 170/390 | step=348160 | SPS=1283
+update 180/390 | step=368640 | SPS=1283
+update 190/390 | step=389120 | SPS=1283
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1283
+update 210/390 | step=430080 | SPS=1280
+update 220/390 | step=450560 | SPS=1279
+update 230/390 | step=471040 | SPS=1280
+update 240/390 | step=491520 | SPS=1281
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1279
+update 260/390 | step=532480 | SPS=1276
+update 270/390 | step=552960 | SPS=1272
+update 280/390 | step=573440 | SPS=1270
+update 290/390 | step=593920 | SPS=1269
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1268
+update 310/390 | step=634880 | SPS=1265
+update 320/390 | step=655360 | SPS=1263
+update 330/390 | step=675840 | SPS=1262
+update 340/390 | step=696320 | SPS=1261
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1258
+update 360/390 | step=737280 | SPS=1257
+update 370/390 | step=757760 | SPS=1257
+update 380/390 | step=778240 | SPS=1257
+update 390/390 | step=798720 | SPS=1256
+Episode 7/30 | reward=1.6980 | avg10=2.5620 | avg_success_rate=0.9700 | steps=38 | time=638.7s
+update 10/390 | step=20480 | SPS=1344
+update 20/390 | step=40960 | SPS=1293
+update 30/390 | step=61440 | SPS=1250
+update 40/390 | step=81920 | SPS=1254
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1266
+update 60/390 | step=122880 | SPS=1262
+update 70/390 | step=143360 | SPS=1262
+update 80/390 | step=163840 | SPS=1253
+update 90/390 | step=184320 | SPS=1260
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1267
+update 110/390 | step=225280 | SPS=1272
+update 120/390 | step=245760 | SPS=1276
+update 130/390 | step=266240 | SPS=1277
+update 140/390 | step=286720 | SPS=1280
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1280
+update 160/390 | step=327680 | SPS=1278
+update 170/390 | step=348160 | SPS=1279
+update 180/390 | step=368640 | SPS=1279
+update 190/390 | step=389120 | SPS=1278
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1280
+update 210/390 | step=430080 | SPS=1284
+update 220/390 | step=450560 | SPS=1280
+update 230/390 | step=471040 | SPS=1279
+update 240/390 | step=491520 | SPS=1281
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1279
+update 260/390 | step=532480 | SPS=1277
+update 270/390 | step=552960 | SPS=1275
+update 280/390 | step=573440 | SPS=1271
+update 290/390 | step=593920 | SPS=1268
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1266
+update 310/390 | step=634880 | SPS=1266
+update 320/390 | step=655360 | SPS=1264
+update 330/390 | step=675840 | SPS=1264
+update 340/390 | step=696320 | SPS=1262
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1260
+update 360/390 | step=737280 | SPS=1261
+update 370/390 | step=757760 | SPS=1262
+update 380/390 | step=778240 | SPS=1261
+update 390/390 | step=798720 | SPS=1262
+Episode 8/30 | reward=4.5424 | avg10=2.8095 | avg_success_rate=0.9500 | steps=38 | time=635.9s
+update 10/390 | step=20480 | SPS=1250
+update 20/390 | step=40960 | SPS=1254
+update 30/390 | step=61440 | SPS=1240
+update 40/390 | step=81920 | SPS=1230
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1224
+update 60/390 | step=122880 | SPS=1229
+update 70/390 | step=143360 | SPS=1243
+update 80/390 | step=163840 | SPS=1239
+update 90/390 | step=184320 | SPS=1243
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1252
+update 110/390 | step=225280 | SPS=1256
+update 120/390 | step=245760 | SPS=1257
+update 130/390 | step=266240 | SPS=1257
+update 140/390 | step=286720 | SPS=1262
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1263
+update 160/390 | step=327680 | SPS=1267
+update 170/390 | step=348160 | SPS=1268
+update 180/390 | step=368640 | SPS=1272
+update 190/390 | step=389120 | SPS=1274
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1275
+update 210/390 | step=430080 | SPS=1276
+update 220/390 | step=450560 | SPS=1277
+update 230/390 | step=471040 | SPS=1277
+update 240/390 | step=491520 | SPS=1279
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1281
+update 260/390 | step=532480 | SPS=1284
+update 270/390 | step=552960 | SPS=1284
+update 280/390 | step=573440 | SPS=1284
+update 290/390 | step=593920 | SPS=1281
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1282
+update 310/390 | step=634880 | SPS=1282
+update 320/390 | step=655360 | SPS=1281
+update 330/390 | step=675840 | SPS=1280
+update 340/390 | step=696320 | SPS=1280
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1279
+update 360/390 | step=737280 | SPS=1276
+update 370/390 | step=757760 | SPS=1274
+update 380/390 | step=778240 | SPS=1275
+update 390/390 | step=798720 | SPS=1275
+Episode 9/30 | reward=2.8457 | avg10=2.8135 | avg_success_rate=0.7900 | steps=38 | time=629.4s
+update 10/390 | step=20480 | SPS=1267
+update 20/390 | step=40960 | SPS=1235
+update 30/390 | step=61440 | SPS=1217
+update 40/390 | step=81920 | SPS=1217
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1229
+update 60/390 | step=122880 | SPS=1239
+update 70/390 | step=143360 | SPS=1233
+update 80/390 | step=163840 | SPS=1229
+update 90/390 | step=184320 | SPS=1224
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1232
+update 110/390 | step=225280 | SPS=1239
+update 120/390 | step=245760 | SPS=1245
+update 130/390 | step=266240 | SPS=1247
+update 140/390 | step=286720 | SPS=1253
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1253
+update 160/390 | step=327680 | SPS=1251
+update 170/390 | step=348160 | SPS=1249
+update 180/390 | step=368640 | SPS=1250
+update 190/390 | step=389120 | SPS=1246
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1248
+update 210/390 | step=430080 | SPS=1251
+update 220/390 | step=450560 | SPS=1252
+update 230/390 | step=471040 | SPS=1250
+update 240/390 | step=491520 | SPS=1250
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1249
+update 260/390 | step=532480 | SPS=1250
+update 270/390 | step=552960 | SPS=1248
+update 280/390 | step=573440 | SPS=1245
+update 290/390 | step=593920 | SPS=1242
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1240
+update 310/390 | step=634880 | SPS=1239
+update 320/390 | step=655360 | SPS=1240
+update 330/390 | step=675840 | SPS=1241
+update 340/390 | step=696320 | SPS=1241
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1242
+update 360/390 | step=737280 | SPS=1243
+update 370/390 | step=757760 | SPS=1244
+update 380/390 | step=778240 | SPS=1245
+update 390/390 | step=798720 | SPS=1244
+Episode 10/30 | reward=5.1741 | avg10=3.0496 | avg_success_rate=0.7900 | steps=38 | time=644.9s
+  [brain ckpt] runs/calib8x8_brain_neuromod_trainable_slowbrain_seed2_20260701-180038/episode_10/brain_ep10.pt
+update 10/390 | step=20480 | SPS=1245
+update 20/390 | step=40960 | SPS=1222
+update 30/390 | step=61440 | SPS=1228
+update 40/390 | step=81920 | SPS=1240
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1236
+update 60/390 | step=122880 | SPS=1236
+update 70/390 | step=143360 | SPS=1249
+update 80/390 | step=163840 | SPS=1247
+update 90/390 | step=184320 | SPS=1240
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1235
+update 110/390 | step=225280 | SPS=1231
+update 120/390 | step=245760 | SPS=1230
+update 130/390 | step=266240 | SPS=1230
+update 140/390 | step=286720 | SPS=1230
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1233
+update 160/390 | step=327680 | SPS=1238
+update 170/390 | step=348160 | SPS=1241
+update 180/390 | step=368640 | SPS=1246
+update 190/390 | step=389120 | SPS=1247
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1248
+update 210/390 | step=430080 | SPS=1252
+update 220/390 | step=450560 | SPS=1254
+update 230/390 | step=471040 | SPS=1254
+update 240/390 | step=491520 | SPS=1256
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1258
+update 260/390 | step=532480 | SPS=1258
+update 270/390 | step=552960 | SPS=1258
+update 280/390 | step=573440 | SPS=1256
+update 290/390 | step=593920 | SPS=1253
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1251
+update 310/390 | step=634880 | SPS=1248
+update 320/390 | step=655360 | SPS=1248
+update 330/390 | step=675840 | SPS=1249
+update 340/390 | step=696320 | SPS=1249
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1249
+update 360/390 | step=737280 | SPS=1248
+update 370/390 | step=757760 | SPS=1247
+update 380/390 | step=778240 | SPS=1249
+update 390/390 | step=798720 | SPS=1250
+Episode 11/30 | reward=5.3874 | avg10=3.0927 | avg_success_rate=0.8800 | steps=38 | time=641.9s
+update 10/390 | step=20480 | SPS=1313
+update 20/390 | step=40960 | SPS=1260
+update 30/390 | step=61440 | SPS=1251
+update 40/390 | step=81920 | SPS=1243
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1254
+update 60/390 | step=122880 | SPS=1258
+update 70/390 | step=143360 | SPS=1269
+update 80/390 | step=163840 | SPS=1274
+update 90/390 | step=184320 | SPS=1274
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1278
+update 110/390 | step=225280 | SPS=1279
+update 120/390 | step=245760 | SPS=1282
+update 130/390 | step=266240 | SPS=1275
+update 140/390 | step=286720 | SPS=1278
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1280
+update 160/390 | step=327680 | SPS=1283
+update 170/390 | step=348160 | SPS=1284
+update 180/390 | step=368640 | SPS=1287
+update 190/390 | step=389120 | SPS=1284
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1286
+update 210/390 | step=430080 | SPS=1284
+update 220/390 | step=450560 | SPS=1280
+update 230/390 | step=471040 | SPS=1280
+update 240/390 | step=491520 | SPS=1277
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1274
+update 260/390 | step=532480 | SPS=1274
+update 270/390 | step=552960 | SPS=1273
+update 280/390 | step=573440 | SPS=1275
+update 290/390 | step=593920 | SPS=1275
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1277
+update 310/390 | step=634880 | SPS=1277
+update 320/390 | step=655360 | SPS=1278
+update 330/390 | step=675840 | SPS=1279
+update 340/390 | step=696320 | SPS=1280
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1279
+update 360/390 | step=737280 | SPS=1277
+update 370/390 | step=757760 | SPS=1277
+update 380/390 | step=778240 | SPS=1279
+update 390/390 | step=798720 | SPS=1280
+Episode 12/30 | reward=3.4987 | avg10=3.3936 | avg_success_rate=0.9600 | steps=38 | time=626.7s
+update 10/390 | step=20480 | SPS=1407
+update 20/390 | step=40960 | SPS=1334
+update 30/390 | step=61440 | SPS=1281
+update 40/390 | step=81920 | SPS=1267
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1280
+update 60/390 | step=122880 | SPS=1282
+update 70/390 | step=143360 | SPS=1290
+update 80/390 | step=163840 | SPS=1289
+update 90/390 | step=184320 | SPS=1292
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1295
+update 110/390 | step=225280 | SPS=1296
+update 120/390 | step=245760 | SPS=1297
+update 130/390 | step=266240 | SPS=1287
+update 140/390 | step=286720 | SPS=1280
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1275
+update 160/390 | step=327680 | SPS=1275
+update 170/390 | step=348160 | SPS=1268
+update 180/390 | step=368640 | SPS=1268
+update 190/390 | step=389120 | SPS=1268
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1265
+update 210/390 | step=430080 | SPS=1265
+update 220/390 | step=450560 | SPS=1266
+update 230/390 | step=471040 | SPS=1268
+update 240/390 | step=491520 | SPS=1267
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1267
+update 260/390 | step=532480 | SPS=1270
+update 270/390 | step=552960 | SPS=1270
+update 280/390 | step=573440 | SPS=1272
+update 290/390 | step=593920 | SPS=1272
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1274
+update 310/390 | step=634880 | SPS=1273
+update 320/390 | step=655360 | SPS=1273
+update 330/390 | step=675840 | SPS=1273
+update 340/390 | step=696320 | SPS=1275
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1274
+update 360/390 | step=737280 | SPS=1275
+update 370/390 | step=757760 | SPS=1276
+update 380/390 | step=778240 | SPS=1277
+update 390/390 | step=798720 | SPS=1277
+Episode 13/30 | reward=3.4795 | avg10=3.5851 | avg_success_rate=0.7400 | steps=38 | time=628.1s
+update 10/390 | step=20480 | SPS=1233
+update 20/390 | step=40960 | SPS=1264
+update 30/390 | step=61440 | SPS=1274
+update 40/390 | step=81920 | SPS=1271
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1284
+update 60/390 | step=122880 | SPS=1285
+update 70/390 | step=143360 | SPS=1293
+update 80/390 | step=163840 | SPS=1296
+update 90/390 | step=184320 | SPS=1299
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1302
+update 110/390 | step=225280 | SPS=1303
+update 120/390 | step=245760 | SPS=1306
+update 130/390 | step=266240 | SPS=1306
+update 140/390 | step=286720 | SPS=1304
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1298
+update 160/390 | step=327680 | SPS=1291
+update 170/390 | step=348160 | SPS=1285
+update 180/390 | step=368640 | SPS=1285
+update 190/390 | step=389120 | SPS=1282
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1283
+update 210/390 | step=430080 | SPS=1282
+update 220/390 | step=450560 | SPS=1281
+update 230/390 | step=471040 | SPS=1281
+update 240/390 | step=491520 | SPS=1282
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1283
+update 260/390 | step=532480 | SPS=1284
+update 270/390 | step=552960 | SPS=1284
+update 280/390 | step=573440 | SPS=1286
+update 290/390 | step=593920 | SPS=1283
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1281
+update 310/390 | step=634880 | SPS=1279
+update 320/390 | step=655360 | SPS=1278
+update 330/390 | step=675840 | SPS=1279
+update 340/390 | step=696320 | SPS=1280
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1280
+update 360/390 | step=737280 | SPS=1278
+update 370/390 | step=757760 | SPS=1277
+update 380/390 | step=778240 | SPS=1277
+update 390/390 | step=798720 | SPS=1275
+Episode 14/30 | reward=4.0031 | avg10=3.7467 | avg_success_rate=0.7500 | steps=38 | time=629.2s
+update 10/390 | step=20480 | SPS=1243
+update 20/390 | step=40960 | SPS=1231
+update 30/390 | step=61440 | SPS=1239
+update 40/390 | step=81920 | SPS=1262
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1273
+update 60/390 | step=122880 | SPS=1278
+update 70/390 | step=143360 | SPS=1284
+update 80/390 | step=163840 | SPS=1287
+update 90/390 | step=184320 | SPS=1290
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1294
+update 110/390 | step=225280 | SPS=1286
+update 120/390 | step=245760 | SPS=1282
+update 130/390 | step=266240 | SPS=1275
+update 140/390 | step=286720 | SPS=1271
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1270
+update 160/390 | step=327680 | SPS=1273
+update 170/390 | step=348160 | SPS=1273
+update 180/390 | step=368640 | SPS=1276
+update 190/390 | step=389120 | SPS=1273
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1274
+update 210/390 | step=430080 | SPS=1276
+update 220/390 | step=450560 | SPS=1276
+update 230/390 | step=471040 | SPS=1276
+update 240/390 | step=491520 | SPS=1278
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1276
+update 260/390 | step=532480 | SPS=1275
+update 270/390 | step=552960 | SPS=1275
+update 280/390 | step=573440 | SPS=1276
+update 290/390 | step=593920 | SPS=1274
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1272
+update 310/390 | step=634880 | SPS=1270
+update 320/390 | step=655360 | SPS=1271
+update 330/390 | step=675840 | SPS=1272
+update 340/390 | step=696320 | SPS=1273
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1271
+update 360/390 | step=737280 | SPS=1269
+update 370/390 | step=757760 | SPS=1269
+update 380/390 | step=778240 | SPS=1271
+update 390/390 | step=798720 | SPS=1272
+Episode 15/30 | reward=5.1665 | avg10=3.8400 | avg_success_rate=0.9100 | steps=38 | time=631.0s
+  [brain ckpt] runs/calib8x8_brain_neuromod_trainable_slowbrain_seed2_20260701-180038/episode_15/brain_ep15.pt
+update 10/390 | step=20480 | SPS=1263
+update 20/390 | step=40960 | SPS=1271
+update 30/390 | step=61440 | SPS=1281
+update 40/390 | step=81920 | SPS=1277
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1262
+update 60/390 | step=122880 | SPS=1245
+update 70/390 | step=143360 | SPS=1239
+update 80/390 | step=163840 | SPS=1237
+update 90/390 | step=184320 | SPS=1244
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1254
+update 110/390 | step=225280 | SPS=1252
+update 120/390 | step=245760 | SPS=1250
+update 130/390 | step=266240 | SPS=1246
+update 140/390 | step=286720 | SPS=1246
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1247
+update 160/390 | step=327680 | SPS=1250
+update 170/390 | step=348160 | SPS=1252
+update 180/390 | step=368640 | SPS=1257
+update 190/390 | step=389120 | SPS=1257
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1260
+update 210/390 | step=430080 | SPS=1262
+update 220/390 | step=450560 | SPS=1265
+update 230/390 | step=471040 | SPS=1268
+update 240/390 | step=491520 | SPS=1268
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1270
+update 260/390 | step=532480 | SPS=1270
+update 270/390 | step=552960 | SPS=1270
+update 280/390 | step=573440 | SPS=1272
+update 290/390 | step=593920 | SPS=1272
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1272
+update 310/390 | step=634880 | SPS=1273
+update 320/390 | step=655360 | SPS=1274
+update 330/390 | step=675840 | SPS=1276
+update 340/390 | step=696320 | SPS=1276
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1277
+update 360/390 | step=737280 | SPS=1274
+update 370/390 | step=757760 | SPS=1273
+update 380/390 | step=778240 | SPS=1274
+update 390/390 | step=798720 | SPS=1273
+Episode 16/30 | reward=3.4457 | avg10=3.9241 | avg_success_rate=0.8600 | steps=38 | time=630.5s
+update 10/390 | step=20480 | SPS=1235
+update 20/390 | step=40960 | SPS=1256
+update 30/390 | step=61440 | SPS=1250
+update 40/390 | step=81920 | SPS=1254
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1257
+update 60/390 | step=122880 | SPS=1259
+update 70/390 | step=143360 | SPS=1270
+update 80/390 | step=163840 | SPS=1267
+update 90/390 | step=184320 | SPS=1266
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1260
+update 110/390 | step=225280 | SPS=1254
+update 120/390 | step=245760 | SPS=1260
+update 130/390 | step=266240 | SPS=1260
+update 140/390 | step=286720 | SPS=1265
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1267
+update 160/390 | step=327680 | SPS=1269
+update 170/390 | step=348160 | SPS=1271
+update 180/390 | step=368640 | SPS=1271
+update 190/390 | step=389120 | SPS=1268
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1267
+update 210/390 | step=430080 | SPS=1271
+update 220/390 | step=450560 | SPS=1271
+update 230/390 | step=471040 | SPS=1272
+update 240/390 | step=491520 | SPS=1270
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1266
+update 260/390 | step=532480 | SPS=1267
+update 270/390 | step=552960 | SPS=1267
+update 280/390 | step=573440 | SPS=1269
+update 290/390 | step=593920 | SPS=1266
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1265
+update 310/390 | step=634880 | SPS=1266
+update 320/390 | step=655360 | SPS=1267
+update 330/390 | step=675840 | SPS=1267
+update 340/390 | step=696320 | SPS=1267
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1267
+update 360/390 | step=737280 | SPS=1266
+update 370/390 | step=757760 | SPS=1267
+update 380/390 | step=778240 | SPS=1266
+update 390/390 | step=798720 | SPS=1268
+Episode 17/30 | reward=2.5868 | avg10=4.0130 | avg_success_rate=0.9200 | steps=38 | time=632.8s
+update 10/390 | step=20480 | SPS=1224
+update 20/390 | step=40960 | SPS=1222
+update 30/390 | step=61440 | SPS=1219
+update 40/390 | step=81920 | SPS=1235
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1230
+update 60/390 | step=122880 | SPS=1234
+update 70/390 | step=143360 | SPS=1248
+update 80/390 | step=163840 | SPS=1255
+update 90/390 | step=184320 | SPS=1260
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1267
+update 110/390 | step=225280 | SPS=1271
+update 120/390 | step=245760 | SPS=1274
+update 130/390 | step=266240 | SPS=1276
+update 140/390 | step=286720 | SPS=1279
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1276
+update 160/390 | step=327680 | SPS=1273
+update 170/390 | step=348160 | SPS=1269
+update 180/390 | step=368640 | SPS=1265
+update 190/390 | step=389120 | SPS=1259
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1255
+update 210/390 | step=430080 | SPS=1253
+update 220/390 | step=450560 | SPS=1253
+update 230/390 | step=471040 | SPS=1250
+update 240/390 | step=491520 | SPS=1251
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1253
+update 260/390 | step=532480 | SPS=1255
+update 270/390 | step=552960 | SPS=1253
+update 280/390 | step=573440 | SPS=1256
+update 290/390 | step=593920 | SPS=1256
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1259
+update 310/390 | step=634880 | SPS=1257
+update 320/390 | step=655360 | SPS=1256
+update 330/390 | step=675840 | SPS=1255
+update 340/390 | step=696320 | SPS=1253
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1251
+update 360/390 | step=737280 | SPS=1249
+update 370/390 | step=757760 | SPS=1250
+update 380/390 | step=778240 | SPS=1250
+update 390/390 | step=798720 | SPS=1251
+Episode 18/30 | reward=4.2897 | avg10=3.9877 | avg_success_rate=0.8100 | steps=38 | time=641.5s
+update 10/390 | step=20480 | SPS=1246
+update 20/390 | step=40960 | SPS=1270
+update 30/390 | step=61440 | SPS=1265
+update 40/390 | step=81920 | SPS=1275
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1277
+update 60/390 | step=122880 | SPS=1258
+update 70/390 | step=143360 | SPS=1253
+update 80/390 | step=163840 | SPS=1246
+update 90/390 | step=184320 | SPS=1242
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1247
+update 110/390 | step=225280 | SPS=1252
+update 120/390 | step=245760 | SPS=1255
+update 130/390 | step=266240 | SPS=1258
+update 140/390 | step=286720 | SPS=1261
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1262
+update 160/390 | step=327680 | SPS=1261
+update 170/390 | step=348160 | SPS=1259
+update 180/390 | step=368640 | SPS=1261
+update 190/390 | step=389120 | SPS=1257
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1258
+update 210/390 | step=430080 | SPS=1260
+update 220/390 | step=450560 | SPS=1261
+update 230/390 | step=471040 | SPS=1261
+update 240/390 | step=491520 | SPS=1261
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1264
+update 260/390 | step=532480 | SPS=1265
+update 270/390 | step=552960 | SPS=1265
+update 280/390 | step=573440 | SPS=1267
+update 290/390 | step=593920 | SPS=1266
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1265
+update 310/390 | step=634880 | SPS=1263
+update 320/390 | step=655360 | SPS=1264
+update 330/390 | step=675840 | SPS=1266
+update 340/390 | step=696320 | SPS=1265
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1262
+update 360/390 | step=737280 | SPS=1260
+update 370/390 | step=757760 | SPS=1262
+update 380/390 | step=778240 | SPS=1263
+update 390/390 | step=798720 | SPS=1264
+Episode 19/30 | reward=4.0364 | avg10=4.1068 | avg_success_rate=0.9000 | steps=38 | time=635.0s
+update 10/390 | step=20480 | SPS=1391
+update 20/390 | step=40960 | SPS=1365
+update 30/390 | step=61440 | SPS=1308
+update 40/390 | step=81920 | SPS=1286
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1278
+update 60/390 | step=122880 | SPS=1260
+update 70/390 | step=143360 | SPS=1260
+update 80/390 | step=163840 | SPS=1260
+update 90/390 | step=184320 | SPS=1264
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1267
+update 110/390 | step=225280 | SPS=1259
+update 120/390 | step=245760 | SPS=1253
+update 130/390 | step=266240 | SPS=1254
+update 140/390 | step=286720 | SPS=1250
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1251
+update 160/390 | step=327680 | SPS=1250
+update 170/390 | step=348160 | SPS=1248
+update 180/390 | step=368640 | SPS=1245
+update 190/390 | step=389120 | SPS=1243
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1241
+update 210/390 | step=430080 | SPS=1238
+update 220/390 | step=450560 | SPS=1240
+update 230/390 | step=471040 | SPS=1243
+update 240/390 | step=491520 | SPS=1244
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1247
+update 260/390 | step=532480 | SPS=1248
+update 270/390 | step=552960 | SPS=1250
+update 280/390 | step=573440 | SPS=1250
+update 290/390 | step=593920 | SPS=1248
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1248
+update 310/390 | step=634880 | SPS=1246
+update 320/390 | step=655360 | SPS=1244
+update 330/390 | step=675840 | SPS=1243
+update 340/390 | step=696320 | SPS=1245
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1246
+update 360/390 | step=737280 | SPS=1246
+update 370/390 | step=757760 | SPS=1247
+update 380/390 | step=778240 | SPS=1248
+update 390/390 | step=798720 | SPS=1247
+Episode 20/30 | reward=3.5093 | avg10=3.9403 | avg_success_rate=0.7200 | steps=38 | time=643.6s
+  [brain ckpt] runs/calib8x8_brain_neuromod_trainable_slowbrain_seed2_20260701-180038/episode_20/brain_ep20.pt
+update 10/390 | step=20480 | SPS=1239
+update 20/390 | step=40960 | SPS=1236
+update 30/390 | step=61440 | SPS=1223
+update 40/390 | step=81920 | SPS=1226
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1237
+update 60/390 | step=122880 | SPS=1236
+update 70/390 | step=143360 | SPS=1236
+update 80/390 | step=163840 | SPS=1241
+update 90/390 | step=184320 | SPS=1246
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1254
+update 110/390 | step=225280 | SPS=1258
+update 120/390 | step=245760 | SPS=1261
+update 130/390 | step=266240 | SPS=1265
+update 140/390 | step=286720 | SPS=1265
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1270
+update 160/390 | step=327680 | SPS=1274
+update 170/390 | step=348160 | SPS=1276
+update 180/390 | step=368640 | SPS=1279
+update 190/390 | step=389120 | SPS=1281
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1279
+update 210/390 | step=430080 | SPS=1277
+update 220/390 | step=450560 | SPS=1276
+update 230/390 | step=471040 | SPS=1273
+update 240/390 | step=491520 | SPS=1271
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1270
+update 260/390 | step=532480 | SPS=1270
+update 270/390 | step=552960 | SPS=1271
+update 280/390 | step=573440 | SPS=1271
+update 290/390 | step=593920 | SPS=1271
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1271
+update 310/390 | step=634880 | SPS=1270
+update 320/390 | step=655360 | SPS=1271
+update 330/390 | step=675840 | SPS=1272
+update 340/390 | step=696320 | SPS=1273
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1274
+update 360/390 | step=737280 | SPS=1274
+update 370/390 | step=757760 | SPS=1273
+update 380/390 | step=778240 | SPS=1273
+update 390/390 | step=798720 | SPS=1273
+Episode 21/30 | reward=1.6830 | avg10=3.5699 | avg_success_rate=0.7500 | steps=38 | time=630.2s
+update 10/390 | step=20480 | SPS=1240
+update 20/390 | step=40960 | SPS=1225
+update 30/390 | step=61440 | SPS=1229
+update 40/390 | step=81920 | SPS=1258
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1247
+update 60/390 | step=122880 | SPS=1231
+update 70/390 | step=143360 | SPS=1232
+update 80/390 | step=163840 | SPS=1227
+update 90/390 | step=184320 | SPS=1221
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1225
+update 110/390 | step=225280 | SPS=1222
+update 120/390 | step=245760 | SPS=1226
+update 130/390 | step=266240 | SPS=1223
+update 140/390 | step=286720 | SPS=1225
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1228
+update 160/390 | step=327680 | SPS=1228
+update 170/390 | step=348160 | SPS=1227
+update 180/390 | step=368640 | SPS=1233
+update 190/390 | step=389120 | SPS=1231
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1233
+update 210/390 | step=430080 | SPS=1233
+update 220/390 | step=450560 | SPS=1235
+update 230/390 | step=471040 | SPS=1236
+update 240/390 | step=491520 | SPS=1234
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1231
+update 260/390 | step=532480 | SPS=1228
+update 270/390 | step=552960 | SPS=1226
+update 280/390 | step=573440 | SPS=1225
+update 290/390 | step=593920 | SPS=1224
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1224
+update 310/390 | step=634880 | SPS=1226
+update 320/390 | step=655360 | SPS=1229
+update 330/390 | step=675840 | SPS=1228
+update 340/390 | step=696320 | SPS=1227
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1229
+update 360/390 | step=737280 | SPS=1231
+update 370/390 | step=757760 | SPS=1234
+update 380/390 | step=778240 | SPS=1233
+update 390/390 | step=798720 | SPS=1233
+Episode 22/30 | reward=1.1586 | avg10=3.3359 | avg_success_rate=0.9200 | steps=38 | time=650.7s
+update 10/390 | step=20480 | SPS=1282
+update 20/390 | step=40960 | SPS=1241
+update 30/390 | step=61440 | SPS=1216
+update 40/390 | step=81920 | SPS=1227
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1239
+update 60/390 | step=122880 | SPS=1236
+update 70/390 | step=143360 | SPS=1250
+update 80/390 | step=163840 | SPS=1257
+update 90/390 | step=184320 | SPS=1258
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1253
+update 110/390 | step=225280 | SPS=1247
+update 120/390 | step=245760 | SPS=1243
+update 130/390 | step=266240 | SPS=1242
+update 140/390 | step=286720 | SPS=1239
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1237
+update 160/390 | step=327680 | SPS=1239
+update 170/390 | step=348160 | SPS=1241
+update 180/390 | step=368640 | SPS=1243
+update 190/390 | step=389120 | SPS=1245
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1243
+update 210/390 | step=430080 | SPS=1244
+update 220/390 | step=450560 | SPS=1247
+update 230/390 | step=471040 | SPS=1248
+update 240/390 | step=491520 | SPS=1246
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1243
+update 260/390 | step=532480 | SPS=1245
+update 270/390 | step=552960 | SPS=1246
+update 280/390 | step=573440 | SPS=1248
+update 290/390 | step=593920 | SPS=1249
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1251
+update 310/390 | step=634880 | SPS=1251
+update 320/390 | step=655360 | SPS=1251
+update 330/390 | step=675840 | SPS=1251
+update 340/390 | step=696320 | SPS=1250
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1248
+update 360/390 | step=737280 | SPS=1247
+update 370/390 | step=757760 | SPS=1249
+update 380/390 | step=778240 | SPS=1250
+update 390/390 | step=798720 | SPS=1251
+Episode 23/30 | reward=3.0857 | avg10=3.2965 | avg_success_rate=0.9000 | steps=38 | time=641.6s
+update 10/390 | step=20480 | SPS=1286
+update 20/390 | step=40960 | SPS=1259
+update 30/390 | step=61440 | SPS=1237
+update 40/390 | step=81920 | SPS=1239
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1243
+update 60/390 | step=122880 | SPS=1252
+update 70/390 | step=143360 | SPS=1264
+update 80/390 | step=163840 | SPS=1267
+update 90/390 | step=184320 | SPS=1271
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1276
+update 110/390 | step=225280 | SPS=1276
+update 120/390 | step=245760 | SPS=1276
+update 130/390 | step=266240 | SPS=1270
+update 140/390 | step=286720 | SPS=1270
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1271
+update 160/390 | step=327680 | SPS=1273
+update 170/390 | step=348160 | SPS=1274
+update 180/390 | step=368640 | SPS=1276
+update 190/390 | step=389120 | SPS=1277
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1278
+update 210/390 | step=430080 | SPS=1279
+update 220/390 | step=450560 | SPS=1280
+update 230/390 | step=471040 | SPS=1280
+update 240/390 | step=491520 | SPS=1275
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1271
+update 260/390 | step=532480 | SPS=1270
+update 270/390 | step=552960 | SPS=1266
+update 280/390 | step=573440 | SPS=1265
+update 290/390 | step=593920 | SPS=1264
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1264
+update 310/390 | step=634880 | SPS=1262
+update 320/390 | step=655360 | SPS=1260
+update 330/390 | step=675840 | SPS=1261
+update 340/390 | step=696320 | SPS=1263
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1261
+update 360/390 | step=737280 | SPS=1259
+update 370/390 | step=757760 | SPS=1257
+update 380/390 | step=778240 | SPS=1256
+update 390/390 | step=798720 | SPS=1254
+Episode 24/30 | reward=3.0598 | avg10=3.2021 | avg_success_rate=0.9900 | steps=38 | time=640.1s
+update 10/390 | step=20480 | SPS=1248
+update 20/390 | step=40960 | SPS=1225
+update 30/390 | step=61440 | SPS=1256
+update 40/390 | step=81920 | SPS=1272
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1284
+update 60/390 | step=122880 | SPS=1287
+update 70/390 | step=143360 | SPS=1293
+update 80/390 | step=163840 | SPS=1294
+update 90/390 | step=184320 | SPS=1295
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1296
+update 110/390 | step=225280 | SPS=1298
+update 120/390 | step=245760 | SPS=1297
+update 130/390 | step=266240 | SPS=1299
+update 140/390 | step=286720 | SPS=1299
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1301
+update 160/390 | step=327680 | SPS=1299
+update 170/390 | step=348160 | SPS=1296
+update 180/390 | step=368640 | SPS=1296
+update 190/390 | step=389120 | SPS=1296
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1294
+update 210/390 | step=430080 | SPS=1295
+update 220/390 | step=450560 | SPS=1295
+update 230/390 | step=471040 | SPS=1292
+update 240/390 | step=491520 | SPS=1290
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1287
+update 260/390 | step=532480 | SPS=1283
+update 270/390 | step=552960 | SPS=1284
+update 280/390 | step=573440 | SPS=1282
+update 290/390 | step=593920 | SPS=1279
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1278
+update 310/390 | step=634880 | SPS=1279
+update 320/390 | step=655360 | SPS=1280
+update 330/390 | step=675840 | SPS=1277
+update 340/390 | step=696320 | SPS=1274
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1273
+update 360/390 | step=737280 | SPS=1273
+update 370/390 | step=757760 | SPS=1274
+update 380/390 | step=778240 | SPS=1275
+update 390/390 | step=798720 | SPS=1273
+Episode 25/30 | reward=1.1995 | avg10=2.8054 | avg_success_rate=0.8800 | steps=38 | time=630.3s
+  [brain ckpt] runs/calib8x8_brain_neuromod_trainable_slowbrain_seed2_20260701-180038/episode_25/brain_ep25.pt
+update 10/390 | step=20480 | SPS=1392
+update 20/390 | step=40960 | SPS=1350
+update 30/390 | step=61440 | SPS=1332
+update 40/390 | step=81920 | SPS=1333
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1335
+update 60/390 | step=122880 | SPS=1334
+update 70/390 | step=143360 | SPS=1332
+update 80/390 | step=163840 | SPS=1327
+update 90/390 | step=184320 | SPS=1326
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1324
+update 110/390 | step=225280 | SPS=1322
+update 120/390 | step=245760 | SPS=1323
+update 130/390 | step=266240 | SPS=1320
+update 140/390 | step=286720 | SPS=1320
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1318
+update 160/390 | step=327680 | SPS=1318
+update 170/390 | step=348160 | SPS=1316
+update 180/390 | step=368640 | SPS=1311
+update 190/390 | step=389120 | SPS=1308
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1305
+update 210/390 | step=430080 | SPS=1303
+update 220/390 | step=450560 | SPS=1300
+update 230/390 | step=471040 | SPS=1301
+update 240/390 | step=491520 | SPS=1299
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1300
+update 260/390 | step=532480 | SPS=1299
+update 270/390 | step=552960 | SPS=1297
+update 280/390 | step=573440 | SPS=1293
+update 290/390 | step=593920 | SPS=1292
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1293
+update 310/390 | step=634880 | SPS=1290
+update 320/390 | step=655360 | SPS=1289
+update 330/390 | step=675840 | SPS=1287
+update 340/390 | step=696320 | SPS=1284
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1281
+update 360/390 | step=737280 | SPS=1282
+update 370/390 | step=757760 | SPS=1283
+update 380/390 | step=778240 | SPS=1281
+update 390/390 | step=798720 | SPS=1278
+Episode 26/30 | reward=3.0947 | avg10=2.7703 | avg_success_rate=0.6900 | steps=38 | time=627.9s
+update 10/390 | step=20480 | SPS=1283
+update 20/390 | step=40960 | SPS=1248
+update 30/390 | step=61440 | SPS=1250
+update 40/390 | step=81920 | SPS=1239
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1240
+update 60/390 | step=122880 | SPS=1255
+update 70/390 | step=143360 | SPS=1249
+update 80/390 | step=163840 | SPS=1261
+update 90/390 | step=184320 | SPS=1268
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1274
+update 110/390 | step=225280 | SPS=1276
+update 120/390 | step=245760 | SPS=1280
+update 130/390 | step=266240 | SPS=1272
+update 140/390 | step=286720 | SPS=1270
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1270
+update 160/390 | step=327680 | SPS=1272
+update 170/390 | step=348160 | SPS=1274
+update 180/390 | step=368640 | SPS=1276
+update 190/390 | step=389120 | SPS=1279
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1281
+update 210/390 | step=430080 | SPS=1283
+update 220/390 | step=450560 | SPS=1283
+update 230/390 | step=471040 | SPS=1283
+update 240/390 | step=491520 | SPS=1281
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1279
+update 260/390 | step=532480 | SPS=1275
+update 270/390 | step=552960 | SPS=1274
+update 280/390 | step=573440 | SPS=1273
+update 290/390 | step=593920 | SPS=1269
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1268
+update 310/390 | step=634880 | SPS=1267
+update 320/390 | step=655360 | SPS=1268
+update 330/390 | step=675840 | SPS=1270
+update 340/390 | step=696320 | SPS=1271
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1272
+update 360/390 | step=737280 | SPS=1272
+update 370/390 | step=757760 | SPS=1271
+update 380/390 | step=778240 | SPS=1268
+update 390/390 | step=798720 | SPS=1267
+Episode 27/30 | reward=4.2481 | avg10=2.9365 | avg_success_rate=0.8000 | steps=38 | time=633.1s
+update 10/390 | step=20480 | SPS=1327
+update 20/390 | step=40960 | SPS=1324
+update 30/390 | step=61440 | SPS=1277
+update 40/390 | step=81920 | SPS=1293
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1302
+update 60/390 | step=122880 | SPS=1302
+update 70/390 | step=143360 | SPS=1290
+update 80/390 | step=163840 | SPS=1280
+update 90/390 | step=184320 | SPS=1281
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1282
+update 110/390 | step=225280 | SPS=1282
+update 120/390 | step=245760 | SPS=1282
+update 130/390 | step=266240 | SPS=1282
+update 140/390 | step=286720 | SPS=1283
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1282
+update 160/390 | step=327680 | SPS=1280
+update 170/390 | step=348160 | SPS=1273
+update 180/390 | step=368640 | SPS=1272
+update 190/390 | step=389120 | SPS=1273
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1269
+update 210/390 | step=430080 | SPS=1268
+update 220/390 | step=450560 | SPS=1264
+update 230/390 | step=471040 | SPS=1261
+update 240/390 | step=491520 | SPS=1263
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1265
+update 260/390 | step=532480 | SPS=1266
+update 270/390 | step=552960 | SPS=1268
+update 280/390 | step=573440 | SPS=1268
+update 290/390 | step=593920 | SPS=1268
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1269
+update 310/390 | step=634880 | SPS=1269
+update 320/390 | step=655360 | SPS=1267
+update 330/390 | step=675840 | SPS=1269
+update 340/390 | step=696320 | SPS=1268
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1268
+update 360/390 | step=737280 | SPS=1270
+update 370/390 | step=757760 | SPS=1270
+update 380/390 | step=778240 | SPS=1267
+update 390/390 | step=798720 | SPS=1265
+Episode 28/30 | reward=2.0971 | avg10=2.7172 | avg_success_rate=0.6800 | steps=38 | time=634.3s
+update 10/390 | step=20480 | SPS=1271
+update 20/390 | step=40960 | SPS=1248
+update 30/390 | step=61440 | SPS=1224
+update 40/390 | step=81920 | SPS=1250
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1264
+update 60/390 | step=122880 | SPS=1268
+update 70/390 | step=143360 | SPS=1263
+update 80/390 | step=163840 | SPS=1270
+update 90/390 | step=184320 | SPS=1276
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1279
+update 110/390 | step=225280 | SPS=1278
+update 120/390 | step=245760 | SPS=1283
+update 130/390 | step=266240 | SPS=1284
+update 140/390 | step=286720 | SPS=1285
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1286
+update 160/390 | step=327680 | SPS=1285
+update 170/390 | step=348160 | SPS=1283
+update 180/390 | step=368640 | SPS=1279
+update 190/390 | step=389120 | SPS=1279
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1277
+update 210/390 | step=430080 | SPS=1274
+update 220/390 | step=450560 | SPS=1269
+update 230/390 | step=471040 | SPS=1265
+update 240/390 | step=491520 | SPS=1261
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1260
+update 260/390 | step=532480 | SPS=1262
+update 270/390 | step=552960 | SPS=1264
+update 280/390 | step=573440 | SPS=1264
+update 290/390 | step=593920 | SPS=1266
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1267
+update 310/390 | step=634880 | SPS=1268
+update 320/390 | step=655360 | SPS=1270
+update 330/390 | step=675840 | SPS=1269
+update 340/390 | step=696320 | SPS=1270
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1270
+update 360/390 | step=737280 | SPS=1272
+update 370/390 | step=757760 | SPS=1270
+update 380/390 | step=778240 | SPS=1269
+update 390/390 | step=798720 | SPS=1267
+Episode 29/30 | reward=1.4066 | avg10=2.4542 | avg_success_rate=0.5300 | steps=38 | time=633.2s
+update 10/390 | step=20480 | SPS=1292
+update 20/390 | step=40960 | SPS=1254
+update 30/390 | step=61440 | SPS=1249
+update 40/390 | step=81920 | SPS=1228
+[100016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 50/390 | step=102400 | SPS=1238
+update 60/390 | step=122880 | SPS=1252
+update 70/390 | step=143360 | SPS=1260
+update 80/390 | step=163840 | SPS=1267
+update 90/390 | step=184320 | SPS=1272
+[200016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 100/390 | step=204800 | SPS=1276
+update 110/390 | step=225280 | SPS=1276
+update 120/390 | step=245760 | SPS=1280
+update 130/390 | step=266240 | SPS=1282
+update 140/390 | step=286720 | SPS=1284
+[300016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 150/390 | step=307200 | SPS=1285
+update 160/390 | step=327680 | SPS=1285
+update 170/390 | step=348160 | SPS=1282
+update 180/390 | step=368640 | SPS=1275
+update 190/390 | step=389120 | SPS=1274
+[400016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/390 | step=409600 | SPS=1275
+update 210/390 | step=430080 | SPS=1276
+update 220/390 | step=450560 | SPS=1275
+update 230/390 | step=471040 | SPS=1275
+update 240/390 | step=491520 | SPS=1277
+[500016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 250/390 | step=512000 | SPS=1275
+update 260/390 | step=532480 | SPS=1271
+update 270/390 | step=552960 | SPS=1268
+update 280/390 | step=573440 | SPS=1265
+update 290/390 | step=593920 | SPS=1262
+[600016] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 300/390 | step=614400 | SPS=1261
+update 310/390 | step=634880 | SPS=1262
+update 320/390 | step=655360 | SPS=1261
+update 330/390 | step=675840 | SPS=1260
+update 340/390 | step=696320 | SPS=1258
+[700016] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 350/390 | step=716800 | SPS=1255
+update 360/390 | step=737280 | SPS=1257
+update 370/390 | step=757760 | SPS=1258
+update 380/390 | step=778240 | SPS=1257
+update 390/390 | step=798720 | SPS=1256
+Episode 30/30 | reward=2.2749 | avg10=2.3308 | avg_success_rate=0.6400 | steps=38 | time=638.9s
+  [brain ckpt] runs/calib8x8_brain_neuromod_trainable_slowbrain_seed2_20260701-180038/episode_30/brain_ep30.pt
+Saved Brain model to: runs/calib8x8_brain_neuromod_trainable_slowbrain_seed2_20260701-180038/brain_model.pt
+
+Brain training complete. Total RL episodes: 30
