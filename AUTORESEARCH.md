@@ -376,6 +376,15 @@ exactly what trial N−1 failed at. Science verdicts (accepted / `primary_score_
 / `holdout_regressed`) retire a hypothesis; infrastructure failures leave it retryable. See
 `trial_prompt.py::collect_trial_history` / `load_hypothesis_queue`.
 
+**Hardened 2026-07-03 (post-review remediation, see
+[docs/plans/2026-07-03-autoresearch-review-remediation.md](docs/plans/2026-07-03-autoresearch-review-remediation.md)):**
+research timeouts now kill the whole process tree (no orphaned agents mutating the repo after
+rollback); manifests use a `{python}` placeholder resolved to the supervisor's own interpreter
+(never hardcode venv paths again); `.png` figures are snapshot-managed (roll back + audit);
+prompts survive non-ASCII on Windows; science verdicts never age out of injected history;
+each trial gets a reserved research-note number; and the supervisor appends the verdict to
+notes created by accepted trials, so the lab notebook can't accumulate stale-OPEN notes.
+
 ### Safety rails carried over from the Trial Model
 
 - Immutable surface stays immutable (scorer/benchmark; see manifest) — the loop only adds

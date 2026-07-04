@@ -177,3 +177,55 @@ def test_run_research_trial_dry_run_writes_prompt_and_context(tmp_path):
 
     context = json.loads(Path(payload["context_file"]).read_text(encoding="utf-8"))
     assert context["baseline"]["primary_composite_score"] == 0.4
+
+
+def test_cap_history_never_evicts_science_verdicts():
+    from lifelong_learning.research.trial_prompt import _cap_history
+
+    def entry(i, science):
+        return {"trial_index": i, "science_verdict": science}
+
+    entries = [entry(1, True)] + [entry(i, False) for i in range(2, 10)] + [entry(10, True)]
+    capped = _cap_history(entries, infra_cap=3)
+
+    kept_indices = [e["trial_index"] for e in capped]
+    assert 1 in kept_indices and 10 in kept_indices, "science verdicts must never age out"
+    assert kept_indices == [1, 7, 8, 9, 10], "only the last 3 infra failures are kept, order preserved"
+
+
+def test_next_research_note_number_skips_existing(tmp_path):
+    from lifelong_learning.research.trial_prompt import next_research_note_number
+
+    notes = tmp_path / "docs" / "research-notes"
+    notes.mkdir(parents=True)
+    (notes / "0001-first.md").write_text("x", encoding="utf-8")
+    (notes / "0007-later.md").write_text("x", encoding="utf-8")
+    (notes / "README.md").write_text("x", encoding="utf-8")
+
+    assert next_research_note_number(tmp_path) == 8
+    assert next_research_note_number(tmp_path / "missing") == 1
+
+
+def test_append_note_verdicts_touches_only_trial_created_notes(tmp_path):
+    from lifelong_learning.research.autoresearch import append_note_verdicts
+
+    notes = tmp_path / "docs" / "research-notes"
+    notes.mkdir(parents=True)
+    created = notes / "0004-new-idea.md"
+    created.write_text("# 0004\n\n**Status:** OPEN\n", encoding="utf-8")
+    readme = notes / "README.md"
+    readme.write_text("index\n", encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    code = tmp_path / "src" / "module.py"
+    code.write_text("X = 1\n", encoding="utf-8")
+
+    resolved = append_note_verdicts(
+        tmp_path,
+        ["docs/research-notes/0004-new-idea.md", "docs/research-notes/README.md", "src/module.py"],
+        verdict_line="\n**Resolved:** accepted.\n",
+    )
+
+    assert resolved == ["docs/research-notes/0004-new-idea.md"]
+    assert "**Resolved:** accepted." in created.read_text(encoding="utf-8")
+    assert readme.read_text(encoding="utf-8") == "index\n"
+    assert code.read_text(encoding="utf-8") == "X = 1\n"

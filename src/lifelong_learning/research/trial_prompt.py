@@ -91,9 +91,27 @@ def collect_trial_history(
             }
             (session if sid == session_id else previous).append(entry)
     return {
-        "session": session[-max_session_entries:],
-        "previous_sessions": previous[-max_other_entries:],
+        "session": _cap_history(session, max_session_entries),
+        "previous_sessions": _cap_history(previous, max_other_entries),
     }
+
+
+def _cap_history(entries: list[dict[str, Any]], infra_cap: int) -> list[dict[str, Any]]:
+    """Cap history without ever evicting science verdicts.
+
+    A science verdict permanently retires (or validates) a hypothesis; if it scrolls out
+    of the injected window the agent re-implements settled science (review 2026-07-03).
+    Only infrastructure failures — retryable, low-information — age out.
+    """
+    infra_kept = {
+        id(entry)
+        for entry in [e for e in entries if not e.get("science_verdict")][-infra_cap:]
+    }
+    return [
+        entry
+        for entry in entries
+        if entry.get("science_verdict") or id(entry) in infra_kept
+    ]
 
 
 def _format_history_lines(entries: list[dict[str, Any]]) -> str:
@@ -108,6 +126,23 @@ def _format_history_lines(entries: list[dict[str, Any]]) -> str:
             f"{e.get('status')} ({e.get('reason')}; {verdict}) — score {score_text}{hyp}"
         )
     return "\n".join(lines)
+
+
+def next_research_note_number(repo_root: str | Path) -> int:
+    """Next free NNNN under docs/research-notes/.
+
+    Injected into the trial prompt so concurrent/sequential trials can't collide on note
+    numbers (two same-day trials both minted 0003 before this existed; only a rollback
+    avoided the on-disk collision — review 2026-07-03).
+    """
+    notes_dir = Path(repo_root) / "docs" / "research-notes"
+    highest = 0
+    if notes_dir.exists():
+        for entry in notes_dir.glob("*.md"):
+            match = re.match(r"(\d{4})-", entry.name)
+            if match:
+                highest = max(highest, int(match.group(1)))
+    return highest + 1
 
 
 def load_baseline_summary(path: str | Path | None) -> dict[str, Any] | None:
@@ -130,6 +165,7 @@ def build_trial_context_payload(
     baseline_summary: dict[str, Any] | None,
     hypothesis_queue: list[str] | None = None,
     trial_history: dict[str, list[dict[str, Any]]] | None = None,
+    reserved_note_number: int | None = None,
 ) -> dict[str, Any]:
     primary = baseline_summary.get("primary_benchmark", {}) if baseline_summary else {}
     primary_aggregate = primary.get("aggregate", {}) if primary else {}
@@ -156,6 +192,7 @@ def build_trial_context_payload(
         },
         "hypothesis_queue": list(hypothesis_queue or []),
         "trial_history": trial_history or {"session": [], "previous_sessions": []},
+        "reserved_note_number": reserved_note_number,
         "baseline": {
             "primary_composite_score": primary_aggregate.get("composite_score"),
             "primary_mean_post_switch_window_success_rate": primary_aggregate.get(
@@ -188,6 +225,7 @@ def render_research_trial_prompt(
     baseline_summary: dict[str, Any] | None,
     hypothesis_queue: list[str] | None = None,
     trial_history: dict[str, list[dict[str, Any]]] | None = None,
+    reserved_note_number: int | None = None,
 ) -> str:
     context = build_trial_context_payload(
         trial_index=trial_index,
@@ -199,7 +237,16 @@ def render_research_trial_prompt(
         baseline_summary=baseline_summary,
         hypothesis_queue=hypothesis_queue,
         trial_history=trial_history,
+        reserved_note_number=reserved_note_number,
     )
+
+    reserved_note_line = ""
+    if reserved_note_number is not None:
+        reserved_note_line = (
+            f"- If you create a research note under `docs/research-notes/`, number it "
+            f"`{reserved_note_number:04d}` (reserved for this trial) and add it to the "
+            "README index.\n"
+        )
 
     queue_section = ""
     if context["hypothesis_queue"]:
@@ -290,6 +337,7 @@ def render_research_trial_prompt(
         f"{history_section}"
         "## Required Output\n\n"
         f"- Write a short note to `{Path(trial_dir).resolve() / 'agent_notes.md'}` containing the hypothesis, touched files, and expected effect.\n"
+        f"{reserved_note_line}"
         "- Then make the code change directly in the repo.\n"
         "- Stop after one coherent experiment. Do not chain multiple unrelated ideas into the same trial.\n\n"
         "## Research Brief\n\n"

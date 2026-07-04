@@ -450,6 +450,33 @@ def aggregate_benchmark_summary(summary: dict[str, Any], *, report_dir: str | No
     }
 
 
+def append_note_verdicts(
+    repo_root: Path,
+    new_paths: tuple[str, ...] | list[str],
+    *,
+    verdict_line: str,
+) -> list[str]:
+    """Append the trial verdict to research notes the trial itself created.
+
+    Only notes under docs/research-notes/ (excluding the README index) are touched, and
+    only by appending — existing note content is never rewritten.
+    """
+    resolved: list[str] = []
+    for relative_path in new_paths:
+        posix = relative_path.replace("\\", "/")
+        if not posix.startswith("docs/research-notes/"):
+            continue
+        if not posix.endswith(".md") or posix.endswith("README.md"):
+            continue
+        note_path = repo_root / relative_path
+        if not note_path.exists():
+            continue
+        with open(note_path, "a", encoding="utf-8") as handle:
+            handle.write(verdict_line)
+        resolved.append(relative_path)
+    return resolved
+
+
 def resolve_command_placeholders(command: str) -> str:
     """Substitute `{python}` with the quoted running interpreter.
 
@@ -1025,13 +1052,30 @@ class AutoresearchSupervisor:
         ]
 
         if improved_primary and holdout_gate_passed:
+            previous_best = best_primary_score
             best_primary_score = primary_score
+            # Notes are written mid-trial, before the verdict exists, so without this the
+            # lab notebook would accumulate permanently-"OPEN" notes for resolved
+            # experiments (review 2026-07-03). Rejected trials need no append — their
+            # notes are rolled back with the trial; the ledger is their record.
+            resolved_notes = append_note_verdicts(
+                self.repo_root,
+                diff.new_paths,
+                verdict_line=(
+                    "\n---\n"
+                    "**Resolved (autoresearch):** accepted (`primary_improved`) — composite "
+                    f"`{primary_score:.4f}` vs prior best `{previous_best:.4f}` "
+                    f"(session {self.session_id}, trial {trial_index:03d}, "
+                    f"{datetime.now(timezone.utc).strftime('%Y-%m-%d')}).\n"
+                ),
+            )
             trial_entry.update(
                 {
                     "status": "accepted",
                     "reason": "primary_improved",
                     "restored_paths": [],
                     "best_primary_score_after_trial": best_primary_score,
+                    "resolved_notes": resolved_notes,
                 }
             )
             return trial_entry, True, best_primary_score

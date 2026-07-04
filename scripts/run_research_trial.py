@@ -19,6 +19,7 @@ from lifelong_learning.research.trial_prompt import (
     collect_trial_history,
     load_baseline_summary,
     load_hypothesis_queue,
+    next_research_note_number,
     render_research_trial_prompt,
 )
 
@@ -69,6 +70,7 @@ def main() -> None:
         manifest=manifest,
         session_id=trial_dir.parent.name,
     )
+    reserved_note_number = next_research_note_number(repo_root)
 
     prompt = render_research_trial_prompt(
         program_text=program_text,
@@ -81,6 +83,7 @@ def main() -> None:
         baseline_summary=baseline_summary,
         hypothesis_queue=hypothesis_queue,
         trial_history=trial_history,
+        reserved_note_number=reserved_note_number,
     )
     prompt_path = trial_dir / "research_prompt.md"
     prompt_path.write_text(prompt, encoding="utf-8")
@@ -95,6 +98,7 @@ def main() -> None:
         baseline_summary=baseline_summary,
         hypothesis_queue=hypothesis_queue,
         trial_history=trial_history,
+        reserved_note_number=reserved_note_number,
     )
     context_path = trial_dir / "trial_context.json"
     context_path.write_text(json.dumps(context_payload, indent=2), encoding="utf-8")
