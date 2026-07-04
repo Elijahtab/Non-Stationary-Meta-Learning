@@ -37,15 +37,21 @@ The decoder is `Linear(context_dim=8 → 256) → ReLU → Linear(256 → featur
 `feature_dim` is the flattened CNN size (`4096` for an 8×8 grid). The mask is computed by
 [`decode_context_code`](../../src/lifelong_learning/agents/brain/neuromod.py#L106):
 
-> **⚠️ The decoder is frozen at initialization — it never trains.** `set_context_code`
-> decodes the mask under `torch.no_grad()` and stores it as a detached buffer
-> (`current_mask`), and `forward` multiplies that buffer in. So no gradient ever reaches the
-> decoder's weights (verified 2026-06-16: `decoder.weight.grad is None` after an inner
-> backward pass, while encoder/head grads are populated). The decoder is therefore a **fixed
-> random (orthogonal-init) projection**, and the *only* learned part of the modulation
-> pathway is the Brain's context code. Making the decoder trainable (recompute the mask
-> in-graph, or train it under a separate objective) is an obvious, well-motivated extension —
-> see the workshop plan.
+> **⚠️ The decoder is frozen at initialization by default — it never trains.**
+> `set_context_code` decodes the mask under `torch.no_grad()` and stores it as a detached
+> buffer (`current_mask`), and `forward` multiplies the active mask in. So no gradient ever
+> reaches the decoder's weights (verified 2026-06-16: `decoder.weight.grad is None` after an
+> inner backward pass, while encoder/head grads are populated). The decoder is therefore a
+> **fixed random (orthogonal-init) projection**, and the *only* learned part of the
+> modulation pathway is the Brain's context code.
+>
+> **Trainable mode (added 2026-06-30, `--trainable_neuromod`, default off):** the mask is
+> re-decoded in-graph each forward via `active_mask()`
+> ([neuromod.py](../../src/lifelong_learning/agents/brain/neuromod.py#L143-L155)), so the
+> inner PPO gradient reaches the decoder and the inner optimizer trains it (optionally under
+> its own LR, `--neuromod_decoder_lr`). Tested extensively in research notes
+> [0001](../research-notes/0001-trainable-vs-frozen-decoder.md)/[0002](../research-notes/0002-stabilizing-trainable-decoder.md):
+> the trainable decoder never beat frozen on the calib8x8 benchmark.
 
 ```python
 suppression_template = sigmoid(decoder(code))                 # ∈ (0,1)^feature_dim

@@ -339,11 +339,14 @@ def plot_neuromodulation_dashboard(data, save_path):
     ax = axes[2]
     if regime_values is not None:
         draw_regime_switch_lines(ax, regime_values)
-    channel_im = ax.imshow(channel_matrix, aspect='auto', interpolation='nearest', cmap='viridis', vmin=0.0, vmax=1.0)
+    # Diverging map centered at 1.0 (identity): renders both suppress-only masks (<=1)
+    # and any gain-style variant (>1) without clipping amplification to the top color
+    # (review 2026-07-03 — the old vmax=1.0 hid mask values above 1 entirely).
+    channel_im = ax.imshow(channel_matrix, aspect='auto', interpolation='nearest', cmap='coolwarm', vmin=0.0, vmax=2.0)
     ax.set_ylabel('Feature Channel')
     ax.set_yticks(np.arange(0, 64, 8))
     ax.set_title('Decoded Neuromodulation Mask (Channel Mean)')
-    fig.colorbar(channel_im, ax=ax, pad=0.01, label='Mask Strength')
+    fig.colorbar(channel_im, ax=ax, pad=0.01, label='Mask (1 = identity)')
 
     ax = axes[3]
     if regime_values is not None:

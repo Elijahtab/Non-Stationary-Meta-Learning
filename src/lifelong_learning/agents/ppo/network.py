@@ -125,7 +125,10 @@ class CNNActorCritic(nn.Module):
     def describe_neuromodulation(self, obs: torch.Tensor) -> dict[str, torch.Tensor | float]:
         """Summarize the current context mask and its effect on a reference batch."""
         with torch.no_grad():
-            current_mask = self.neuro_mask.detach().clone()
+            # active_mask(), not the snapshot buffer: in trainable mode the decoder keeps
+            # learning between snapshots, so the buffer describes a mask that forward()
+            # is no longer using (review 2026-07-03). Frozen mode: identical tensors.
+            current_mask = self.neuromodulator.active_mask().detach().clone()
             masked_logits, masked_value = self.forward_with_mask(obs, current_mask)
             unmasked_mask = torch.ones_like(current_mask)
             unmasked_logits, unmasked_value = self.forward_with_mask(obs, unmasked_mask)
