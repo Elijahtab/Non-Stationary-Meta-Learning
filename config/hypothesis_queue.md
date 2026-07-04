@@ -10,7 +10,7 @@ diff audit rejects any trial that touches it. Humans append/reorder; keep entrie
 Priority order (from notes 0001/0002 "next levers" + pilot diagnostics):
 
 1. Actor-only modulation — apply the mask to the actor pathway only; the critic reads raw encoder features. Motivation: baseline post-switch policy KL ≈ 0.0014 vs |value delta| ≈ 0.917 — today's shared mask barely steers the policy while whiplashing the critic (biased GAE exactly in the scored post-switch windows).
-2. Two-sided gain mask — scale features in [1−α, 1+α] instead of suppress-only. A pilot trial (2026-07-04, session 20260704-010600) was accepted on the 12k-step smoke (+0.06 composite, n=1); needs a real scout/holdout verdict before it counts as evidence.
+2. Two-sided gain mask — scale features in [1−α, 1+α] instead of suppress-only. Untested on the real benchmark: a 12k-step n=1 pilot smoke (2026-07-04, session 20260704-010600, pilot ledger) once accepted a tanh variant, but that trial's prompt was corrupted by a since-fixed encoding bug and the diff was reverted — treat it as a weak prior only.
 3. FiLM-style input-conditioned modulation — per-channel scale+shift conditioned on the context code (and optionally the observation encoding), rather than a static decoded mask.
 4. Separate actor/critic decoders — two masks decoded from the same 8-D context code, so the Brain can steer policy and value plasticity independently.
 5. Larger context dimensionality (16/32) — only if the Brain action-surface changes stay coherent end-to-end (checkpoint/interface cost must be justified; see the brief's Strong Guidance).
