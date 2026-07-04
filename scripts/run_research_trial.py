@@ -16,7 +16,9 @@ for candidate in (REPO_ROOT, SRC_ROOT):
 from lifelong_learning.research.autoresearch import load_research_manifest
 from lifelong_learning.research.trial_prompt import (
     build_trial_context_payload,
+    collect_trial_history,
     load_baseline_summary,
+    load_hypothesis_queue,
     render_research_trial_prompt,
 )
 
@@ -61,6 +63,12 @@ def main() -> None:
     manifest = load_research_manifest(manifest_path)
     program_text = program_path.read_text(encoding="utf-8")
     baseline_summary = load_baseline_summary(args.baseline_file)
+    hypothesis_queue = load_hypothesis_queue(repo_root)
+    trial_history = collect_trial_history(
+        repo_root=repo_root,
+        manifest=manifest,
+        session_id=trial_dir.parent.name,
+    )
 
     prompt = render_research_trial_prompt(
         program_text=program_text,
@@ -71,6 +79,8 @@ def main() -> None:
         trial_dir=trial_dir,
         manifest=manifest,
         baseline_summary=baseline_summary,
+        hypothesis_queue=hypothesis_queue,
+        trial_history=trial_history,
     )
     prompt_path = trial_dir / "research_prompt.md"
     prompt_path.write_text(prompt, encoding="utf-8")
@@ -83,6 +93,8 @@ def main() -> None:
         trial_dir=trial_dir,
         manifest=manifest,
         baseline_summary=baseline_summary,
+        hypothesis_queue=hypothesis_queue,
+        trial_history=trial_history,
     )
     context_path = trial_dir / "trial_context.json"
     context_path.write_text(json.dumps(context_payload, indent=2), encoding="utf-8")

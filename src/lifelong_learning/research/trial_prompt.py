@@ -1,10 +1,113 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from lifelong_learning.research.autoresearch import AutoresearchManifest
+
+# Rejections that constitute a *scientific* verdict on the hypothesis (vs. an infrastructure
+# failure that says nothing about the idea). Accepted trials are science verdicts by definition.
+_SCIENCE_REJECT_REASONS = {"primary_score_did_not_improve", "holdout_regressed"}
+
+
+def load_hypothesis_queue(repo_root: str | Path) -> list[str]:
+    """Read the human-curated hypothesis queue (ordered bullets/numbered items).
+
+    The queue lives at config/hypothesis_queue.md — deliberately *outside* the editable
+    surface so the diff audit prevents the trial agent from editing its own assignments.
+    Missing file means an empty queue (agent free-picks).
+    """
+    path = Path(repo_root) / "config" / "hypothesis_queue.md"
+    if not path.exists():
+        return []
+    items: list[str] = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        match = re.match(r"^(?:[-*]|\d+[.)])\s+(.*\S)", raw.strip())
+        if match:
+            items.append(match.group(1))
+    return items
+
+
+def _note_first_line(notes_path: Path, cap: int = 240) -> str | None:
+    if not notes_path.exists():
+        return None
+    for line in notes_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        text = line.strip().lstrip("#").strip()
+        if text:
+            return text[:cap]
+    return None
+
+
+def collect_trial_history(
+    *,
+    repo_root: str | Path,
+    manifest: AutoresearchManifest,
+    session_id: str,
+    max_session_entries: int = 8,
+    max_other_entries: int = 5,
+) -> dict[str, list[dict[str, Any]]]:
+    """Summarize prior trial records from the ledger for prompt injection.
+
+    Rejected trials are rolled back wholesale (including their research notes), so the
+    ledger + per-trial agent_notes.md under the scratch dir are the only surviving record
+    of what was already tried — without this, trial N can re-propose exactly what trial
+    N-1 just failed at.
+    """
+    root = Path(repo_root)
+    ledger_path = root / manifest.outputs.ledger_path
+    scratch_dir = root / manifest.outputs.scratch_dir
+    session: list[dict[str, Any]] = []
+    previous: list[dict[str, Any]] = []
+    if ledger_path.exists():
+        for raw in ledger_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                rec = json.loads(raw)
+            except ValueError:
+                continue
+            if rec.get("record_type") != "trial":
+                continue
+            sid = rec.get("session_id")
+            idx = rec.get("trial_index")
+            hypothesis = None
+            if sid and isinstance(idx, int):
+                hypothesis = _note_first_line(
+                    scratch_dir / str(sid) / f"trial_{idx:03d}" / "agent_notes.md"
+                )
+            aggregate = (rec.get("primary_benchmark") or {}).get("aggregate") or {}
+            entry = {
+                "session_id": sid,
+                "trial_index": idx,
+                "status": rec.get("status"),
+                "reason": rec.get("reason"),
+                "hypothesis": hypothesis,
+                "changed_paths": list(rec.get("changed_paths") or [])[:6],
+                "composite_score": aggregate.get("composite_score"),
+                "science_verdict": (
+                    rec.get("status") == "accepted"
+                    or rec.get("reason") in _SCIENCE_REJECT_REASONS
+                ),
+            }
+            (session if sid == session_id else previous).append(entry)
+    return {
+        "session": session[-max_session_entries:],
+        "previous_sessions": previous[-max_other_entries:],
+    }
+
+
+def _format_history_lines(entries: list[dict[str, Any]]) -> str:
+    lines = []
+    for e in entries:
+        score = e.get("composite_score")
+        score_text = f"{score:.4f}" if isinstance(score, (int, float)) else "n/a"
+        verdict = "science verdict" if e.get("science_verdict") else "infrastructure failure; idea untested"
+        hyp = f' — "{e["hypothesis"]}"' if e.get("hypothesis") else ""
+        lines.append(
+            f"- Trial {e.get('trial_index')} [{e.get('session_id')}]: "
+            f"{e.get('status')} ({e.get('reason')}; {verdict}) — score {score_text}{hyp}"
+        )
+    return "\n".join(lines)
 
 
 def load_baseline_summary(path: str | Path | None) -> dict[str, Any] | None:
@@ -25,6 +128,8 @@ def build_trial_context_payload(
     trial_dir: str | Path,
     manifest: AutoresearchManifest,
     baseline_summary: dict[str, Any] | None,
+    hypothesis_queue: list[str] | None = None,
+    trial_history: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     primary = baseline_summary.get("primary_benchmark", {}) if baseline_summary else {}
     primary_aggregate = primary.get("aggregate", {}) if primary else {}
@@ -49,6 +154,8 @@ def build_trial_context_payload(
             "device": manifest.benchmark.device,
             "target_composite_score": manifest.stopping.target_composite_score,
         },
+        "hypothesis_queue": list(hypothesis_queue or []),
+        "trial_history": trial_history or {"session": [], "previous_sessions": []},
         "baseline": {
             "primary_composite_score": primary_aggregate.get("composite_score"),
             "primary_mean_post_switch_window_success_rate": primary_aggregate.get(
@@ -79,6 +186,8 @@ def render_research_trial_prompt(
     trial_dir: str | Path,
     manifest: AutoresearchManifest,
     baseline_summary: dict[str, Any] | None,
+    hypothesis_queue: list[str] | None = None,
+    trial_history: dict[str, list[dict[str, Any]]] | None = None,
 ) -> str:
     context = build_trial_context_payload(
         trial_index=trial_index,
@@ -88,7 +197,41 @@ def render_research_trial_prompt(
         trial_dir=trial_dir,
         manifest=manifest,
         baseline_summary=baseline_summary,
+        hypothesis_queue=hypothesis_queue,
+        trial_history=trial_history,
     )
+
+    queue_section = ""
+    if context["hypothesis_queue"]:
+        queue_lines = "\n".join(
+            f"{i}. {item}" for i, item in enumerate(context["hypothesis_queue"], start=1)
+        )
+        queue_section = (
+            "## Hypothesis Queue (human-curated)\n\n"
+            "Ordered priorities from `config/hypothesis_queue.md` (read-only for you — it is\n"
+            "outside the editable surface). Take the highest entry that does NOT already have a\n"
+            "science verdict in the trial history below. If every entry is resolved, propose your\n"
+            "own smallest next hypothesis instead.\n\n"
+            f"{queue_lines}\n\n"
+        )
+
+    history = context["trial_history"]
+    history_section = ""
+    if history["session"] or history["previous_sessions"]:
+        parts = ["## Trial History (same ledger)\n"]
+        if history["session"]:
+            parts.append("### Earlier trials in this session\n")
+            parts.append(_format_history_lines(history["session"]) + "\n")
+        if history["previous_sessions"]:
+            parts.append("### Recent trials from previous sessions\n")
+            parts.append(_format_history_lines(history["previous_sessions"]) + "\n")
+        parts.append(
+            "Rules: do not re-propose a hypothesis that already has a science verdict\n"
+            "(accepted, or rejected with `primary_score_did_not_improve` / `holdout_regressed`).\n"
+            "A trial that failed for infrastructure reasons left its idea untested — you may\n"
+            "retry it if you avoid the recorded failure cause.\n\n"
+        )
+        history_section = "\n".join(parts)
     baseline = context["baseline"]
     holdout_map = baseline["holdout_composite_scores"]
     holdout_lines = (
@@ -143,6 +286,8 @@ def render_research_trial_prompt(
         "- Try gain-based or affine modulation instead of purely suppressive masking.\n"
         "- Split actor and critic modulation paths.\n"
         "- Explore larger neuromodulation capacity such as `16`, `32`, or `64`, but only if the interface cost is justified.\n\n"
+        f"{queue_section}"
+        f"{history_section}"
         "## Required Output\n\n"
         f"- Write a short note to `{Path(trial_dir).resolve() / 'agent_notes.md'}` containing the hypothesis, touched files, and expected effect.\n"
         "- Then make the code change directly in the repo.\n"

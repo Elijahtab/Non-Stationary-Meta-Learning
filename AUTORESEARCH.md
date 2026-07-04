@@ -366,6 +366,16 @@ A small ordered file (e.g. `autoresearch/queue.toml`) of {condition, seeds, hori
 priority} the loop can pop from — so backfilling never has to invent science, only schedule it.
 Humans and the decide-step both append to it.
 
+**Shipped at the trial level (2026-07-03):** `config/hypothesis_queue.md` — human-curated,
+ordered hypothesis list injected into every trial prompt; deliberately outside the editable
+surface so the audit blocks the agent from editing its own assignments. Alongside it, the
+harness now injects **trial history** (this session + recent sessions from the same ledger,
+with status/reason/score and the hypothesis line from each trial's `agent_notes.md`) into the
+prompt — without it, rejected trials are rolled back tracelessly and trial N can re-propose
+exactly what trial N−1 failed at. Science verdicts (accepted / `primary_score_did_not_improve`
+/ `holdout_regressed`) retire a hypothesis; infrastructure failures leave it retryable. See
+`trial_prompt.py::collect_trial_history` / `load_hypothesis_queue`.
+
 ### Safety rails carried over from the Trial Model
 
 - Immutable surface stays immutable (scorer/benchmark; see manifest) — the loop only adds
