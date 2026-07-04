@@ -229,3 +229,23 @@ def test_append_note_verdicts_touches_only_trial_created_notes(tmp_path):
     assert "**Resolved:** accepted." in created.read_text(encoding="utf-8")
     assert readme.read_text(encoding="utf-8") == "index\n"
     assert code.read_text(encoding="utf-8") == "X = 1\n"
+
+
+def test_history_lines_are_benchmark_scoped():
+    from lifelong_learning.research.trial_prompt import _format_history_lines
+
+    lines = _format_history_lines(
+        [
+            {
+                "session_id": "s1",
+                "trial_index": 1,
+                "status": "rejected",
+                "reason": "primary_score_did_not_improve",
+                "science_verdict": True,
+                "composite_score": 0.6541,
+                "benchmark": "fast_switch_scout_v1",
+                "hypothesis": "Actor-only modulation",
+            }
+        ]
+    )
+    assert "0.6541 on fast_switch_scout_v1" in lines

@@ -9,7 +9,7 @@ tests_timeout_seconds = 1800
 research_timeout_seconds = 1800
 
 [benchmark]
-primary = "fast_switch_scout_v1"
+primary = "fast_switch_scout_v2"
 holdout = ["fast_switch_holdout_v1"]
 device = "cuda"
 reuse_cached_baseline = true

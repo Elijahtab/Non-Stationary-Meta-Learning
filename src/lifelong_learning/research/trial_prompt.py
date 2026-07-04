@@ -83,6 +83,9 @@ def collect_trial_history(
                 "reason": rec.get("reason"),
                 "hypothesis": hypothesis,
                 "changed_paths": list(rec.get("changed_paths") or [])[:6],
+                # Verdicts are benchmark-scoped: a rejection on one primary benchmark does
+                # not retire the hypothesis under a different one (scout v1 -> v2 switch).
+                "benchmark": aggregate.get("benchmark"),
                 "composite_score": aggregate.get("composite_score"),
                 "science_verdict": (
                     rec.get("status") == "accepted"
@@ -119,6 +122,8 @@ def _format_history_lines(entries: list[dict[str, Any]]) -> str:
     for e in entries:
         score = e.get("composite_score")
         score_text = f"{score:.4f}" if isinstance(score, (int, float)) else "n/a"
+        if e.get("benchmark"):
+            score_text += f" on {e['benchmark']}"
         verdict = "science verdict" if e.get("science_verdict") else "infrastructure failure; idea untested"
         hyp = f' — "{e["hypothesis"]}"' if e.get("hypothesis") else ""
         lines.append(
@@ -253,12 +258,15 @@ def render_research_trial_prompt(
         queue_lines = "\n".join(
             f"{i}. {item}" for i, item in enumerate(context["hypothesis_queue"], start=1)
         )
+        primary_name = context["benchmark"]["primary"]
         queue_section = (
             "## Hypothesis Queue (human-curated)\n\n"
             "Ordered priorities from `config/hypothesis_queue.md` (read-only for you — it is\n"
             "outside the editable surface). Take the highest entry that does NOT already have a\n"
-            "science verdict in the trial history below. If every entry is resolved, propose your\n"
-            "own smallest next hypothesis instead.\n\n"
+            f"science verdict **on the current primary benchmark (`{primary_name}`)** in the\n"
+            "trial history below — verdicts recorded on a different benchmark are prior\n"
+            "evidence, not retirement. If every entry is resolved, propose your own smallest\n"
+            "next hypothesis instead.\n\n"
             f"{queue_lines}\n\n"
         )
 
@@ -274,9 +282,11 @@ def render_research_trial_prompt(
             parts.append(_format_history_lines(history["previous_sessions"]) + "\n")
         parts.append(
             "Rules: do not re-propose a hypothesis that already has a science verdict\n"
-            "(accepted, or rejected with `primary_score_did_not_improve` / `holdout_regressed`).\n"
-            "A trial that failed for infrastructure reasons left its idea untested — you may\n"
-            "retry it if you avoid the recorded failure cause.\n\n"
+            "(accepted, or rejected with `primary_score_did_not_improve` / `holdout_regressed`)\n"
+            f"**on the current primary benchmark (`{context['benchmark']['primary']}`)** — each\n"
+            "entry above names the benchmark it was scored on, and verdicts from a different\n"
+            "benchmark are prior evidence only. A trial that failed for infrastructure reasons\n"
+            "left its idea untested — you may retry it if you avoid the recorded failure cause.\n\n"
         )
         history_section = "\n".join(parts)
     baseline = context["baseline"]

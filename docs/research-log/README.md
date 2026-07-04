@@ -50,3 +50,4 @@ Concrete next actions or open questions.
 | [0001](./0001-2026-06-18-calibration-scoring.md) | 2026-06-18 | `calib_signal` null result + composite-score redesign | Accepted |
 | [0002](./0002-2026-06-18-calib8x8-cloud-sweep-plan.md) | 2026-06-18 | `calib8x8` cloud sweep: execution plan | Accepted (gated on pilot) |
 | [0003](./0003-2026-06-18-recovery-reward-oscillation-fix.md) | 2026-06-18 | `recovery` reward farms oscillation; add `recovery_v2` | Accepted |
+| [0004](./0004-2026-07-04-scout-v2-8x8.md) | 2026-07-04 | Scout v1 (5×5) saturates; primary → `fast_switch_scout_v2` (8×8) | Accepted |

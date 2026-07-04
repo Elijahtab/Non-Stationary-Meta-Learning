@@ -109,6 +109,49 @@ FROZEN_BENCHMARKS: dict[str, FrozenBenchmarkSpec] = {
             "max_intrinsic_coef": 0.5,
         },
     ),
+    "fast_switch_scout_v2": FrozenBenchmarkSpec(
+        name="fast_switch_scout_v2",
+        description=(
+            "Primary fast-switch benchmark for neuromodulation research, v2. Same 8x8 task "
+            "as the holdout but single-seed, replacing the 5x5 v1 whose near-ceiling "
+            "hit_rate_80 (0.991 at baseline) left variants little room to win "
+            "(research-log 0004). v1 remains frozen for reproducibility of its verdicts."
+        ),
+        seeds=(0,),
+        fixed_train_args={
+            "env_id": "MiniGrid-MultiGoal-8x8-v0",
+            "num_regimes": 2,
+            "start_regime": 0,
+            "randomize_start_regime": False,
+            "inner_total_timesteps": 800_000,
+            "inner_steps_per_regime": 100_000,
+            "inner_num_envs": 8,
+            "inner_num_steps": 128,
+            "inner_mode": "dyna",
+            "inner_intrinsic_coef": 0.015,
+            "inner_imagined_horizon": 10,
+            "inner_wm_lr": 1e-4,
+            "brain_num_envs": 4,
+            "brain_vectorization": "async",
+            "pretrain_episodes": 0,
+            "pretrain_mode": "recovery",
+            "brain_episodes": 4,
+            "brain_lr": 1e-4,
+            "brain_ent_coef": 0.0,
+            "decision_interval": 10,
+            "reward_alpha": 0.1,
+            "reward_beta": 0.5,
+            "reward_mode": "recovery",
+            "disable_neuromodulation": False,
+            "episodic_memory_capacity": 50_000,
+            "max_inner_lr": 0.003,
+            "min_inner_lr": 1e-4,
+            "min_ent_coef": 0.001,
+            "max_ent_coef": 0.1,
+            "min_intrinsic_coef": 0.001,
+            "max_intrinsic_coef": 0.5,
+        },
+    ),
     "fast_switch_holdout_v1": FrozenBenchmarkSpec(
         name="fast_switch_holdout_v1",
         description=(
