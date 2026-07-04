@@ -1,8 +1,10 @@
 # 0002 — Stabilizing the Trainable Neuromodulation Decoder
 
-**Status:** 🟡 PARTIAL 2026-07-01 — 30-ep conditions resolved (**H1 not supported**: stabilizers
-temper the collapse but never beat frozen); `long`/`slow_long` (60-ep) still running, results to
-be slotted in below.
+**Status:** ✅ RESOLVED 2026-07-02 — **H1 not supported anywhere.** Stabilizers temper the
+collapse but never beat frozen; the 60-ep runs (trainable n=8 vs a frozen-60ep control n=4)
+show **nobody climbs** — the preview's climbing seed (long_s2) was a 1-in-8 outlier, and frozen
+holds a higher reward level at every horizon. Null is airtight; next lever is the mechanism
+family, not tuning or time.
 **Owner:** Elijah · **Relates to:** [note 0001](./0001-trainable-vs-frozen-decoder.md) (the parent
 negative result + R1), [plan](../multi_agent/0001-reduce-gpu-artifacts.md) (cloud ops used here),
 `scripts/run_seed_sweep.py::CONDITIONS` (where these conditions live).
@@ -35,8 +37,9 @@ hit_rate_80 0.926; trainable 0.5092 / 0.799):
 | slowbrain | 0.5102 [0.503, 0.517] | 0.835 | 2.94 | 1/4 |
 | declr | 0.5076 [0.502, 0.514] | 0.825 | 3.50 | 2/4 |
 | declr_slowbrain | 0.5125 [0.505, 0.521] | 0.842 | 3.59 | 1/4 |
-| long (60 ep) | _pending_ | | | |
-| slow_long (60 ep) | _pending_ | | | |
+| long (60 ep, n=8) | 0.5138 [0.500, 0.535] | 0.808 | 3.90 | 0/8 |
+| frozen-long control (60 ep, n=4) | **0.5163** [0.502, 0.527] | **0.930** | **4.58** | 0/4 |
+| slow_long (60 ep, n=4) | 0.5036 [0.495, 0.511] | 0.798 | 3.08 | 1/4 |
 
 ![Stabilizer reward trajectories](figures/0002-reward-stabilizers.png)
 
@@ -100,6 +103,36 @@ spare capacity at ~zero cost (measured ~1.5 cores + ~1.6 GB VRAM per cell — se
 - Caveats: n=2 per condition; Brain reward ≠ composite (composite averages *all* episodes, so a
   late climb is diluted); one climbing seed is ~2σ against these noise levels. Seeds 3–4 decide.
 
----
-_Final 60-ep outcomes (seeds 3–4) to be appended when `tvf2_long` / `tvf2_slow_long` finish
-(~9 h)._
+## 60-ep FINAL results (2026-07-02) — prediction adjudicated
+
+![60-episode final verdict](figures/0002-long-final.png)
+
+Full data: trainable_long n=8 (seeds 1–8), frozen-60ep control n=4, slow_long n=4. Per-seed
+series in `sweeps/cloud_tvf_results/reward_series_long_final.json`.
+
+| condition (60 ep) | ep1–30 mean | ep31–60 mean | mean slope 31–60 | last-10 | composite | hit_rate_80 |
+| --- | --- | --- | --- | --- | --- | --- |
+| **frozen control (n=4)** | **4.50** | **4.38** | +0.014 | **4.58** | **0.5163** | **0.930** |
+| trainable (n=8) | 3.77 | 3.83 | −0.007 | 3.90 | 0.5138 | 0.808 |
+| slowbrain (n=4) | 3.43 | 3.02 | −0.016 | 3.08 | 0.5036 | 0.798 |
+
+**The registered prediction HELD; the preview's counter-signal was noise.**
+
+1. **long_s2 was a 1-in-8 outlier.** Its climb (+0.105/ep, final +9.6) was not echoed by any of
+   the 7 other trainable seeds (slopes −0.079…+0.067, scattered around zero; mean −0.007). At
+   n=8, trainable's ep31–60 mean (3.83) is indistinguishable from its ep1–30 mean (3.77).
+2. **The control settles it:** frozen at 60 eps doesn't climb either (slope +0.014) — but it
+   doesn't need to. It simply **holds a higher level than trainable at every horizon** (4.38 vs
+   3.83 late; 4.58 vs 3.90 last-10) with a fully intact reliability profile (hit_rate_80 0.930
+   vs 0.808 — the same gap as at 30 eps). More time closes nothing.
+3. **One real nuance survives:** the ep-30 "collapse" is transient volatility, not terminal
+   divergence — 0/8 trainable-long seeds ended below +2.0 (vs 3/4 of the 30-ep trainable runs).
+   The trainable decoder isn't *diverging*; it's just stably *worse*.
+4. **slow_long confirmed the plasticity cost with n=4:** worst on every metric.
+
+**Final conclusion of notes 0001+0002:** across 7 trainable variants and horizons up to 60
+episodes, the trainable feature-gating decoder never beats — and reliably trails — the frozen
+baseline. The Brain's scalar-HP control is what drives adaptation; the context-code routing is
+inert here, and neither co-adaptation stabilizers nor training time changes that. The open
+research direction is the **mechanism family** (affine/gain masks, FiLM, actor/critic-separate
+modulation, larger context dims) — see "next levers" in note 0001.

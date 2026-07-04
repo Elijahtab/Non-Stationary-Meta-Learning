@@ -385,8 +385,14 @@ Humans and the decide-step both append to it.
 
 ### Current experiment context (pointer)
 
-Trainable neuromod decoder ≈ frozen on composite but **unstable** (late collapse; two co-adapting
-learners = risk R1). Stabilizer sweep in flight — `slowbrain` (`brain_lr`), `declr` (separate
-`--neuromod_decoder_lr`), `long` (60 ep), `slow_long`, plus the `declr_slowbrain` combo. New
-conditions live in `run_seed_sweep.py::CONDITIONS`. See
-[`docs/research-notes/0001-trainable-vs-frozen-decoder.md`](docs/research-notes/0001-trainable-vs-frozen-decoder.md).
+**Resolved 2026-07-02:** trainable neuromod decoder never beats frozen — not on composite, not
+with stabilizers (`slowbrain`, `declr`, `declr_slowbrain`), not with a 60-episode horizon
+(`long`/`slow_long`, n=8/n=4 vs a frozen-60ep control). The instability (late collapse; two
+co-adapting learners = risk R1) is tempered by the stabilizers but never converted into a win, and
+longer training doesn't produce the missing climb either — frozen just holds a higher reward
+level throughout. Conditions live in `run_seed_sweep.py::CONDITIONS`. Next lever is the mechanism
+family (affine/gain masks, FiLM, actor/critic-separate modulation), not further tuning or time —
+see
+[`docs/research-notes/0001-trainable-vs-frozen-decoder.md`](docs/research-notes/0001-trainable-vs-frozen-decoder.md)
+and
+[`docs/research-notes/0002-stabilizing-trainable-decoder.md`](docs/research-notes/0002-stabilizing-trainable-decoder.md).
