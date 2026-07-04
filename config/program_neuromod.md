@@ -54,3 +54,9 @@ Before finishing the trial, write a short note with:
 - the exact files changed,
 - why the change could help,
 - the main risk or uncertainty.
+
+Research notes under `docs/research-notes/` (per the repo convention) are allowed and
+encouraged — create a new numbered note for your hypothesis and add it to the README index.
+Two hard rules: **never rewrite or delete existing notes' predictions or results** (they are
+append-only lab records; you may append a dated update section), and never touch notes you
+did not create except to append.

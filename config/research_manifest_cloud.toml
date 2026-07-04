@@ -35,6 +35,10 @@ scratch_dir = "autoresearch"
 paths = [
   "src/lifelong_learning/agents/brain/neuromod.py",
   "src/lifelong_learning/agents/ppo/network.py",
+  # Lab-notebook surface: CLAUDE.md/AGENTS.md instruct every agent to record findings as
+  # research notes, so the trial agent must be allowed to write them (markdown only; the
+  # Python growth caps still apply solely to .py files).
+  "docs/research-notes",
 ]
 
 [optional_editable_surface]
