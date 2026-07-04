@@ -1,8 +1,8 @@
 # Cloud (Linux) twin of research_manifest_pilot.toml for the on-box autoresearch pilot.
 # Differences from the local pilot manifest:
-#   - tests_command uses the Vast image venv python (absolute path — non-interactive shells do
-#     not auto-activate /venv/main, and bare `python` resolving to the wrong interpreter is how
-#     the 2026-04-06 local trials silently failed).
+#   - tests_command uses the {python} placeholder: the supervisor substitutes its own
+#     sys.executable (bare `python` resolving to the wrong interpreter is how the
+#     2026-04-06 local trials silently failed), so launch the supervisor under /venv/main.
 #   - research_timeout_seconds raised for headless Claude (Fable) trials.
 
 [trial_limits]
@@ -11,7 +11,7 @@ max_new_python_files = 1
 max_net_new_lines = 160
 
 [validation]
-tests_command = "/venv/main/bin/python -m pytest tests/test_trial_prompt.py tests/test_autoresearch.py tests/test_benchmarking.py tests/test_network.py tests/test_meta_env.py -q"
+tests_command = "{python} -m pytest tests/test_trial_prompt.py tests/test_autoresearch.py tests/test_benchmarking.py tests/test_network.py tests/test_meta_env.py -q"
 tests_timeout_seconds = 600
 research_timeout_seconds = 900
 

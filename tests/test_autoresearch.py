@@ -500,3 +500,13 @@ def test_repo_snapshot_tracks_and_restores_png_files(tmp_path):
 
     restore_repo_snapshot(tmp_path, before, after)
     assert not figure.exists(), "rejected-trial figure survived rollback"
+
+
+def test_resolve_command_placeholders_substitutes_python():
+    import sys
+
+    from lifelong_learning.research.autoresearch import resolve_command_placeholders
+
+    resolved = resolve_command_placeholders("{python} -m pytest -q")
+    assert resolved == f'"{sys.executable}" -m pytest -q'
+    assert resolve_command_placeholders("fake-tests") == "fake-tests"

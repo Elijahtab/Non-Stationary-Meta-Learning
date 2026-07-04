@@ -4,7 +4,7 @@ max_new_python_files = 1
 max_net_new_lines = 160
 
 [validation]
-tests_command = 'myenv\Scripts\python.exe -m pytest tests/test_trial_prompt.py tests/test_autoresearch.py tests/test_benchmarking.py tests/test_network.py tests/test_meta_env.py -q'
+tests_command = "{python} -m pytest tests/test_trial_prompt.py tests/test_autoresearch.py tests/test_benchmarking.py tests/test_network.py tests/test_meta_env.py -q"
 tests_timeout_seconds = 600
 research_timeout_seconds = 900
 

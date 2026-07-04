@@ -450,6 +450,19 @@ def aggregate_benchmark_summary(summary: dict[str, Any], *, report_dir: str | No
     }
 
 
+def resolve_command_placeholders(command: str) -> str:
+    """Substitute `{python}` with the quoted running interpreter.
+
+    Manifests must not hardcode per-OS interpreter paths (the 2026-04-06 bare-`python`
+    incident and the missed research_manifest_085.toml both came from that): the
+    supervisor process already runs under the correct venv, so `sys.executable` is the
+    authoritative interpreter on every platform — the same mechanism
+    default_benchmark_runner has always used. Commands without the placeholder run
+    verbatim.
+    """
+    return command.replace("{python}", f'"{sys.executable}"')
+
+
 def _kill_process_tree(process: subprocess.Popen) -> None:
     """Kill a shell=True child AND its descendants.
 
@@ -920,7 +933,7 @@ class AutoresearchSupervisor:
             return trial_entry, False, best_primary_score
 
         tests_result = self.command_runner(
-            self.manifest.validation.tests_command,
+            resolve_command_placeholders(self.manifest.validation.tests_command),
             self.repo_root,
             self.manifest.validation.tests_timeout_seconds,
             trial_dir / "tests.stdout.log",
