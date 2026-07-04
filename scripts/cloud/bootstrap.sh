@@ -30,8 +30,9 @@ if command -v apt-get >/dev/null 2>&1; then
     SUDO=""; [ "$(id -u)" -ne 0 ] && SUDO="sudo"
     export DEBIAN_FRONTEND=noninteractive
     $SUDO apt-get update -y || true
-    # libgl1/libglib for matplotlib + minigrid rendering on headless boxes
-    $SUDO apt-get install -y git build-essential libgl1 libglib2.0-0 || true
+    # libgl1/libglib for matplotlib + minigrid rendering on headless boxes; jq for the
+    # autoresearch agent wrapper (invoke_claude_exec.sh) to parse the CLI's JSON output
+    $SUDO apt-get install -y git build-essential libgl1 libglib2.0-0 jq || true
 fi
 
 # --- auto send-back credentials (docs/multi_agent/0001, option A) -------------------------
@@ -71,7 +72,7 @@ fi
 # --- core deps (exclude torch; tensorflow optional) --------------------------------------
 $PY -m pip install \
     "numpy>=1.24" "gymnasium>=0.29" "minigrid>=2.3" "tqdm>=4.66" "pillow>=10.0" \
-    "pandas>=2.1" "tensorboard>=2.15" "matplotlib>=3.8" "scipy>=1.11"
+    "pandas>=2.1" "tensorboard>=2.15" "matplotlib>=3.8" "scipy>=1.11" "pytest>=8.0"
 if [ "$INSTALL_TF" = "1" ]; then
     echo "[bootstrap] installing tensorflow (heavy; only if you need it)"
     $PY -m pip install "tensorflow>=2.16"

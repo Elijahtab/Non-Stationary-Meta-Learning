@@ -1,10 +1,17 @@
+# Cloud (Linux) twin of research_manifest.toml for the on-box autoresearch loop.
+# Differences from the local manifest:
+#   - tests_command uses the Vast image venv python (absolute path — non-interactive shells do
+#     not auto-activate /venv/main).
+#   - max_trials starts low (5, not 20): staged ignition for the first unattended on-box loop;
+#     raise deliberately once a few trials have been reviewed.
+
 [trial_limits]
-max_trials = 20
+max_trials = 5
 max_new_python_files = 2
 max_net_new_lines = 600
 
 [validation]
-tests_command = "myenv/Scripts/python.exe -m pytest tests/test_benchmarking.py tests/test_network.py tests/test_meta_env.py tests/test_signal_extraction.py tests/test_dyna_logic.py tests/test_train_brain_cli.py tests/test_eval_brain_state_dict.py -q"
+tests_command = "/venv/main/bin/python -m pytest tests/test_benchmarking.py tests/test_network.py tests/test_meta_env.py tests/test_signal_extraction.py tests/test_dyna_logic.py tests/test_train_brain_cli.py tests/test_eval_brain_state_dict.py -q"
 tests_timeout_seconds = 1800
 research_timeout_seconds = 1800
 
