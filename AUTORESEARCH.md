@@ -383,6 +383,28 @@ Humans and the decide-step both append to it.
 - How much of the decide-step to trust to the agent unattended vs gate on human review (start:
   backfill/extend autonomous, escalate/close gated).
 
+### On-box autoresearch agent — setup state (2026-07-03)
+
+The unattended loop now runs **on the cloud box itself** (Claude Code CLI as the trial agent),
+per the loop design: local machine reviews/gates, box executes and pushes results. Set up and
+verified on the 4× GTX 1080 / 56 vCPU box (`/workspace/Lifelong-Learning`):
+
+- **Trial agent:** `claude` CLI (npm, via nvm — non-interactive shells must source
+  `/opt/nvm/nvm.sh`; the wrapper does). Invoked headless by
+  `scripts/invoke_claude_exec.sh`: `claude -p --model claude-fable-5 --output-format json
+  --dangerously-skip-permissions` with `IS_SANDBOX=1` (root container = the flag's intended
+  habitat; the supervisor diff-audit remains the real safety boundary).
+- **Manifests:** `config/research_manifest_cloud{,_pilot}.toml` — absolute
+  `/venv/main/bin/python` in `tests_command` (bare `python` is how the 2026-04-06 local trials
+  silently failed), `device=cuda`, staged `max_trials=5`.
+- **Torch:** downgraded to 2.7.1+cu126 for Pascal (see cloud-setup.md gotcha). Bootstrap smoke
+  trained + scored a pilot cell on GPU (composite 0.4608). pytest 9.1.1 + jq 1.7 installed.
+- **Remaining to arm:** CLI auth on the box (`claude setup-token` → `CLAUDE_CODE_OAUTH_TOKEN`
+  in `${WORKSPACE}/.env`, or `ANTHROPIC_API_KEY`) — deliberately human-held; then run the
+  cloud-pilot manifest once attended before promoting to a supervisor service.
+- **Durability rule stands:** no volume on this box — push ledger + trial dirs to the
+  `results` branch after every trial.
+
 ### Current experiment context (pointer)
 
 **Resolved 2026-07-02:** trainable neuromod decoder never beats frozen — not on composite, not

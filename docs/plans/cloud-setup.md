@@ -22,6 +22,16 @@ plan: [workshop-task-free-neuromodulation.md](./workshop-task-free-neuromodulati
 Providers (from the budget research): **RunPod** or **Vast.ai**. On Vast, filter for high
 vCPU count + a cheap 24 GB GPU; on RunPod pick a PyTorch template and a high-CPU pod.
 
+> **Old-GPU (Pascal/GTX 10xx) gotcha — verified 2026-07-03 on a 4× GTX 1080 box:** recent
+> image torch builds (2.12+cu130) dropped `sm_61`/Pascal kernels — the first GPU op dies with
+> `no kernel image is available for execution on the device` even though `nvidia-smi` and
+> `torch.cuda.is_available()` look fine. Fix (in-container, ~5 min): downgrade to the last
+> Pascal-capable wheel line, `uv pip install "torch==2.7.1" --index-url
+> https://download.pytorch.org/whl/cu126`, **before** running `bootstrap.sh` (which reuses
+> whatever torch is present). The cu126 wheel carries no sm_61 SASS either but ships PTX the
+> (newer) driver JIT-compiles — expect a one-time per-kernel JIT pause, cached afterwards.
+> Cheap Pascal boxes are otherwise fine for this workload (~1.6 GB VRAM/cell, CPU-bound).
+
 ## Throughput & cost model
 
 - `max_parallel = nproc / CORES_PER_CELL` (default `CORES_PER_CELL=8`).
