@@ -49,7 +49,9 @@ command -v "$CLAUDE_BINARY" >/dev/null 2>&1 || { echo "[invoke_claude_exec] cann
 # sandbox. Cloud containers run as root and are throwaway, which is the intended habitat.
 export IS_SANDBOX=1
 
-cd "$REPO_ROOT"
+# Without this guard (set -e is absent) a bad REPO_ROOT would run claude with
+# --dangerously-skip-permissions in whatever directory we happened to start in.
+cd "$REPO_ROOT" || { echo "[invoke_claude_exec] cannot cd to repo root: $REPO_ROOT" >&2; exit 1; }
 "$CLAUDE_BINARY" -p \
     --model "$MODEL" \
     --output-format json \
@@ -61,7 +63,13 @@ EXIT_CODE=$?
 # tooling reads it the same way it reads the Codex/PowerShell wrapper's output. Fall back to
 # raw stdout if the JSON is unparseable; surface an agent-reported error as a non-zero exit.
 if command -v jq >/dev/null 2>&1 && jq -e . "$STDOUT_FILE" >/dev/null 2>&1; then
-    jq -r 'if .result != null then .result else "" end' "$STDOUT_FILE" > "$FINAL_MESSAGE_FILE"
+    if jq -e '.result != null' "$STDOUT_FILE" >/dev/null 2>&1; then
+        jq -r '.result' "$STDOUT_FILE" > "$FINAL_MESSAGE_FILE"
+    else
+        # Parity with the .ps1 twin: a parseable payload with a null/absent .result keeps
+        # the raw stdout as the final message so error diagnostics aren't blanked.
+        cp "$STDOUT_FILE" "$FINAL_MESSAGE_FILE"
+    fi
     if [ "$(jq -r '.is_error // false' "$STDOUT_FILE")" = "true" ] && [ "$EXIT_CODE" -eq 0 ]; then
         EXIT_CODE=1
     fi

@@ -438,3 +438,65 @@ def test_supervisor_invalidates_cached_baseline_after_relevant_code_change(tmp_p
     assert benchmark_calls == ["fast_switch_scout_v1", "fast_switch_holdout_v1"]
     assert baseline_record["reason"] == "baseline_snapshot"
     assert baseline_record["baseline_cache"]["reused"] is False
+
+
+def test_default_command_runner_kills_grandchild_on_timeout(tmp_path):
+    """A research timeout must kill the whole process tree, not just the shell child.
+
+    The grandchild here waits, then writes a sentinel; if only the direct shell is
+    killed (the pre-review behavior), the orphan survives the timeout and the sentinel
+    appears — exactly the post-rollback repo-mutation race from the 2026-07-03 review.
+    """
+    import sys
+    import time
+
+    from lifelong_learning.research.autoresearch import default_command_runner
+
+    sentinel = tmp_path / "orphan_sentinel.txt"
+    grandchild_script = tmp_path / "grandchild.py"
+    grandchild_script.write_text(
+        "import pathlib\n"
+        "import time\n"
+        "time.sleep(4)\n"
+        f"pathlib.Path({str(sentinel)!r}).write_text('orphan lived')\n",
+        encoding="utf-8",
+    )
+    spawner_script = tmp_path / "spawner.py"
+    spawner_script.write_text(
+        "import subprocess\n"
+        "import sys\n"
+        "import time\n"
+        f"subprocess.Popen([sys.executable, {str(grandchild_script)!r}])\n"
+        "time.sleep(60)\n",
+        encoding="utf-8",
+    )
+
+    result = default_command_runner(
+        f'"{sys.executable}" "{spawner_script}"',
+        tmp_path,
+        2,
+        tmp_path / "out.log",
+        tmp_path / "err.log",
+    )
+
+    assert result.timed_out is True
+    time.sleep(5)
+    assert not sentinel.exists(), "grandchild survived the timeout kill"
+
+
+def test_repo_snapshot_tracks_and_restores_png_files(tmp_path):
+    """Agent-written figures (.png) must be visible to the audit and undone by rollback."""
+    from lifelong_learning.research.autoresearch import restore_repo_snapshot
+
+    (tmp_path / "docs").mkdir()
+    before = take_repo_snapshot(tmp_path, ignored_roots=())
+
+    figure = tmp_path / "docs" / "0004-figure.png"
+    figure.write_bytes(b"\x89PNG\r\n\x1a\nfakepng")
+    after = take_repo_snapshot(tmp_path, ignored_roots=())
+
+    diff = compute_repo_diff(before, after)
+    assert "docs/0004-figure.png" in diff.new_paths
+
+    restore_repo_snapshot(tmp_path, before, after)
+    assert not figure.exists(), "rejected-trial figure survived rollback"

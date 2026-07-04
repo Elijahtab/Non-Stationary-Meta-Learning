@@ -36,11 +36,16 @@ $stderrPath = [System.IO.Path]::GetFullPath($StderrFile)
 $null = New-Item -ItemType Directory -Force -Path ([System.IO.Path]::GetDirectoryName($finalMessagePath))
 $null = New-Item -ItemType Directory -Force -Path ([System.IO.Path]::GetDirectoryName($stdoutPath))
 $null = New-Item -ItemType Directory -Force -Path ([System.IO.Path]::GetDirectoryName($stderrPath))
-Set-Content -LiteralPath $stdoutPath -Value "" -Encoding UTF8
-Set-Content -LiteralPath $stderrPath -Value "" -Encoding UTF8
-Set-Content -LiteralPath $finalMessagePath -Value "" -Encoding UTF8
 
-$promptText = Get-Content -LiteralPath $promptPath -Raw
+# BOM-less UTF-8 everywhere: PS 5.1's Set-Content -Encoding UTF8 prepends a BOM, which
+# breaks byte-exact/json consumers of these files (review 2026-07-03).
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($stdoutPath, "", $utf8NoBom)
+[System.IO.File]::WriteAllText($stderrPath, "", $utf8NoBom)
+[System.IO.File]::WriteAllText($finalMessagePath, "", $utf8NoBom)
+
+# The prompt file is BOM-less UTF-8 written by Python; PS 5.1 would misread it as ANSI.
+$promptText = [System.IO.File]::ReadAllText($promptPath, [System.Text.Encoding]::UTF8)
 
 function Resolve-ClaudeCommand {
     param([string]$Requested)
@@ -127,11 +132,18 @@ $previousLocation = Get-Location
 $previousErrorActionPreference = $ErrorActionPreference
 $hadNativePreference = $false
 $previousNativePreference = $null
+$previousOutputEncoding = $OutputEncoding
 try {
     if ($resolvedNodeDirectory) {
         $env:PATH = "$resolvedNodeDirectory;$previousPath"
     }
     Set-Location -LiteralPath $repoPath
+    # PS 5.1 pipes to native processes using $OutputEncoding (default US-ASCII), which
+    # irreversibly turns every non-ASCII prompt character into '?' (review 2026-07-03).
+    # Known residue: PS 5.1's pipe writer still emits one UTF-8 preamble regardless of the
+    # BOM-less instance, so the CLI sees a single leading U+FEFF — harmless in a prompt
+    # (verified empirically 2026-07-03; the .sh twin is byte-exact via `< file`).
+    $OutputEncoding = $utf8NoBom
     $ErrorActionPreference = "Continue"
     if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
         $hadNativePreference = $true
@@ -145,16 +157,26 @@ finally {
     $env:PATH = $previousPath
     Set-Location $previousLocation
     $ErrorActionPreference = $previousErrorActionPreference
+    $OutputEncoding = $previousOutputEncoding
     if ($hadNativePreference) {
         $PSNativeCommandUseErrorActionPreference = $previousNativePreference
     }
 }
 
+# A binary that resolved but failed to launch leaves $LASTEXITCODE untouched ($null or a
+# stale value from an earlier command) — `exit $null` would report SUCCESS for an agent
+# run that never happened (review 2026-07-03, reproduced). Treat unknown as failure.
+if ($null -eq $exitCode) {
+    $exitCode = 1
+}
+
 $stdout = Get-Content -LiteralPath $stdoutPath -Raw
 $stderr = Get-Content -LiteralPath $stderrPath -Raw
+if ($null -eq $stdout) { $stdout = "" }
+if ($null -eq $stderr) { $stderr = "" }
 
-Set-Content -LiteralPath $stdoutPath -Value $stdout -Encoding UTF8
-Set-Content -LiteralPath $stderrPath -Value $stderr -Encoding UTF8
+[System.IO.File]::WriteAllText($stdoutPath, $stdout, $utf8NoBom)
+[System.IO.File]::WriteAllText($stderrPath, $stderr, $utf8NoBom)
 
 # Parse the machine-readable result and extract the final assistant message so downstream
 # tooling can read it the same way it reads Codex's `-o` final-message file. Fall back to raw
@@ -175,6 +197,6 @@ if (-not [string]::IsNullOrWhiteSpace($stdout)) {
     }
 }
 
-Set-Content -LiteralPath $finalMessagePath -Value $finalMessage -Encoding UTF8
+[System.IO.File]::WriteAllText($finalMessagePath, [string]$finalMessage, $utf8NoBom)
 
 exit $exitCode

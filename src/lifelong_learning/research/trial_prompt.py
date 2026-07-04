@@ -23,7 +23,7 @@ def load_hypothesis_queue(repo_root: str | Path) -> list[str]:
     if not path.exists():
         return []
     items: list[str] = []
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
         match = re.match(r"^(?:[-*]|\d+[.)])\s+(.*\S)", raw.strip())
         if match:
             items.append(match.group(1))

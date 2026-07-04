@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -31,6 +32,9 @@ MANAGED_FILE_SUFFIXES = {
     ".ini",
     ".json",
     ".md",
+    # .png: research-note figures are on the editable surface; without this, agent-written
+    # figures are invisible to the audit and silently survive rollback of rejected trials.
+    ".png",
     ".ps1",
     ".py",
     ".pyi",
@@ -446,6 +450,31 @@ def aggregate_benchmark_summary(summary: dict[str, Any], *, report_dir: str | No
     }
 
 
+def _kill_process_tree(process: subprocess.Popen) -> None:
+    """Kill a shell=True child AND its descendants.
+
+    Popen.kill() only reaps the direct shell child; the agent/benchmark grandchildren
+    would survive a research timeout and keep mutating the repo after the supervisor
+    rolls back and snapshots the next trial (review 2026-07-03, finding #1).
+    """
+    if os.name == "nt":
+        subprocess.run(
+            f"taskkill /F /T /PID {process.pid}",
+            shell=True,
+            capture_output=True,
+        )
+    else:
+        try:
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=10)
+
+
 def default_command_runner(
     command: str,
     cwd: Path,
@@ -456,37 +485,45 @@ def default_command_runner(
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
     stderr_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # POSIX: a new session makes the shell a process-group leader so killpg reaps the
+    # whole tree. Windows: taskkill /T walks the child tree by PID, no flags needed.
+    popen_kwargs: dict[str, Any] = {}
+    if os.name != "nt":
+        popen_kwargs["start_new_session"] = True
+
     started_at = time.perf_counter()
-    try:
-        with open(stdout_path, "w", encoding="utf-8") as stdout_handle, open(
-            stderr_path, "w", encoding="utf-8"
-        ) as stderr_handle:
-            completed = subprocess.run(
-                command,
-                cwd=str(cwd),
-                shell=True,
-                text=True,
-                stdout=stdout_handle,
-                stderr=stderr_handle,
-                timeout=timeout_seconds,
+    with open(stdout_path, "w", encoding="utf-8") as stdout_handle, open(
+        stderr_path, "w", encoding="utf-8"
+    ) as stderr_handle:
+        process = subprocess.Popen(
+            command,
+            cwd=str(cwd),
+            shell=True,
+            text=True,
+            stdout=stdout_handle,
+            stderr=stderr_handle,
+            **popen_kwargs,
+        )
+        try:
+            returncode = process.wait(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            _kill_process_tree(process)
+            return CommandExecution(
+                command=command,
+                returncode=None,
+                duration_seconds=time.perf_counter() - started_at,
+                stdout_path=str(stdout_path),
+                stderr_path=str(stderr_path),
+                timed_out=True,
             )
-        return CommandExecution(
-            command=command,
-            returncode=completed.returncode,
-            duration_seconds=time.perf_counter() - started_at,
-            stdout_path=str(stdout_path),
-            stderr_path=str(stderr_path),
-            timed_out=False,
-        )
-    except subprocess.TimeoutExpired:
-        return CommandExecution(
-            command=command,
-            returncode=None,
-            duration_seconds=time.perf_counter() - started_at,
-            stdout_path=str(stdout_path),
-            stderr_path=str(stderr_path),
-            timed_out=True,
-        )
+    return CommandExecution(
+        command=command,
+        returncode=returncode,
+        duration_seconds=time.perf_counter() - started_at,
+        stdout_path=str(stdout_path),
+        stderr_path=str(stderr_path),
+        timed_out=False,
+    )
 
 
 def default_benchmark_runner(
