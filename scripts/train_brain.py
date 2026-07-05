@@ -384,6 +384,8 @@ def train_brain(args):
             context_code_source=getattr(args, "context_code_source", "brain"),
             trainable_neuromod=getattr(args, "trainable_neuromod", False),
             neuromod_decoder_lr=getattr(args, "neuromod_decoder_lr", None),
+            actor_only_neuromod=getattr(args, "neuromod_actor_only", False),
+            neuromod_gain_alpha=getattr(args, "neuromod_gain_alpha", 0.0),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -821,6 +823,16 @@ def main():
                         "instead of riding the inner LR the Brain controls. Decouples the two "
                         "co-adapting learners to stabilize training. Only used with "
                         "--trainable_neuromod (usually smaller than the inner LR, e.g. 1e-5).")
+    p.add_argument("--neuromod_actor_only", action="store_true",
+                   help="Apply the neuromodulation mask to the actor pathway only; the critic "
+                        "reads raw encoder features. Default off = shared mask (paper-faithful). "
+                        "Motivation: the shared mask barely steers the policy but strongly "
+                        "perturbs value estimates right after regime switches (autoresearch "
+                        "trials 2026-07-04; confirmation sweep docs/plans/2026-07-05).")
+    p.add_argument("--neuromod_gain_alpha", type=float, default=0.0,
+                   help="If > 0, use a two-sided gain mask 1 + alpha*s*tanh(decoder(code)) in "
+                        "[1-alpha, 1+alpha] instead of the suppress-only mask. 0.0 (default) = "
+                        "paper-faithful suppressive masking. Typical research value: 0.5.")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

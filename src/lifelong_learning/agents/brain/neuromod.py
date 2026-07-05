@@ -101,11 +101,17 @@ class FeatureMaskNeuromodulator(nn.Module):
         context_dim: int = CONTEXT_CODE_DIM,
         hidden_dim: int = 256,
         trainable: bool = False,
+        gain_alpha: float = 0.0,
     ):
         super().__init__()
         self.feature_dim = feature_dim
         self.context_dim = context_dim
         self.trainable = trainable
+        # gain_alpha > 0 switches decode_context_code from the paper-faithful suppress-only
+        # mask to a two-sided gain mask in [1-alpha, 1+alpha] (autoresearch trials
+        # 20260704-133654/001 alpha=1.0, 20260704-203740/002 alpha=0.5; confirmation sweep
+        # docs/plans/2026-07-05). 0.0 (default) is byte-identical to the original behavior.
+        self.gain_alpha = float(gain_alpha)
 
         self.decoder = nn.Sequential(
             nn.Linear(context_dim, hidden_dim),
@@ -119,14 +125,23 @@ class FeatureMaskNeuromodulator(nn.Module):
         self.register_buffer("current_code", torch.zeros(1, context_dim), persistent=False)
 
     def decode_context_code(self, code: torch.Tensor) -> torch.Tensor:
-        """Map a context code to a suppressive mask, keeping zero-context neutral."""
+        """Map a context code to a mask, keeping zero-context neutral.
+
+        Default (gain_alpha == 0): suppressive mask `1 - s * sigmoid(decoder(code))` in (0,1].
+        Gain mode (gain_alpha > 0): two-sided mask `1 + alpha * s * tanh(decoder(code))` in
+        [1-alpha, 1+alpha] — the code's direction selects which features are amplified vs
+        damped instead of a common-mode downscale. Zero code => identity mask in both modes.
+        """
         if code.dim() == 1:
             code = code.unsqueeze(0)
 
-        suppression_template = torch.sigmoid(self.decoder(code))
         context_strength = torch.linalg.vector_norm(code, dim=-1, keepdim=True)
         context_strength = context_strength / math.sqrt(self.context_dim)
         context_strength = context_strength.clamp(0.0, 1.0)
+        if self.gain_alpha > 0.0:
+            gain_template = torch.tanh(self.decoder(code))
+            return 1.0 + self.gain_alpha * context_strength * gain_template
+        suppression_template = torch.sigmoid(self.decoder(code))
         return 1.0 - context_strength * suppression_template
 
     def set_context_code(self, code: torch.Tensor) -> torch.Tensor:

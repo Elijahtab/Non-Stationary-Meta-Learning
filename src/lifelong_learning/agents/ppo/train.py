@@ -164,6 +164,8 @@ def init_inner_training(
     cpu_threads: int | None = None,
     trainable_neuromod: bool = False,
     neuromod_decoder_lr: float | None = None,
+    actor_only_neuromod: bool = False,
+    neuromod_gain_alpha: float = 0.0,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -209,7 +211,13 @@ def init_inner_training(
     # Model & Optimizer Setup
     # -----------------------------------------------------------------
 
-    model = CNNActorCritic(obs_shape, n_actions, trainable_neuromod=trainable_neuromod).to(device)
+    model = CNNActorCritic(
+        obs_shape,
+        n_actions,
+        trainable_neuromod=trainable_neuromod,
+        actor_only_neuromod=actor_only_neuromod,
+        neuromod_gain_alpha=neuromod_gain_alpha,
+    ).to(device)
     if trainable_neuromod and neuromod_decoder_lr is not None:
         # Give the neuromodulation decoder its own param group + (smaller) LR so it no longer rides
         # the inner LR the Brain controls via lever 0 — decoupling the two co-adapting learners to
@@ -229,7 +237,13 @@ def init_inner_training(
     else:
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr, eps=1e-5)
 
-    anchor_model = CNNActorCritic(obs_shape, n_actions, trainable_neuromod=trainable_neuromod).to(device)
+    anchor_model = CNNActorCritic(
+        obs_shape,
+        n_actions,
+        trainable_neuromod=trainable_neuromod,
+        actor_only_neuromod=actor_only_neuromod,
+        neuromod_gain_alpha=neuromod_gain_alpha,
+    ).to(device)
     anchor_model.load_state_dict(model.state_dict())
     anchor_model.eval()
 

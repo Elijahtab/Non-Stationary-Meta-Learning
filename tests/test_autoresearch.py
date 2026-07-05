@@ -510,3 +510,82 @@ def test_resolve_command_placeholders_substitutes_python():
     resolved = resolve_command_placeholders("{python} -m pytest -q")
     assert resolved == f'"{sys.executable}" -m pytest -q'
     assert resolve_command_placeholders("fake-tests") == "fake-tests"
+
+
+def test_recover_stale_trials_restores_tree_and_reports(tmp_path):
+    """A mid-trial kill must not leak agent edits into the next session's baseline."""
+    from lifelong_learning.research.autoresearch import (
+        recover_stale_trials,
+        write_trial_journal,
+    )
+
+    _make_repo(tmp_path)
+    ignored = ("autoresearch",)
+    target = tmp_path / "src" / "lifelong_learning" / "agents" / "brain" / "neuromod.py"
+    original = target.read_text(encoding="utf-8")
+
+    trial_dir = tmp_path / "autoresearch" / "20990101-000000" / "trial_001"
+    snapshot = take_repo_snapshot(tmp_path, ignored_roots=ignored)
+    write_trial_journal(trial_dir, snapshot, session_id="20990101-000000", trial_index=1)
+
+    # Simulate the killed trial's stranded edits: one modified file, one new file.
+    target.write_text(original + "STRANDED = True\n", encoding="utf-8")
+    stray = tmp_path / "src" / "lifelong_learning" / "agents" / "brain" / "stray.py"
+    stray.write_text("ORPHAN = 1\n", encoding="utf-8")
+
+    records = recover_stale_trials(tmp_path, tmp_path / "autoresearch", ignored_roots=ignored)
+
+    assert len(records) == 1
+    assert records[0]["reason"] == "trial_aborted"
+    assert records[0]["session_id"] == "20990101-000000"
+    assert target.read_text(encoding="utf-8") == original
+    assert not stray.exists()
+    assert not (trial_dir / "trial_in_progress.json").exists()
+    # Second pass finds nothing (marker consumed).
+    assert recover_stale_trials(tmp_path, tmp_path / "autoresearch", ignored_roots=ignored) == []
+
+
+def test_stop_sentinel_aborts_between_trials(tmp_path):
+    manifest_path = _make_repo(tmp_path, include_holdout=False)
+
+    def mutate_trial(command: str, repo_root: Path):
+        if command == "trial-1":
+            (repo_root / "autoresearch").mkdir(exist_ok=True)
+            (repo_root / "autoresearch" / "STOP").write_text("", encoding="utf-8")
+
+    supervisor = AutoresearchSupervisor(
+        repo_root=tmp_path,
+        manifest_path=manifest_path,
+        research_command="trial-{trial}",
+        command_runner=_fake_command_runner_factory(tmp_path, mutate_trial=mutate_trial),
+        benchmark_runner=_fake_benchmark_runner_factory(
+            {"fast_switch_scout_v1": [0.40, 0.30, 0.30, 0.30]}
+        ),
+    )
+
+    summary = supervisor.run(max_trials=3)
+
+    assert summary["stop_reason"] == "aborted_by_operator"
+    assert summary["trial_count"] == 1
+    assert not (tmp_path / "autoresearch" / "STOP").exists(), "STOP file must be consumed"
+
+
+def test_scoutv2_preset_matches_frozen_spec():
+    import sys as _sys
+    from pathlib import Path as _Path
+
+    scripts_dir = _Path(__file__).resolve().parent.parent / "scripts"
+    if str(scripts_dir) not in _sys.path:
+        _sys.path.insert(0, str(scripts_dir))
+    import run_seed_sweep
+
+    from lifelong_learning.research.benchmarking import get_frozen_benchmark
+
+    spec = get_frozen_benchmark("fast_switch_scout_v2")
+    base = run_seed_sweep.PRESETS["scoutv2"]["base"]
+    for key, value in spec.fixed_train_args.items():
+        assert base[key] == value, f"scoutv2 preset drifted from spec on {key}"
+    score = run_seed_sweep.PRESETS["scoutv2"]["score"]
+    assert score["sustained_points_required"] == spec.sustained_points_required
+    assert score["post_switch_window_ratio"] == spec.post_switch_window_ratio
+    assert score["post_switch_buffer_steps"] == spec.post_switch_buffer_steps

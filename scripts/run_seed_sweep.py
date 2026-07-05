@@ -178,6 +178,28 @@ PRESETS: dict[str, dict] = {
     },
 }
 
+# scoutv2: mirrors the frozen fast_switch_scout_v2 benchmark EXACTLY (copied
+# programmatically so preset and spec cannot drift) for multi-seed confirmation sweeps of
+# signals found by the autoresearch loop at n=1 — see docs/plans/2026-07-05. The seeds vary
+# per sweep invocation; everything else is the benchmark's own config, so sweep cells sample
+# the same distribution the n=1 signal came from.
+from lifelong_learning.research.benchmarking import get_frozen_benchmark  # noqa: E402
+
+_SCOUT_V2 = get_frozen_benchmark("fast_switch_scout_v2")
+PRESETS["scoutv2"] = {
+    "script": "train_brain",
+    "base": {
+        **_SCOUT_V2.fixed_train_args,
+        "save_every_episodes": 0,
+        "plot_every_episodes": 0,
+    },
+    "score": {
+        "sustained_points_required": _SCOUT_V2.sustained_points_required,
+        "post_switch_window_ratio": _SCOUT_V2.post_switch_window_ratio,
+        "post_switch_buffer_steps": _SCOUT_V2.post_switch_buffer_steps,
+    },
+}
+
 # --- Conditions: per-condition flag overrides on top of the preset base ------------------
 # Scalar HP levers are always Brain-controlled; only the neuromodulation code is swapped.
 CONDITIONS: dict[str, dict] = {
@@ -212,6 +234,12 @@ CONDITIONS: dict[str, dict] = {
     # preview). If frozen also keeps rising past ep 30, the climb is about horizon, not the
     # trainable decoder.
     "brain_neuromod_long": {"brain_episodes": 60},
+    # --- Mechanism-family confirmation arms (docs/plans/2026-07-05) ----------------------
+    # Both showed the hit_rate_80 signature at n=1 on fast_switch_scout_v2 (composite flat,
+    # threshold reliability up: actor-only +8.9pts incl. a +1.2pt 3-seed holdout echo;
+    # gain-a0.5 +10.7pts). Run with --preset scoutv2 against brain_neuromod as control.
+    "brain_neuromod_actor_only": {"neuromod_actor_only": True},
+    "brain_neuromod_gain05": {"neuromod_gain_alpha": 0.5},
 }
 
 # Metrics pulled from each scored run into the per-run table.

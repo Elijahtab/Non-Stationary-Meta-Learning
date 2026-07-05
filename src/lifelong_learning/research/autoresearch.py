@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import tomllib
+import zipfile
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -450,6 +451,92 @@ def aggregate_benchmark_summary(summary: dict[str, Any], *, report_dir: str | No
     }
 
 
+TRIAL_JOURNAL_MARKER = "trial_in_progress.json"
+TRIAL_JOURNAL_SNAPSHOT = "pre_trial_snapshot.zip"
+
+
+def write_trial_journal(
+    trial_dir: Path,
+    snapshot: RepoSnapshot,
+    *,
+    session_id: str,
+    trial_index: int,
+) -> None:
+    """Persist the pre-trial state to disk BEFORE the agent runs (write-ahead journal).
+
+    A supervisor killed mid-trial (crash, sleep, OOM, spot reclaim, operator kill) never
+    reaches its rollback step; without this journal the stranded agent edits would be
+    absorbed as pre-existing code by the next session's baseline — silent contamination.
+    """
+    trial_dir.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(trial_dir / TRIAL_JOURNAL_SNAPSHOT, "w", zipfile.ZIP_DEFLATED) as zf:
+        for relative_path, payload in snapshot.files.items():
+            zf.writestr(relative_path, payload)
+    (trial_dir / TRIAL_JOURNAL_MARKER).write_text(
+        json.dumps(
+            {
+                "session_id": session_id,
+                "trial_index": trial_index,
+                "started_at_utc": datetime.now(timezone.utc).isoformat(),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def clear_trial_journal(trial_dir: Path) -> None:
+    """Mark the trial resolved: the ledger record is written, so the journal is spent."""
+    marker = trial_dir / TRIAL_JOURNAL_MARKER
+    if marker.exists():
+        marker.unlink()
+
+
+def recover_stale_trials(
+    repo_root: Path,
+    scratch_dir: Path,
+    *,
+    ignored_roots: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    """Restore the tree from any unresolved trial journal and report what was recovered.
+
+    Returns one ledger-ready record per recovered trial (status=failed,
+    reason=trial_aborted — an infrastructure failure, so history injection marks the
+    idea untested/retryable). The snapshot zip is kept for forensics; only the marker
+    is consumed.
+    """
+    records: list[dict[str, Any]] = []
+    if not scratch_dir.exists():
+        return records
+    for marker in sorted(scratch_dir.glob(f"*/trial_*/{TRIAL_JOURNAL_MARKER}")):
+        trial_dir = marker.parent
+        try:
+            meta = json.loads(marker.read_text(encoding="utf-8"))
+        except ValueError:
+            meta = {}
+        snapshot_zip = trial_dir / TRIAL_JOURNAL_SNAPSHOT
+        restored_paths: list[str] = []
+        if snapshot_zip.exists():
+            with zipfile.ZipFile(snapshot_zip) as zf:
+                files = {name: zf.read(name) for name in zf.namelist()}
+            journal_snapshot = RepoSnapshot(root=repo_root, files=files)
+            current = take_repo_snapshot(repo_root, ignored_roots=ignored_roots)
+            restored_paths = restore_repo_snapshot(repo_root, journal_snapshot, current)
+        marker.unlink()
+        records.append(
+            {
+                "record_type": "trial",
+                "status": "failed",
+                "reason": "trial_aborted",
+                "session_id": meta.get("session_id"),
+                "trial_index": meta.get("trial_index"),
+                "aborted_trial_started_at_utc": meta.get("started_at_utc"),
+                "restored_paths": restored_paths,
+                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+    return records
+
+
 def append_note_verdicts(
     repo_root: Path,
     new_paths: tuple[str, ...] | list[str],
@@ -701,10 +788,30 @@ class AutoresearchSupervisor:
 
         self.session_dir.mkdir(parents=True, exist_ok=True)
         self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Crash recovery MUST precede the initial snapshot: a prior session killed
+        # mid-trial left agent edits stranded in the tree, and snapshotting them here
+        # would silently absorb them into this session's baseline.
+        for aborted in recover_stale_trials(
+            self.repo_root,
+            self.repo_root / self.manifest.outputs.scratch_dir,
+            ignored_roots=self.manifest.ignored_roots(),
+        ):
+            self._append_ledger_record(aborted)
+
         self.initial_snapshot = take_repo_snapshot(
             self.repo_root,
             ignored_roots=self.manifest.ignored_roots(),
         )
+
+        if self._consume_stop_request():
+            return self._write_session_summary(
+                stop_reason="aborted_by_operator",
+                baseline_entry=None,
+                best_primary_score=None,
+                accepted_trials=[],
+                trial_count=0,
+            )
 
         baseline_entry, best_primary_score, baseline_holdout_scores = self._run_baseline()
         self._append_ledger_record(baseline_entry)
@@ -726,6 +833,10 @@ class AutoresearchSupervisor:
         trials_executed = 0
 
         for trial_index in range(1, trial_limit + 1):
+            if self._consume_stop_request():
+                stop_reason = "aborted_by_operator"
+                trials_executed = trial_index - 1
+                break
             trials_executed = trial_index
             trial_entry, accepted, best_primary_score = self._run_trial(
                 trial_index=trial_index,
@@ -733,6 +844,8 @@ class AutoresearchSupervisor:
                 baseline_holdout_scores=baseline_holdout_scores,
             )
             self._append_ledger_record(trial_entry)
+            # The ledger record is durable — the write-ahead journal is now spent.
+            clear_trial_journal(self.session_dir / f"trial_{trial_index:03d}")
             if accepted:
                 accepted_trials.append(trial_index)
                 stale_trials = 0
@@ -856,6 +969,16 @@ class AutoresearchSupervisor:
         pre_trial_snapshot = take_repo_snapshot(
             self.repo_root,
             ignored_roots=self.manifest.ignored_roots(),
+        )
+        # Write-ahead journal: if this process dies anywhere past this point, the next
+        # session's startup recovery restores the tree from this snapshot instead of
+        # absorbing stranded agent edits into its baseline. Cleared by the run loop once
+        # the trial's ledger record is durable.
+        write_trial_journal(
+            trial_dir,
+            pre_trial_snapshot,
+            session_id=self.session_id,
+            trial_index=trial_index,
         )
         dynamic_allowed_paths = summarize_python_growth(
             self.initial_snapshot, pre_trial_snapshot
@@ -1188,15 +1311,30 @@ class AutoresearchSupervisor:
             return summary_path, entry
         return None, None
 
+    def _consume_stop_request(self) -> bool:
+        """Operator kill switch: a STOP file in the scratch dir ends the session at the
+        next trial boundary — nothing is stranded mid-benchmark. The file is consumed so
+        a stale STOP can't refuse the next session."""
+        stop_path = self.repo_root / self.manifest.outputs.scratch_dir / "STOP"
+        if stop_path.exists():
+            stop_path.unlink()
+            return True
+        return False
+
     def _write_session_summary(
         self,
         *,
         stop_reason: str,
-        baseline_entry: dict[str, Any],
+        baseline_entry: dict[str, Any] | None,
         best_primary_score: float | None,
         accepted_trials: list[int],
         trial_count: int,
     ) -> dict[str, Any]:
+        baseline_primary_score = None
+        if baseline_entry is not None:
+            baseline_primary_score = baseline_entry["primary_benchmark"]["aggregate"].get(
+                "composite_score"
+            )
         summary = {
             "session_id": self.session_id,
             "timestamp_utc": _timestamp_utc(),
@@ -1209,9 +1347,7 @@ class AutoresearchSupervisor:
             "trial_count": trial_count,
             "accepted_trials": accepted_trials,
             "best_primary_score": best_primary_score,
-            "baseline_primary_score": baseline_entry["primary_benchmark"]["aggregate"].get(
-                "composite_score"
-            ),
+            "baseline_primary_score": baseline_primary_score,
             "target_composite_score": self.manifest.stopping.target_composite_score,
         }
         summary_json_path = self.session_dir / "session_summary.json"

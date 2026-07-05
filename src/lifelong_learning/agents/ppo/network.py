@@ -23,10 +23,23 @@ class CNNActorCritic(nn.Module):
     Output: (logits, value)
     """
 
-    def __init__(self, obs_shape: tuple[int, int, int], n_actions: int, *, trainable_neuromod: bool = False):
+    def __init__(
+        self,
+        obs_shape: tuple[int, int, int],
+        n_actions: int,
+        *,
+        trainable_neuromod: bool = False,
+        actor_only_neuromod: bool = False,
+        neuromod_gain_alpha: float = 0.0,
+    ):
         super().__init__()
         self.c, self.h, self.w = obs_shape
         self.feature_channels = 64
+        # Mask scope: shared (default, paper-faithful) applies the mask before both heads;
+        # actor-only leaves the critic reading raw encoder features (autoresearch trials
+        # 20260704-022146/001 + 20260704-203740/001; confirmation sweep docs/plans/2026-07-05).
+        # Neither flag adds parameters, so checkpoints are interchangeable across modes.
+        self.actor_only_neuromod = actor_only_neuromod
 
         # Shared CNN feature extractor
         self.encoder = nn.Sequential(
@@ -50,6 +63,7 @@ class CNNActorCritic(nn.Module):
             feature_dim=flat_size,
             context_dim=CONTEXT_CODE_DIM,
             trainable=trainable_neuromod,
+            gain_alpha=neuromod_gain_alpha,
         )
 
         # Actor head (policy)
@@ -119,8 +133,10 @@ class CNNActorCritic(nn.Module):
 
     def forward_with_mask(self, obs: torch.Tensor, mask: torch.Tensor | None = None):
         features = self.encoder(obs)
-        features = features * self._expand_mask(features, mask)
-        return self.actor_head(features), self.critic_head(features).squeeze(-1)
+        masked = features * self._expand_mask(features, mask)
+        if self.actor_only_neuromod:
+            return self.actor_head(masked), self.critic_head(features).squeeze(-1)
+        return self.actor_head(masked), self.critic_head(masked).squeeze(-1)
 
     def describe_neuromodulation(self, obs: torch.Tensor) -> dict[str, torch.Tensor | float]:
         """Summarize the current context mask and its effect on a reference batch."""
