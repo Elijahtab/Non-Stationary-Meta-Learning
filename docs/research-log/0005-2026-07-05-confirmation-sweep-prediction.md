@@ -32,6 +32,28 @@ can. Full trail: docs/research-log/0004, autoresearch/handoffs/2026-07-05-autore
   plus paper analysis of the reliability/latency trade-off.
 - Otherwise → close both; no further tuning of this mechanism family without a new idea.
 
-## Outcome
+## Outcome — FALSIFIER FIRED (2026-07-05, n=8 per arm, results branch confirm_g{0..3})
 
-_(to be filled from sweeps/confirm_g{0..3} summaries)_
+| condition | composite mean [95% CI] | hit_rate_80 mean [95% CI] | med steps→80 |
+| --- | --- | --- | --- |
+| frozen control | **0.5534** [0.5478, 0.5588] | 0.829 [0.815, 0.846] | 44,758 |
+| actor-only | 0.5479 [0.5437, 0.5528] | 0.829 [0.810, 0.850] | 45,825 |
+| gain α=0.5 | 0.5460 [0.5416, 0.5514] | 0.820 [0.795, 0.845] | 47,850 |
+
+- **Prediction 2 (the registered secondary) failed flatly:** neither arm beats the control's
+  hit_rate_80 mean by anything (actor-only Δ +0.000, gain Δ −0.009); no CI separation anywhere.
+- **Prediction 1 half-held:** actor-only sits (barely) inside the control's composite CI;
+  gain α=0.5 falls below it (−0.0074) — mildly *worse* than predicted.
+- **The n=1 "hit80 signature" was selection on noise — specifically the baseline's.** The scout
+  baseline's hit80 of 0.786 (seed 0) was a low draw of a distribution whose true mean is ~0.83;
+  every variant compared against it looked reliability-improving. Regression to the mean, caught
+  exactly as the pre-registration intended.
+- **The holdout gate is vindicated:** its "hair-thin" zero-tolerance rejections of trials 1/3/4
+  were all CORRECT verdicts — the mechanisms were never better.
+
+**Per the pre-committed decision rule: both hypotheses CLOSE as rejected; no further tuning of
+this mechanism family without a qualitatively new idea.** Combined record across notes
+0001/0002 and this campaign: 7 trainable-decoder variants + 6 mechanism-family variants at v1 +
+5 retests at v2 + 2 arms at n=8 — the frozen-decoder, shared-suppressive-mask baseline has
+never been beaten. The "context-code routing is inert; the Brain's scalar-HP control drives
+adaptation" thesis now rests on its strongest evidence, with pre-registered methodology.
