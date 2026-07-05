@@ -62,10 +62,15 @@ def build_meta_vector_env(env_fns, vectorization: str):
     """Create the Brain's vectorized outer environment."""
     autoreset_mode = gym.vector.AutoresetMode.DISABLED
     if vectorization == "async":
+        # context="spawn": Linux defaults to fork, and a forked MetaEnv worker crashes with
+        # "Cannot re-initialize CUDA in forked subprocess" because the parent touches CUDA
+        # before the workers exist (first hit on the 2026-07-05 confirmation sweep — async
+        # configs had only ever run on Windows, where spawn is already the default).
         return gym.vector.AsyncVectorEnv(
             env_fns,
             shared_memory=False,
             autoreset_mode=autoreset_mode,
+            context="spawn",
         )
     if vectorization == "sync":
         return gym.vector.SyncVectorEnv(
