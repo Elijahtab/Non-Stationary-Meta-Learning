@@ -1,0 +1,16 @@
+[sweep] preset=scoutv2 conditions=['brain_neuromod', 'brain_neuromod_actor_only', 'brain_neuromod_gain05'] seeds=[1, 2]
+[sweep] 6 cells, max_parallel=1 -> sweeps/confirm_g0
+[sweep] (1/6) brain_neuromod seed=1 -> scored composite=0.5466785577227864
+[sweep] (2/6) brain_neuromod seed=2 -> scored composite=0.5631487370043569
+[sweep] (3/6) brain_neuromod_actor_only seed=1 -> scored composite=0.5452680102024252
+[sweep] (4/6) brain_neuromod_actor_only seed=2 -> scored composite=0.5456474338212043
+[sweep] (5/6) brain_neuromod_gain05 seed=1 -> scored composite=0.5449541482853466
+[sweep] (6/6) brain_neuromod_gain05 seed=2 -> scored composite=0.550692352307053
+
+[sweep] done. per-run -> sweeps/confirm_g0/runs.csv | summary -> sweeps/confirm_g0/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod       0.5549 [0.5467, 0.5631]  (n=2)
+  brain_neuromod_actor_only 0.5455 [0.5453, 0.5456]  (n=2)
+  brain_neuromod_gain05 0.5478 [0.5450, 0.5507]  (n=2)
+[run_sweep] sweep exited ec=0
