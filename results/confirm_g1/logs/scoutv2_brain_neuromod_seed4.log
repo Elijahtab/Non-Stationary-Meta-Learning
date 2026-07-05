@@ -1,4 +1,4 @@
-Saved configuration to: runs/scoutv2_brain_neuromod_seed4_20260705-100633/config.txt
+Saved configuration to: runs/scoutv2_brain_neuromod_seed4_20260705-114954/config.txt
 Training Brain on cuda for 4 RL episodes
   Inner: 800000 timesteps, regime switch every 100000 steps
   Parallel Envs: 4
@@ -7,57 +7,1387 @@ Training Brain on cuda for 4 RL episodes
   Decision interval: 10 inner updates
 
 --- Starting Meta-RL PPO Training (Target: 4) ---
-/venv/main/lib/python3.12/site-packages/gymnasium/vector/async_vector_env.py:366: UserWarning: [31mERROR: Received the following error from Worker-2 - Shutting it down[0m
-  self._raise_if_errors(successes)
-/venv/main/lib/python3.12/site-packages/gymnasium/vector/async_vector_env.py:366: UserWarning: [31mERROR: Traceback (most recent call last):
-  File "/venv/main/lib/python3.12/site-packages/gymnasium/vector/async_vector_env.py", line 750, in _async_worker
-    observation, info = env.reset(**data)
-                        ^^^^^^^^^^^^^^^^^
-  File "/workspace/Lifelong-Learning/src/lifelong_learning/agents/brain/meta_env.py", line 229, in reset
-    self._state = init_inner_training(**init_kwargs)
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspace/Lifelong-Learning/src/lifelong_learning/agents/ppo/train.py", line 220, in init_inner_training
-    ).to(device)
-      ^^^^^^^^^^
-  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1383, in to
-    return self._apply(convert)
-           ^^^^^^^^^^^^^^^^^^^^
-  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 933, in _apply
-    module._apply(fn)
-  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 933, in _apply
-    module._apply(fn)
-  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 964, in _apply
-    param_applied = fn(param)
-                    ^^^^^^^^^
-  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1369, in convert
-    return t.to(
-           ^^^^^
-  File "/venv/main/lib/python3.12/site-packages/torch/cuda/__init__.py", line 479, in _lazy_init
-    raise RuntimeError(
-RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method
-[0m
-  self._raise_if_errors(successes)
-/venv/main/lib/python3.12/site-packages/gymnasium/vector/async_vector_env.py:366: UserWarning: [31mERROR: Received the following error from Worker-3 - Shutting it down[0m
-  self._raise_if_errors(successes)
-/venv/main/lib/python3.12/site-packages/gymnasium/vector/async_vector_env.py:366: UserWarning: [31mERROR: Received the following error from Worker-0 - Shutting it down[0m
-  self._raise_if_errors(successes)
-/venv/main/lib/python3.12/site-packages/gymnasium/vector/async_vector_env.py:366: UserWarning: [31mERROR: Received the following error from Worker-1 - Shutting it down[0m
-  self._raise_if_errors(successes)
-/venv/main/lib/python3.12/site-packages/gymnasium/vector/async_vector_env.py:366: UserWarning: [31mERROR: Raising the last exception back to the main process.[0m
-  self._raise_if_errors(successes)
-Traceback (most recent call last):
-  File "/workspace/Lifelong-Learning/scripts/train_brain.py", line 859, in <module>
-    main()
-  File "/workspace/Lifelong-Learning/scripts/train_brain.py", line 855, in main
-    train_brain(args)
-  File "/workspace/Lifelong-Learning/scripts/train_brain.py", line 574, in train_brain
-    obs, info = meta_env.reset()
-                ^^^^^^^^^^^^^^^^
-  File "/venv/main/lib/python3.12/site-packages/gymnasium/vector/async_vector_env.py", line 266, in reset
-    return self.reset_wait()
-           ^^^^^^^^^^^^^^^^^
-  File "/venv/main/lib/python3.12/site-packages/gymnasium/vector/async_vector_env.py", line 366, in reset_wait
-    self._raise_if_errors(successes)
-  File "/venv/main/lib/python3.12/site-packages/gymnasium/vector/async_vector_env.py", line 720, in _raise_if_errors
-    raise exctype(value)
-RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method
+update 10/781 | step=10240 | SPS=569
+update 10/781 | step=10240 | SPS=572
+update 10/781 | step=10240 | SPS=569
+update 10/781 | step=10240 | SPS=561
+update 20/781 | step=20480 | SPS=559
+update 20/781 | step=20480 | SPS=556
+update 20/781 | step=20480 | SPS=551
+update 20/781 | step=20480 | SPS=548
+update 30/781 | step=30720 | SPS=548
+update 30/781 | step=30720 | SPS=548
+update 30/781 | step=30720 | SPS=547
+update 30/781 | step=30720 | SPS=544
+update 40/781 | step=40960 | SPS=546
+update 40/781 | step=40960 | SPS=544
+update 40/781 | step=40960 | SPS=544
+update 40/781 | step=40960 | SPS=542
+update 50/781 | step=51200 | SPS=544
+update 50/781 | step=51200 | SPS=543
+update 50/781 | step=51200 | SPS=543
+update 50/781 | step=51200 | SPS=542
+update 60/781 | step=61440 | SPS=545
+update 60/781 | step=61440 | SPS=546
+update 60/781 | step=61440 | SPS=544
+update 60/781 | step=61440 | SPS=544
+update 70/781 | step=71680 | SPS=544
+update 70/781 | step=71680 | SPS=544
+update 70/781 | step=71680 | SPS=544
+update 70/781 | step=71680 | SPS=544
+update 80/781 | step=81920 | SPS=545
+update 80/781 | step=81920 | SPS=545
+update 80/781 | step=81920 | SPS=544
+update 80/781 | step=81920 | SPS=543
+update 90/781 | step=92160 | SPS=544
+update 90/781 | step=92160 | SPS=544
+update 90/781 | step=92160 | SPS=543
+update 90/781 | step=92160 | SPS=543
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 100/781 | step=102400 | SPS=544
+update 100/781 | step=102400 | SPS=543
+update 100/781 | step=102400 | SPS=542
+update 100/781 | step=102400 | SPS=542
+update 110/781 | step=112640 | SPS=544
+update 110/781 | step=112640 | SPS=544
+update 110/781 | step=112640 | SPS=542
+update 110/781 | step=112640 | SPS=542
+update 120/781 | step=122880 | SPS=544
+update 120/781 | step=122880 | SPS=543
+update 120/781 | step=122880 | SPS=542
+update 120/781 | step=122880 | SPS=542
+update 130/781 | step=133120 | SPS=543
+update 130/781 | step=133120 | SPS=543
+update 130/781 | step=133120 | SPS=542
+update 130/781 | step=133120 | SPS=542
+update 140/781 | step=143360 | SPS=542
+update 140/781 | step=143360 | SPS=542
+update 140/781 | step=143360 | SPS=542
+update 140/781 | step=143360 | SPS=541
+update 150/781 | step=153600 | SPS=542
+update 150/781 | step=153600 | SPS=542
+update 150/781 | step=153600 | SPS=541
+update 150/781 | step=153600 | SPS=541
+update 160/781 | step=163840 | SPS=543
+update 160/781 | step=163840 | SPS=542
+update 160/781 | step=163840 | SPS=542
+update 160/781 | step=163840 | SPS=541
+update 170/781 | step=174080 | SPS=542
+update 170/781 | step=174080 | SPS=542
+update 170/781 | step=174080 | SPS=542
+update 170/781 | step=174080 | SPS=542
+update 180/781 | step=184320 | SPS=542
+update 180/781 | step=184320 | SPS=541
+update 180/781 | step=184320 | SPS=541
+update 180/781 | step=184320 | SPS=541
+update 190/781 | step=194560 | SPS=542
+update 190/781 | step=194560 | SPS=542
+update 190/781 | step=194560 | SPS=541
+update 190/781 | step=194560 | SPS=541
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/781 | step=204800 | SPS=542
+update 200/781 | step=204800 | SPS=542
+update 200/781 | step=204800 | SPS=541
+update 200/781 | step=204800 | SPS=541
+update 210/781 | step=215040 | SPS=542
+update 210/781 | step=215040 | SPS=542
+update 210/781 | step=215040 | SPS=541
+update 210/781 | step=215040 | SPS=541
+update 220/781 | step=225280 | SPS=541
+update 220/781 | step=225280 | SPS=541
+update 220/781 | step=225280 | SPS=541
+update 220/781 | step=225280 | SPS=541
+update 230/781 | step=235520 | SPS=541
+update 230/781 | step=235520 | SPS=541
+update 230/781 | step=235520 | SPS=540
+update 230/781 | step=235520 | SPS=541
+update 240/781 | step=245760 | SPS=541
+update 240/781 | step=245760 | SPS=541
+update 240/781 | step=245760 | SPS=541
+update 240/781 | step=245760 | SPS=540
+update 250/781 | step=256000 | SPS=541
+update 250/781 | step=256000 | SPS=540
+update 250/781 | step=256000 | SPS=540
+update 250/781 | step=256000 | SPS=540
+update 260/781 | step=266240 | SPS=541
+update 260/781 | step=266240 | SPS=541
+update 260/781 | step=266240 | SPS=540
+update 260/781 | step=266240 | SPS=540
+update 270/781 | step=276480 | SPS=541
+update 270/781 | step=276480 | SPS=541
+update 270/781 | step=276480 | SPS=541
+update 270/781 | step=276480 | SPS=540
+update 280/781 | step=286720 | SPS=541
+update 280/781 | step=286720 | SPS=540
+update 280/781 | step=286720 | SPS=540
+update 280/781 | step=286720 | SPS=540
+update 290/781 | step=296960 | SPS=541
+update 290/781 | step=296960 | SPS=541
+update 290/781 | step=296960 | SPS=540
+update 290/781 | step=296960 | SPS=540
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 300/781 | step=307200 | SPS=541
+update 300/781 | step=307200 | SPS=540
+update 300/781 | step=307200 | SPS=540
+update 300/781 | step=307200 | SPS=540
+update 310/781 | step=317440 | SPS=541
+update 310/781 | step=317440 | SPS=540
+update 310/781 | step=317440 | SPS=540
+update 310/781 | step=317440 | SPS=540
+update 320/781 | step=327680 | SPS=541
+update 320/781 | step=327680 | SPS=541
+update 320/781 | step=327680 | SPS=541
+update 320/781 | step=327680 | SPS=541
+update 330/781 | step=337920 | SPS=541
+update 330/781 | step=337920 | SPS=541
+update 330/781 | step=337920 | SPS=541
+update 330/781 | step=337920 | SPS=541
+update 340/781 | step=348160 | SPS=541
+update 340/781 | step=348160 | SPS=541
+update 340/781 | step=348160 | SPS=541
+update 340/781 | step=348160 | SPS=540
+update 350/781 | step=358400 | SPS=541
+update 350/781 | step=358400 | SPS=541
+update 350/781 | step=358400 | SPS=541
+update 350/781 | step=358400 | SPS=541
+update 360/781 | step=368640 | SPS=541
+update 360/781 | step=368640 | SPS=541
+update 360/781 | step=368640 | SPS=541
+update 360/781 | step=368640 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 380/781 | step=389120 | SPS=541
+update 380/781 | step=389120 | SPS=541
+update 380/781 | step=389120 | SPS=541
+update 380/781 | step=389120 | SPS=540
+update 390/781 | step=399360 | SPS=541
+update 390/781 | step=399360 | SPS=541
+update 390/781 | step=399360 | SPS=540
+update 390/781 | step=399360 | SPS=540
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 400/781 | step=409600 | SPS=541
+update 400/781 | step=409600 | SPS=541
+update 400/781 | step=409600 | SPS=541
+update 400/781 | step=409600 | SPS=540
+update 410/781 | step=419840 | SPS=541
+update 410/781 | step=419840 | SPS=541
+update 410/781 | step=419840 | SPS=541
+update 410/781 | step=419840 | SPS=541
+update 420/781 | step=430080 | SPS=541
+update 420/781 | step=430080 | SPS=541
+update 420/781 | step=430080 | SPS=541
+update 420/781 | step=430080 | SPS=541
+update 430/781 | step=440320 | SPS=541
+update 430/781 | step=440320 | SPS=541
+update 430/781 | step=440320 | SPS=541
+update 430/781 | step=440320 | SPS=541
+update 440/781 | step=450560 | SPS=541
+update 440/781 | step=450560 | SPS=541
+update 440/781 | step=450560 | SPS=541
+update 440/781 | step=450560 | SPS=541
+update 450/781 | step=460800 | SPS=541
+update 450/781 | step=460800 | SPS=541
+update 450/781 | step=460800 | SPS=541
+update 450/781 | step=460800 | SPS=541
+update 460/781 | step=471040 | SPS=541
+update 460/781 | step=471040 | SPS=541
+update 460/781 | step=471040 | SPS=541
+update 460/781 | step=471040 | SPS=541
+update 470/781 | step=481280 | SPS=541
+update 470/781 | step=481280 | SPS=541
+update 470/781 | step=481280 | SPS=541
+update 470/781 | step=481280 | SPS=541
+update 480/781 | step=491520 | SPS=541
+update 480/781 | step=491520 | SPS=541
+update 480/781 | step=491520 | SPS=541
+update 480/781 | step=491520 | SPS=541
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 490/781 | step=501760 | SPS=541
+update 490/781 | step=501760 | SPS=541
+update 490/781 | step=501760 | SPS=541
+update 490/781 | step=501760 | SPS=541
+update 500/781 | step=512000 | SPS=541
+update 500/781 | step=512000 | SPS=541
+update 500/781 | step=512000 | SPS=541
+update 500/781 | step=512000 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 520/781 | step=532480 | SPS=541
+update 520/781 | step=532480 | SPS=541
+update 520/781 | step=532480 | SPS=541
+update 520/781 | step=532480 | SPS=541
+update 530/781 | step=542720 | SPS=541
+update 530/781 | step=542720 | SPS=541
+update 530/781 | step=542720 | SPS=541
+update 530/781 | step=542720 | SPS=541
+update 540/781 | step=552960 | SPS=541
+update 540/781 | step=552960 | SPS=541
+update 540/781 | step=552960 | SPS=540
+update 540/781 | step=552960 | SPS=540
+update 550/781 | step=563200 | SPS=541
+update 550/781 | step=563200 | SPS=541
+update 550/781 | step=563200 | SPS=541
+update 550/781 | step=563200 | SPS=540
+update 560/781 | step=573440 | SPS=541
+update 560/781 | step=573440 | SPS=541
+update 560/781 | step=573440 | SPS=540
+update 560/781 | step=573440 | SPS=540
+update 570/781 | step=583680 | SPS=541
+update 570/781 | step=583680 | SPS=541
+update 570/781 | step=583680 | SPS=541
+update 570/781 | step=583680 | SPS=540
+update 580/781 | step=593920 | SPS=541
+update 580/781 | step=593920 | SPS=541
+update 580/781 | step=593920 | SPS=540
+update 580/781 | step=593920 | SPS=540
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 590/781 | step=604160 | SPS=540
+update 590/781 | step=604160 | SPS=540
+update 590/781 | step=604160 | SPS=540
+update 590/781 | step=604160 | SPS=540
+update 600/781 | step=614400 | SPS=541
+update 600/781 | step=614400 | SPS=540
+update 600/781 | step=614400 | SPS=540
+update 600/781 | step=614400 | SPS=540
+update 610/781 | step=624640 | SPS=541
+update 610/781 | step=624640 | SPS=541
+update 610/781 | step=624640 | SPS=540
+update 610/781 | step=624640 | SPS=540
+update 620/781 | step=634880 | SPS=541
+update 620/781 | step=634880 | SPS=541
+update 620/781 | step=634880 | SPS=541
+update 620/781 | step=634880 | SPS=540
+update 630/781 | step=645120 | SPS=541
+update 630/781 | step=645120 | SPS=541
+update 630/781 | step=645120 | SPS=541
+update 630/781 | step=645120 | SPS=540
+update 640/781 | step=655360 | SPS=541
+update 640/781 | step=655360 | SPS=541
+update 640/781 | step=655360 | SPS=541
+update 640/781 | step=655360 | SPS=541
+update 650/781 | step=665600 | SPS=541
+update 650/781 | step=665600 | SPS=541
+update 650/781 | step=665600 | SPS=541
+update 650/781 | step=665600 | SPS=541
+update 660/781 | step=675840 | SPS=541
+update 660/781 | step=675840 | SPS=541
+update 660/781 | step=675840 | SPS=541
+update 660/781 | step=675840 | SPS=541
+update 670/781 | step=686080 | SPS=541
+update 670/781 | step=686080 | SPS=541
+update 670/781 | step=686080 | SPS=541
+update 670/781 | step=686080 | SPS=541
+update 680/781 | step=696320 | SPS=541
+update 680/781 | step=696320 | SPS=541
+update 680/781 | step=696320 | SPS=541
+update 680/781 | step=696320 | SPS=541
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 690/781 | step=706560 | SPS=541
+update 690/781 | step=706560 | SPS=541
+update 690/781 | step=706560 | SPS=541
+update 690/781 | step=706560 | SPS=541
+update 700/781 | step=716800 | SPS=541
+update 700/781 | step=716800 | SPS=541
+update 700/781 | step=716800 | SPS=541
+update 700/781 | step=716800 | SPS=541
+update 710/781 | step=727040 | SPS=541
+update 710/781 | step=727040 | SPS=541
+update 710/781 | step=727040 | SPS=541
+update 710/781 | step=727040 | SPS=541
+update 720/781 | step=737280 | SPS=541
+update 720/781 | step=737280 | SPS=541
+update 720/781 | step=737280 | SPS=541
+update 720/781 | step=737280 | SPS=541
+update 730/781 | step=747520 | SPS=541
+update 730/781 | step=747520 | SPS=541
+update 730/781 | step=747520 | SPS=541
+update 730/781 | step=747520 | SPS=541
+update 740/781 | step=757760 | SPS=541
+update 740/781 | step=757760 | SPS=541
+update 740/781 | step=757760 | SPS=541
+update 740/781 | step=757760 | SPS=541
+update 750/781 | step=768000 | SPS=541
+update 750/781 | step=768000 | SPS=541
+update 750/781 | step=768000 | SPS=541
+update 750/781 | step=768000 | SPS=541
+update 760/781 | step=778240 | SPS=541
+update 760/781 | step=778240 | SPS=541
+update 760/781 | step=778240 | SPS=541
+update 760/781 | step=778240 | SPS=541
+update 770/781 | step=788480 | SPS=541
+update 770/781 | step=788480 | SPS=541
+update 770/781 | step=788480 | SPS=541
+update 770/781 | step=788480 | SPS=541
+update 780/781 | step=798720 | SPS=541
+update 780/781 | step=798720 | SPS=541
+update 780/781 | step=798720 | SPS=541
+update 780/781 | step=798720 | SPS=541
+update 781/781 | step=799744 | SPS=541
+update 781/781 | step=799744 | SPS=541
+update 781/781 | step=799744 | SPS=541
+update 781/781 | step=799744 | SPS=541
+Episode 1/4 | reward=-19.2776 | avg10=-19.2776 | avg_success_rate=0.9425 | steps=78 | time=1486.8s
+update 10/781 | step=10240 | SPS=600
+update 10/781 | step=10240 | SPS=600
+update 10/781 | step=10240 | SPS=588
+update 10/781 | step=10240 | SPS=588
+update 20/781 | step=20480 | SPS=572
+update 20/781 | step=20480 | SPS=567
+update 20/781 | step=20480 | SPS=567
+update 20/781 | step=20480 | SPS=561
+update 30/781 | step=30720 | SPS=562
+update 30/781 | step=30720 | SPS=558
+update 30/781 | step=30720 | SPS=558
+update 30/781 | step=30720 | SPS=558
+update 40/781 | step=40960 | SPS=558
+update 40/781 | step=40960 | SPS=557
+update 40/781 | step=40960 | SPS=552
+update 40/781 | step=40960 | SPS=553
+update 50/781 | step=51200 | SPS=551
+update 50/781 | step=51200 | SPS=553
+update 50/781 | step=51200 | SPS=551
+update 50/781 | step=51200 | SPS=550
+update 60/781 | step=61440 | SPS=549
+update 60/781 | step=61440 | SPS=549
+update 60/781 | step=61440 | SPS=549
+update 60/781 | step=61440 | SPS=548
+update 70/781 | step=71680 | SPS=551
+update 70/781 | step=71680 | SPS=550
+update 70/781 | step=71680 | SPS=547
+update 70/781 | step=71680 | SPS=548
+update 80/781 | step=81920 | SPS=550
+update 80/781 | step=81920 | SPS=549
+update 80/781 | step=81920 | SPS=547
+update 80/781 | step=81920 | SPS=547
+update 90/781 | step=92160 | SPS=547
+update 90/781 | step=92160 | SPS=547
+update 90/781 | step=92160 | SPS=546
+update 90/781 | step=92160 | SPS=546
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 100/781 | step=102400 | SPS=547
+update 100/781 | step=102400 | SPS=547
+update 100/781 | step=102400 | SPS=544
+update 100/781 | step=102400 | SPS=545
+update 110/781 | step=112640 | SPS=545
+update 110/781 | step=112640 | SPS=544
+update 110/781 | step=112640 | SPS=544
+update 110/781 | step=112640 | SPS=544
+update 120/781 | step=122880 | SPS=543
+update 120/781 | step=122880 | SPS=543
+update 120/781 | step=122880 | SPS=543
+update 120/781 | step=122880 | SPS=543
+update 130/781 | step=133120 | SPS=543
+update 130/781 | step=133120 | SPS=543
+update 130/781 | step=133120 | SPS=543
+update 130/781 | step=133120 | SPS=543
+update 140/781 | step=143360 | SPS=544
+update 140/781 | step=143360 | SPS=544
+update 140/781 | step=143360 | SPS=543
+update 140/781 | step=143360 | SPS=542
+update 150/781 | step=153600 | SPS=544
+update 150/781 | step=153600 | SPS=543
+update 150/781 | step=153600 | SPS=543
+update 150/781 | step=153600 | SPS=542
+update 160/781 | step=163840 | SPS=543
+update 160/781 | step=163840 | SPS=543
+update 160/781 | step=163840 | SPS=542
+update 160/781 | step=163840 | SPS=542
+update 170/781 | step=174080 | SPS=543
+update 170/781 | step=174080 | SPS=543
+update 170/781 | step=174080 | SPS=543
+update 170/781 | step=174080 | SPS=542
+update 180/781 | step=184320 | SPS=544
+update 180/781 | step=184320 | SPS=543
+update 180/781 | step=184320 | SPS=543
+update 180/781 | step=184320 | SPS=542
+update 190/781 | step=194560 | SPS=543
+update 190/781 | step=194560 | SPS=543
+update 190/781 | step=194560 | SPS=543
+update 190/781 | step=194560 | SPS=542
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/781 | step=204800 | SPS=543
+update 200/781 | step=204800 | SPS=542
+update 200/781 | step=204800 | SPS=543
+update 200/781 | step=204800 | SPS=542
+update 210/781 | step=215040 | SPS=543
+update 210/781 | step=215040 | SPS=543
+update 210/781 | step=215040 | SPS=543
+update 210/781 | step=215040 | SPS=542
+update 220/781 | step=225280 | SPS=543
+update 220/781 | step=225280 | SPS=543
+update 220/781 | step=225280 | SPS=542
+update 220/781 | step=225280 | SPS=542
+update 230/781 | step=235520 | SPS=543
+update 230/781 | step=235520 | SPS=542
+update 230/781 | step=235520 | SPS=541
+update 230/781 | step=235520 | SPS=542
+update 240/781 | step=245760 | SPS=542
+update 240/781 | step=245760 | SPS=542
+update 240/781 | step=245760 | SPS=541
+update 240/781 | step=245760 | SPS=541
+update 250/781 | step=256000 | SPS=542
+update 250/781 | step=256000 | SPS=542
+update 250/781 | step=256000 | SPS=541
+update 250/781 | step=256000 | SPS=542
+update 260/781 | step=266240 | SPS=543
+update 260/781 | step=266240 | SPS=542
+update 260/781 | step=266240 | SPS=542
+update 260/781 | step=266240 | SPS=541
+update 270/781 | step=276480 | SPS=542
+update 270/781 | step=276480 | SPS=542
+update 270/781 | step=276480 | SPS=541
+update 270/781 | step=276480 | SPS=541
+update 280/781 | step=286720 | SPS=542
+update 280/781 | step=286720 | SPS=542
+update 280/781 | step=286720 | SPS=541
+update 280/781 | step=286720 | SPS=541
+update 290/781 | step=296960 | SPS=542
+update 290/781 | step=296960 | SPS=541
+update 290/781 | step=296960 | SPS=541
+update 290/781 | step=296960 | SPS=541
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 300/781 | step=307200 | SPS=542
+update 300/781 | step=307200 | SPS=542
+update 300/781 | step=307200 | SPS=541
+update 300/781 | step=307200 | SPS=541
+update 310/781 | step=317440 | SPS=542
+update 310/781 | step=317440 | SPS=542
+update 310/781 | step=317440 | SPS=541
+update 310/781 | step=317440 | SPS=541
+update 320/781 | step=327680 | SPS=541
+update 320/781 | step=327680 | SPS=541
+update 320/781 | step=327680 | SPS=541
+update 320/781 | step=327680 | SPS=541
+update 330/781 | step=337920 | SPS=541
+update 330/781 | step=337920 | SPS=541
+update 330/781 | step=337920 | SPS=541
+update 330/781 | step=337920 | SPS=541
+update 340/781 | step=348160 | SPS=541
+update 340/781 | step=348160 | SPS=541
+update 340/781 | step=348160 | SPS=541
+update 340/781 | step=348160 | SPS=541
+update 350/781 | step=358400 | SPS=541
+update 350/781 | step=358400 | SPS=541
+update 350/781 | step=358400 | SPS=541
+update 350/781 | step=358400 | SPS=541
+update 360/781 | step=368640 | SPS=541
+update 360/781 | step=368640 | SPS=541
+update 360/781 | step=368640 | SPS=541
+update 360/781 | step=368640 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 380/781 | step=389120 | SPS=541
+update 380/781 | step=389120 | SPS=540
+update 380/781 | step=389120 | SPS=541
+update 380/781 | step=389120 | SPS=541
+update 390/781 | step=399360 | SPS=541
+update 390/781 | step=399360 | SPS=541
+update 390/781 | step=399360 | SPS=540
+update 390/781 | step=399360 | SPS=540
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 400/781 | step=409600 | SPS=541
+update 400/781 | step=409600 | SPS=540
+update 400/781 | step=409600 | SPS=541
+update 400/781 | step=409600 | SPS=540
+update 410/781 | step=419840 | SPS=541
+update 410/781 | step=419840 | SPS=541
+update 410/781 | step=419840 | SPS=541
+update 410/781 | step=419840 | SPS=540
+update 420/781 | step=430080 | SPS=541
+update 420/781 | step=430080 | SPS=541
+update 420/781 | step=430080 | SPS=541
+update 420/781 | step=430080 | SPS=540
+update 430/781 | step=440320 | SPS=541
+update 430/781 | step=440320 | SPS=540
+update 430/781 | step=440320 | SPS=540
+update 430/781 | step=440320 | SPS=540
+update 440/781 | step=450560 | SPS=541
+update 440/781 | step=450560 | SPS=541
+update 440/781 | step=450560 | SPS=540
+update 440/781 | step=450560 | SPS=540
+update 450/781 | step=460800 | SPS=541
+update 450/781 | step=460800 | SPS=540
+update 450/781 | step=460800 | SPS=540
+update 450/781 | step=460800 | SPS=540
+update 460/781 | step=471040 | SPS=541
+update 460/781 | step=471040 | SPS=541
+update 460/781 | step=471040 | SPS=540
+update 460/781 | step=471040 | SPS=540
+update 470/781 | step=481280 | SPS=541
+update 470/781 | step=481280 | SPS=541
+update 470/781 | step=481280 | SPS=541
+update 470/781 | step=481280 | SPS=540
+update 480/781 | step=491520 | SPS=541
+update 480/781 | step=491520 | SPS=541
+update 480/781 | step=491520 | SPS=541
+update 480/781 | step=491520 | SPS=540
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 490/781 | step=501760 | SPS=541
+update 490/781 | step=501760 | SPS=540
+update 490/781 | step=501760 | SPS=540
+update 490/781 | step=501760 | SPS=540
+update 500/781 | step=512000 | SPS=540
+update 500/781 | step=512000 | SPS=541
+update 500/781 | step=512000 | SPS=540
+update 500/781 | step=512000 | SPS=540
+update 510/781 | step=522240 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 510/781 | step=522240 | SPS=540
+update 510/781 | step=522240 | SPS=540
+update 520/781 | step=532480 | SPS=540
+update 520/781 | step=532480 | SPS=540
+update 520/781 | step=532480 | SPS=540
+update 520/781 | step=532480 | SPS=540
+update 530/781 | step=542720 | SPS=540
+update 530/781 | step=542720 | SPS=540
+update 530/781 | step=542720 | SPS=540
+update 530/781 | step=542720 | SPS=540
+update 540/781 | step=552960 | SPS=540
+update 540/781 | step=552960 | SPS=540
+update 540/781 | step=552960 | SPS=540
+update 540/781 | step=552960 | SPS=540
+update 550/781 | step=563200 | SPS=540
+update 550/781 | step=563200 | SPS=540
+update 550/781 | step=563200 | SPS=540
+update 550/781 | step=563200 | SPS=540
+update 560/781 | step=573440 | SPS=540
+update 560/781 | step=573440 | SPS=540
+update 560/781 | step=573440 | SPS=540
+update 560/781 | step=573440 | SPS=540
+update 570/781 | step=583680 | SPS=540
+update 570/781 | step=583680 | SPS=540
+update 570/781 | step=583680 | SPS=540
+update 570/781 | step=583680 | SPS=540
+update 580/781 | step=593920 | SPS=540
+update 580/781 | step=593920 | SPS=540
+update 580/781 | step=593920 | SPS=540
+update 580/781 | step=593920 | SPS=540
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 590/781 | step=604160 | SPS=540
+update 590/781 | step=604160 | SPS=540
+update 590/781 | step=604160 | SPS=540
+update 590/781 | step=604160 | SPS=540
+update 600/781 | step=614400 | SPS=540
+update 600/781 | step=614400 | SPS=540
+update 600/781 | step=614400 | SPS=540
+update 600/781 | step=614400 | SPS=540
+update 610/781 | step=624640 | SPS=540
+update 610/781 | step=624640 | SPS=540
+update 610/781 | step=624640 | SPS=540
+update 610/781 | step=624640 | SPS=540
+update 620/781 | step=634880 | SPS=540
+update 620/781 | step=634880 | SPS=540
+update 620/781 | step=634880 | SPS=540
+update 620/781 | step=634880 | SPS=540
+update 630/781 | step=645120 | SPS=540
+update 630/781 | step=645120 | SPS=540
+update 630/781 | step=645120 | SPS=540
+update 630/781 | step=645120 | SPS=540
+update 640/781 | step=655360 | SPS=540
+update 640/781 | step=655360 | SPS=540
+update 640/781 | step=655360 | SPS=540
+update 640/781 | step=655360 | SPS=540
+update 650/781 | step=665600 | SPS=540
+update 650/781 | step=665600 | SPS=540
+update 650/781 | step=665600 | SPS=540
+update 650/781 | step=665600 | SPS=540
+update 660/781 | step=675840 | SPS=540
+update 660/781 | step=675840 | SPS=540
+update 660/781 | step=675840 | SPS=540
+update 660/781 | step=675840 | SPS=540
+update 670/781 | step=686080 | SPS=540
+update 670/781 | step=686080 | SPS=540
+update 670/781 | step=686080 | SPS=540
+update 670/781 | step=686080 | SPS=540
+update 680/781 | step=696320 | SPS=540
+update 680/781 | step=696320 | SPS=540
+update 680/781 | step=696320 | SPS=540
+update 680/781 | step=696320 | SPS=540
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 690/781 | step=706560 | SPS=540
+update 690/781 | step=706560 | SPS=540
+update 690/781 | step=706560 | SPS=540
+update 690/781 | step=706560 | SPS=540
+update 700/781 | step=716800 | SPS=540
+update 700/781 | step=716800 | SPS=540
+update 700/781 | step=716800 | SPS=540
+update 700/781 | step=716800 | SPS=540
+update 710/781 | step=727040 | SPS=540
+update 710/781 | step=727040 | SPS=540
+update 710/781 | step=727040 | SPS=540
+update 710/781 | step=727040 | SPS=540
+update 720/781 | step=737280 | SPS=540
+update 720/781 | step=737280 | SPS=540
+update 720/781 | step=737280 | SPS=540
+update 720/781 | step=737280 | SPS=540
+update 730/781 | step=747520 | SPS=540
+update 730/781 | step=747520 | SPS=540
+update 730/781 | step=747520 | SPS=540
+update 730/781 | step=747520 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 750/781 | step=768000 | SPS=540
+update 750/781 | step=768000 | SPS=540
+update 750/781 | step=768000 | SPS=540
+update 750/781 | step=768000 | SPS=540
+update 760/781 | step=778240 | SPS=540
+update 760/781 | step=778240 | SPS=540
+update 760/781 | step=778240 | SPS=540
+update 760/781 | step=778240 | SPS=540
+update 770/781 | step=788480 | SPS=540
+update 770/781 | step=788480 | SPS=540
+update 770/781 | step=788480 | SPS=540
+update 770/781 | step=788480 | SPS=540
+update 780/781 | step=798720 | SPS=540
+update 780/781 | step=798720 | SPS=540
+update 780/781 | step=798720 | SPS=540
+update 780/781 | step=798720 | SPS=540
+update 781/781 | step=799744 | SPS=540
+update 781/781 | step=799744 | SPS=540
+update 781/781 | step=799744 | SPS=540
+update 781/781 | step=799744 | SPS=540
+Episode 2/4 | reward=-23.1855 | avg10=-21.2316 | avg_success_rate=0.8300 | steps=78 | time=1486.2s
+update 10/781 | step=10240 | SPS=604
+update 10/781 | step=10240 | SPS=596
+update 10/781 | step=10240 | SPS=592
+update 10/781 | step=10240 | SPS=590
+update 20/781 | step=20480 | SPS=561
+update 20/781 | step=20480 | SPS=561
+update 20/781 | step=20480 | SPS=556
+update 20/781 | step=20480 | SPS=561
+update 30/781 | step=30720 | SPS=554
+update 30/781 | step=30720 | SPS=553
+update 30/781 | step=30720 | SPS=552
+update 30/781 | step=30720 | SPS=553
+update 40/781 | step=40960 | SPS=544
+update 40/781 | step=40960 | SPS=544
+update 40/781 | step=40960 | SPS=544
+update 40/781 | step=40960 | SPS=547
+update 50/781 | step=51200 | SPS=545
+update 50/781 | step=51200 | SPS=544
+update 50/781 | step=51200 | SPS=544
+update 50/781 | step=51200 | SPS=545
+update 60/781 | step=61440 | SPS=544
+update 60/781 | step=61440 | SPS=545
+update 60/781 | step=61440 | SPS=541
+update 60/781 | step=61440 | SPS=541
+update 70/781 | step=71680 | SPS=542
+update 70/781 | step=71680 | SPS=542
+update 70/781 | step=71680 | SPS=541
+update 70/781 | step=71680 | SPS=543
+update 80/781 | step=81920 | SPS=543
+update 80/781 | step=81920 | SPS=542
+update 80/781 | step=81920 | SPS=541
+update 80/781 | step=81920 | SPS=542
+update 90/781 | step=92160 | SPS=541
+update 90/781 | step=92160 | SPS=541
+update 90/781 | step=92160 | SPS=542
+update 90/781 | step=92160 | SPS=539
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 100/781 | step=102400 | SPS=541
+update 100/781 | step=102400 | SPS=541
+update 100/781 | step=102400 | SPS=540
+update 100/781 | step=102400 | SPS=541
+update 110/781 | step=112640 | SPS=542
+update 110/781 | step=112640 | SPS=541
+update 110/781 | step=112640 | SPS=540
+update 110/781 | step=112640 | SPS=540
+update 120/781 | step=122880 | SPS=542
+update 120/781 | step=122880 | SPS=542
+update 120/781 | step=122880 | SPS=543
+update 120/781 | step=122880 | SPS=541
+update 130/781 | step=133120 | SPS=542
+update 130/781 | step=133120 | SPS=541
+update 130/781 | step=133120 | SPS=541
+update 130/781 | step=133120 | SPS=542
+update 140/781 | step=143360 | SPS=543
+update 140/781 | step=143360 | SPS=542
+update 140/781 | step=143360 | SPS=541
+update 140/781 | step=143360 | SPS=541
+update 150/781 | step=153600 | SPS=541
+update 150/781 | step=153600 | SPS=542
+update 150/781 | step=153600 | SPS=541
+update 150/781 | step=153600 | SPS=540
+update 160/781 | step=163840 | SPS=542
+update 160/781 | step=163840 | SPS=540
+update 160/781 | step=163840 | SPS=540
+update 160/781 | step=163840 | SPS=540
+update 170/781 | step=174080 | SPS=541
+update 170/781 | step=174080 | SPS=541
+update 170/781 | step=174080 | SPS=541
+update 170/781 | step=174080 | SPS=540
+update 180/781 | step=184320 | SPS=541
+update 180/781 | step=184320 | SPS=541
+update 180/781 | step=184320 | SPS=540
+update 180/781 | step=184320 | SPS=541
+update 190/781 | step=194560 | SPS=541
+update 190/781 | step=194560 | SPS=541
+update 190/781 | step=194560 | SPS=540
+update 190/781 | step=194560 | SPS=541
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/781 | step=204800 | SPS=540
+update 200/781 | step=204800 | SPS=540
+update 200/781 | step=204800 | SPS=540
+update 200/781 | step=204800 | SPS=540
+update 210/781 | step=215040 | SPS=541
+update 210/781 | step=215040 | SPS=540
+update 210/781 | step=215040 | SPS=540
+update 210/781 | step=215040 | SPS=540
+update 220/781 | step=225280 | SPS=541
+update 220/781 | step=225280 | SPS=540
+update 220/781 | step=225280 | SPS=540
+update 220/781 | step=225280 | SPS=540
+update 230/781 | step=235520 | SPS=541
+update 230/781 | step=235520 | SPS=541
+update 230/781 | step=235520 | SPS=540
+update 230/781 | step=235520 | SPS=540
+update 240/781 | step=245760 | SPS=541
+update 240/781 | step=245760 | SPS=541
+update 240/781 | step=245760 | SPS=540
+update 240/781 | step=245760 | SPS=540
+update 250/781 | step=256000 | SPS=541
+update 250/781 | step=256000 | SPS=540
+update 250/781 | step=256000 | SPS=540
+update 250/781 | step=256000 | SPS=540
+update 260/781 | step=266240 | SPS=541
+update 260/781 | step=266240 | SPS=541
+update 260/781 | step=266240 | SPS=541
+update 260/781 | step=266240 | SPS=540
+update 270/781 | step=276480 | SPS=541
+update 270/781 | step=276480 | SPS=540
+update 270/781 | step=276480 | SPS=541
+update 270/781 | step=276480 | SPS=540
+update 280/781 | step=286720 | SPS=540
+update 280/781 | step=286720 | SPS=540
+update 280/781 | step=286720 | SPS=540
+update 280/781 | step=286720 | SPS=540
+update 290/781 | step=296960 | SPS=540
+update 290/781 | step=296960 | SPS=541
+update 290/781 | step=296960 | SPS=540
+update 290/781 | step=296960 | SPS=540
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 300/781 | step=307200 | SPS=540
+update 300/781 | step=307200 | SPS=540
+update 300/781 | step=307200 | SPS=540
+update 300/781 | step=307200 | SPS=540
+update 310/781 | step=317440 | SPS=541
+update 310/781 | step=317440 | SPS=540
+update 310/781 | step=317440 | SPS=541
+update 310/781 | step=317440 | SPS=540
+update 320/781 | step=327680 | SPS=541
+update 320/781 | step=327680 | SPS=541
+update 320/781 | step=327680 | SPS=540
+update 320/781 | step=327680 | SPS=540
+update 330/781 | step=337920 | SPS=541
+update 330/781 | step=337920 | SPS=540
+update 330/781 | step=337920 | SPS=540
+update 330/781 | step=337920 | SPS=541
+update 340/781 | step=348160 | SPS=541
+update 340/781 | step=348160 | SPS=540
+update 340/781 | step=348160 | SPS=540
+update 340/781 | step=348160 | SPS=540
+update 350/781 | step=358400 | SPS=541
+update 350/781 | step=358400 | SPS=540
+update 350/781 | step=358400 | SPS=540
+update 350/781 | step=358400 | SPS=540
+update 360/781 | step=368640 | SPS=541
+update 360/781 | step=368640 | SPS=541
+update 360/781 | step=368640 | SPS=540
+update 360/781 | step=368640 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 370/781 | step=378880 | SPS=541
+update 370/781 | step=378880 | SPS=540
+update 380/781 | step=389120 | SPS=541
+update 380/781 | step=389120 | SPS=541
+update 380/781 | step=389120 | SPS=540
+update 380/781 | step=389120 | SPS=540
+update 390/781 | step=399360 | SPS=541
+update 390/781 | step=399360 | SPS=541
+update 390/781 | step=399360 | SPS=541
+update 390/781 | step=399360 | SPS=540
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 400/781 | step=409600 | SPS=541
+update 400/781 | step=409600 | SPS=541
+update 400/781 | step=409600 | SPS=541
+update 400/781 | step=409600 | SPS=541
+update 410/781 | step=419840 | SPS=541
+update 410/781 | step=419840 | SPS=541
+update 410/781 | step=419840 | SPS=541
+update 410/781 | step=419840 | SPS=541
+update 420/781 | step=430080 | SPS=541
+update 420/781 | step=430080 | SPS=541
+update 420/781 | step=430080 | SPS=541
+update 420/781 | step=430080 | SPS=541
+update 430/781 | step=440320 | SPS=541
+update 430/781 | step=440320 | SPS=541
+update 430/781 | step=440320 | SPS=541
+update 430/781 | step=440320 | SPS=540
+update 440/781 | step=450560 | SPS=541
+update 440/781 | step=450560 | SPS=541
+update 440/781 | step=450560 | SPS=541
+update 440/781 | step=450560 | SPS=541
+update 450/781 | step=460800 | SPS=541
+update 450/781 | step=460800 | SPS=541
+update 450/781 | step=460800 | SPS=541
+update 450/781 | step=460800 | SPS=541
+update 460/781 | step=471040 | SPS=541
+update 460/781 | step=471040 | SPS=541
+update 460/781 | step=471040 | SPS=541
+update 460/781 | step=471040 | SPS=541
+update 470/781 | step=481280 | SPS=541
+update 470/781 | step=481280 | SPS=541
+update 470/781 | step=481280 | SPS=541
+update 470/781 | step=481280 | SPS=541
+update 480/781 | step=491520 | SPS=541
+update 480/781 | step=491520 | SPS=541
+update 480/781 | step=491520 | SPS=541
+update 480/781 | step=491520 | SPS=541
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 490/781 | step=501760 | SPS=541
+update 490/781 | step=501760 | SPS=541
+update 490/781 | step=501760 | SPS=541
+update 490/781 | step=501760 | SPS=541
+update 500/781 | step=512000 | SPS=541
+update 500/781 | step=512000 | SPS=541
+update 500/781 | step=512000 | SPS=541
+update 500/781 | step=512000 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 520/781 | step=532480 | SPS=541
+update 520/781 | step=532480 | SPS=541
+update 520/781 | step=532480 | SPS=541
+update 520/781 | step=532480 | SPS=541
+update 530/781 | step=542720 | SPS=541
+update 530/781 | step=542720 | SPS=540
+update 530/781 | step=542720 | SPS=541
+update 530/781 | step=542720 | SPS=540
+update 540/781 | step=552960 | SPS=541
+update 540/781 | step=552960 | SPS=541
+update 540/781 | step=552960 | SPS=540
+update 540/781 | step=552960 | SPS=540
+update 550/781 | step=563200 | SPS=541
+update 550/781 | step=563200 | SPS=541
+update 550/781 | step=563200 | SPS=541
+update 550/781 | step=563200 | SPS=541
+update 560/781 | step=573440 | SPS=541
+update 560/781 | step=573440 | SPS=541
+update 560/781 | step=573440 | SPS=541
+update 560/781 | step=573440 | SPS=541
+update 570/781 | step=583680 | SPS=541
+update 570/781 | step=583680 | SPS=541
+update 570/781 | step=583680 | SPS=540
+update 570/781 | step=583680 | SPS=541
+update 580/781 | step=593920 | SPS=541
+update 580/781 | step=593920 | SPS=540
+update 580/781 | step=593920 | SPS=540
+update 580/781 | step=593920 | SPS=540
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 590/781 | step=604160 | SPS=541
+update 590/781 | step=604160 | SPS=541
+update 590/781 | step=604160 | SPS=540
+update 590/781 | step=604160 | SPS=541
+update 600/781 | step=614400 | SPS=541
+update 600/781 | step=614400 | SPS=541
+update 600/781 | step=614400 | SPS=540
+update 600/781 | step=614400 | SPS=541
+update 610/781 | step=624640 | SPS=541
+update 610/781 | step=624640 | SPS=541
+update 610/781 | step=624640 | SPS=540
+update 610/781 | step=624640 | SPS=540
+update 620/781 | step=634880 | SPS=541
+update 620/781 | step=634880 | SPS=540
+update 620/781 | step=634880 | SPS=540
+update 620/781 | step=634880 | SPS=540
+update 630/781 | step=645120 | SPS=540
+update 630/781 | step=645120 | SPS=540
+update 630/781 | step=645120 | SPS=540
+update 630/781 | step=645120 | SPS=540
+update 640/781 | step=655360 | SPS=541
+update 640/781 | step=655360 | SPS=540
+update 640/781 | step=655360 | SPS=540
+update 640/781 | step=655360 | SPS=540
+update 650/781 | step=665600 | SPS=540
+update 650/781 | step=665600 | SPS=541
+update 650/781 | step=665600 | SPS=540
+update 650/781 | step=665600 | SPS=540
+update 660/781 | step=675840 | SPS=541
+update 660/781 | step=675840 | SPS=540
+update 660/781 | step=675840 | SPS=540
+update 660/781 | step=675840 | SPS=540
+update 670/781 | step=686080 | SPS=540
+update 670/781 | step=686080 | SPS=540
+update 670/781 | step=686080 | SPS=540
+update 670/781 | step=686080 | SPS=540
+update 680/781 | step=696320 | SPS=540
+update 680/781 | step=696320 | SPS=540
+update 680/781 | step=696320 | SPS=540
+update 680/781 | step=696320 | SPS=540
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 690/781 | step=706560 | SPS=540
+update 690/781 | step=706560 | SPS=540
+update 690/781 | step=706560 | SPS=540
+update 690/781 | step=706560 | SPS=540
+update 700/781 | step=716800 | SPS=540
+update 700/781 | step=716800 | SPS=540
+update 700/781 | step=716800 | SPS=540
+update 700/781 | step=716800 | SPS=540
+update 710/781 | step=727040 | SPS=540
+update 710/781 | step=727040 | SPS=540
+update 710/781 | step=727040 | SPS=540
+update 710/781 | step=727040 | SPS=540
+update 720/781 | step=737280 | SPS=540
+update 720/781 | step=737280 | SPS=540
+update 720/781 | step=737280 | SPS=540
+update 720/781 | step=737280 | SPS=540
+update 730/781 | step=747520 | SPS=540
+update 730/781 | step=747520 | SPS=540
+update 730/781 | step=747520 | SPS=540
+update 730/781 | step=747520 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 750/781 | step=768000 | SPS=540
+update 750/781 | step=768000 | SPS=540
+update 750/781 | step=768000 | SPS=540
+update 750/781 | step=768000 | SPS=540
+update 760/781 | step=778240 | SPS=540
+update 760/781 | step=778240 | SPS=540
+update 760/781 | step=778240 | SPS=540
+update 760/781 | step=778240 | SPS=540
+update 770/781 | step=788480 | SPS=540
+update 770/781 | step=788480 | SPS=540
+update 770/781 | step=788480 | SPS=540
+update 770/781 | step=788480 | SPS=540
+update 780/781 | step=798720 | SPS=540
+update 780/781 | step=798720 | SPS=540
+update 780/781 | step=798720 | SPS=540
+update 780/781 | step=798720 | SPS=540
+update 781/781 | step=799744 | SPS=540
+update 781/781 | step=799744 | SPS=540
+update 781/781 | step=799744 | SPS=540
+update 781/781 | step=799744 | SPS=540
+Episode 3/4 | reward=-25.5321 | avg10=-22.6651 | avg_success_rate=0.8225 | steps=78 | time=1485.3s
+update 10/781 | step=10240 | SPS=599
+update 10/781 | step=10240 | SPS=598
+update 10/781 | step=10240 | SPS=592
+update 10/781 | step=10240 | SPS=588
+update 20/781 | step=20480 | SPS=570
+update 20/781 | step=20480 | SPS=570
+update 20/781 | step=20480 | SPS=566
+update 20/781 | step=20480 | SPS=563
+update 30/781 | step=30720 | SPS=561
+update 30/781 | step=30720 | SPS=560
+update 30/781 | step=30720 | SPS=556
+update 30/781 | step=30720 | SPS=555
+update 40/781 | step=40960 | SPS=555
+update 40/781 | step=40960 | SPS=555
+update 40/781 | step=40960 | SPS=554
+update 40/781 | step=40960 | SPS=552
+update 50/781 | step=51200 | SPS=551
+update 50/781 | step=51200 | SPS=551
+update 50/781 | step=51200 | SPS=550
+update 50/781 | step=51200 | SPS=548
+update 60/781 | step=61440 | SPS=548
+update 60/781 | step=61440 | SPS=549
+update 60/781 | step=61440 | SPS=546
+update 60/781 | step=61440 | SPS=546
+update 70/781 | step=71680 | SPS=549
+update 70/781 | step=71680 | SPS=548
+update 70/781 | step=71680 | SPS=546
+update 70/781 | step=71680 | SPS=546
+update 80/781 | step=81920 | SPS=547
+update 80/781 | step=81920 | SPS=546
+update 80/781 | step=81920 | SPS=546
+update 80/781 | step=81920 | SPS=545
+update 90/781 | step=92160 | SPS=547
+update 90/781 | step=92160 | SPS=547
+update 90/781 | step=92160 | SPS=546
+update 90/781 | step=92160 | SPS=544
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[100008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 100/781 | step=102400 | SPS=545
+update 100/781 | step=102400 | SPS=545
+update 100/781 | step=102400 | SPS=544
+update 100/781 | step=102400 | SPS=544
+update 110/781 | step=112640 | SPS=545
+update 110/781 | step=112640 | SPS=545
+update 110/781 | step=112640 | SPS=545
+update 110/781 | step=112640 | SPS=544
+update 120/781 | step=122880 | SPS=545
+update 120/781 | step=122880 | SPS=544
+update 120/781 | step=122880 | SPS=544
+update 120/781 | step=122880 | SPS=544
+update 130/781 | step=133120 | SPS=544
+update 130/781 | step=133120 | SPS=544
+update 130/781 | step=133120 | SPS=543
+update 130/781 | step=133120 | SPS=543
+update 140/781 | step=143360 | SPS=543
+update 140/781 | step=143360 | SPS=543
+update 140/781 | step=143360 | SPS=543
+update 140/781 | step=143360 | SPS=543
+update 150/781 | step=153600 | SPS=544
+update 150/781 | step=153600 | SPS=543
+update 150/781 | step=153600 | SPS=543
+update 150/781 | step=153600 | SPS=543
+update 160/781 | step=163840 | SPS=544
+update 160/781 | step=163840 | SPS=544
+update 160/781 | step=163840 | SPS=543
+update 160/781 | step=163840 | SPS=543
+update 170/781 | step=174080 | SPS=544
+update 170/781 | step=174080 | SPS=544
+update 170/781 | step=174080 | SPS=543
+update 170/781 | step=174080 | SPS=543
+update 180/781 | step=184320 | SPS=543
+update 180/781 | step=184320 | SPS=543
+update 180/781 | step=184320 | SPS=543
+update 180/781 | step=184320 | SPS=543
+update 190/781 | step=194560 | SPS=544
+update 190/781 | step=194560 | SPS=544
+update 190/781 | step=194560 | SPS=543
+update 190/781 | step=194560 | SPS=543
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[200008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 200/781 | step=204800 | SPS=543
+update 200/781 | step=204800 | SPS=543
+update 200/781 | step=204800 | SPS=543
+update 200/781 | step=204800 | SPS=543
+update 210/781 | step=215040 | SPS=544
+update 210/781 | step=215040 | SPS=544
+update 210/781 | step=215040 | SPS=543
+update 210/781 | step=215040 | SPS=543
+update 220/781 | step=225280 | SPS=544
+update 220/781 | step=225280 | SPS=543
+update 220/781 | step=225280 | SPS=543
+update 220/781 | step=225280 | SPS=543
+update 230/781 | step=235520 | SPS=544
+update 230/781 | step=235520 | SPS=544
+update 230/781 | step=235520 | SPS=543
+update 230/781 | step=235520 | SPS=543
+update 240/781 | step=245760 | SPS=544
+update 240/781 | step=245760 | SPS=543
+update 240/781 | step=245760 | SPS=543
+update 240/781 | step=245760 | SPS=543
+update 250/781 | step=256000 | SPS=544
+update 250/781 | step=256000 | SPS=544
+update 250/781 | step=256000 | SPS=543
+update 250/781 | step=256000 | SPS=543
+update 260/781 | step=266240 | SPS=544
+update 260/781 | step=266240 | SPS=543
+update 260/781 | step=266240 | SPS=543
+update 260/781 | step=266240 | SPS=543
+update 270/781 | step=276480 | SPS=544
+update 270/781 | step=276480 | SPS=544
+update 270/781 | step=276480 | SPS=543
+update 270/781 | step=276480 | SPS=543
+update 280/781 | step=286720 | SPS=544
+update 280/781 | step=286720 | SPS=544
+update 280/781 | step=286720 | SPS=543
+update 280/781 | step=286720 | SPS=543
+update 290/781 | step=296960 | SPS=544
+update 290/781 | step=296960 | SPS=544
+update 290/781 | step=296960 | SPS=543
+update 290/781 | step=296960 | SPS=543
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[300008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 300/781 | step=307200 | SPS=544
+update 300/781 | step=307200 | SPS=544
+update 300/781 | step=307200 | SPS=543
+update 300/781 | step=307200 | SPS=543
+update 310/781 | step=317440 | SPS=543
+update 310/781 | step=317440 | SPS=543
+update 310/781 | step=317440 | SPS=543
+update 310/781 | step=317440 | SPS=543
+update 320/781 | step=327680 | SPS=543
+update 320/781 | step=327680 | SPS=543
+update 320/781 | step=327680 | SPS=543
+update 320/781 | step=327680 | SPS=543
+update 330/781 | step=337920 | SPS=543
+update 330/781 | step=337920 | SPS=543
+update 330/781 | step=337920 | SPS=543
+update 330/781 | step=337920 | SPS=543
+update 340/781 | step=348160 | SPS=543
+update 340/781 | step=348160 | SPS=543
+update 340/781 | step=348160 | SPS=543
+update 340/781 | step=348160 | SPS=543
+update 350/781 | step=358400 | SPS=543
+update 350/781 | step=358400 | SPS=543
+update 350/781 | step=358400 | SPS=543
+update 350/781 | step=358400 | SPS=543
+update 360/781 | step=368640 | SPS=543
+update 360/781 | step=368640 | SPS=543
+update 360/781 | step=368640 | SPS=543
+update 360/781 | step=368640 | SPS=542
+update 370/781 | step=378880 | SPS=543
+update 370/781 | step=378880 | SPS=543
+update 370/781 | step=378880 | SPS=543
+update 370/781 | step=378880 | SPS=542
+update 380/781 | step=389120 | SPS=542
+update 380/781 | step=389120 | SPS=542
+update 380/781 | step=389120 | SPS=542
+update 380/781 | step=389120 | SPS=542
+update 390/781 | step=399360 | SPS=542
+update 390/781 | step=399360 | SPS=542
+update 390/781 | step=399360 | SPS=542
+update 390/781 | step=399360 | SPS=542
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[400008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 400/781 | step=409600 | SPS=542
+update 400/781 | step=409600 | SPS=542
+update 400/781 | step=409600 | SPS=542
+update 400/781 | step=409600 | SPS=542
+update 410/781 | step=419840 | SPS=542
+update 410/781 | step=419840 | SPS=542
+update 410/781 | step=419840 | SPS=542
+update 410/781 | step=419840 | SPS=542
+update 420/781 | step=430080 | SPS=542
+update 420/781 | step=430080 | SPS=542
+update 420/781 | step=430080 | SPS=542
+update 420/781 | step=430080 | SPS=542
+update 430/781 | step=440320 | SPS=542
+update 430/781 | step=440320 | SPS=542
+update 430/781 | step=440320 | SPS=542
+update 430/781 | step=440320 | SPS=542
+update 440/781 | step=450560 | SPS=542
+update 440/781 | step=450560 | SPS=542
+update 440/781 | step=450560 | SPS=542
+update 440/781 | step=450560 | SPS=541
+update 450/781 | step=460800 | SPS=542
+update 450/781 | step=460800 | SPS=542
+update 450/781 | step=460800 | SPS=542
+update 450/781 | step=460800 | SPS=541
+update 460/781 | step=471040 | SPS=542
+update 460/781 | step=471040 | SPS=542
+update 460/781 | step=471040 | SPS=542
+update 460/781 | step=471040 | SPS=542
+update 470/781 | step=481280 | SPS=542
+update 470/781 | step=481280 | SPS=542
+update 470/781 | step=481280 | SPS=542
+update 470/781 | step=481280 | SPS=542
+update 480/781 | step=491520 | SPS=542
+update 480/781 | step=491520 | SPS=542
+update 480/781 | step=491520 | SPS=542
+update 480/781 | step=491520 | SPS=542
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[500008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 490/781 | step=501760 | SPS=542
+update 490/781 | step=501760 | SPS=542
+update 490/781 | step=501760 | SPS=541
+update 490/781 | step=501760 | SPS=541
+update 500/781 | step=512000 | SPS=542
+update 500/781 | step=512000 | SPS=541
+update 500/781 | step=512000 | SPS=541
+update 500/781 | step=512000 | SPS=541
+update 510/781 | step=522240 | SPS=542
+update 510/781 | step=522240 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 510/781 | step=522240 | SPS=541
+update 520/781 | step=532480 | SPS=542
+update 520/781 | step=532480 | SPS=542
+update 520/781 | step=532480 | SPS=541
+update 520/781 | step=532480 | SPS=541
+update 530/781 | step=542720 | SPS=542
+update 530/781 | step=542720 | SPS=542
+update 530/781 | step=542720 | SPS=541
+update 530/781 | step=542720 | SPS=541
+update 540/781 | step=552960 | SPS=542
+update 540/781 | step=552960 | SPS=542
+update 540/781 | step=552960 | SPS=542
+update 540/781 | step=552960 | SPS=541
+update 550/781 | step=563200 | SPS=542
+update 550/781 | step=563200 | SPS=542
+update 550/781 | step=563200 | SPS=541
+update 550/781 | step=563200 | SPS=541
+update 560/781 | step=573440 | SPS=541
+update 560/781 | step=573440 | SPS=541
+update 560/781 | step=573440 | SPS=541
+update 560/781 | step=573440 | SPS=541
+update 570/781 | step=583680 | SPS=541
+update 570/781 | step=583680 | SPS=541
+update 570/781 | step=583680 | SPS=541
+update 570/781 | step=583680 | SPS=541
+update 580/781 | step=593920 | SPS=541
+update 580/781 | step=593920 | SPS=541
+update 580/781 | step=593920 | SPS=541
+update 580/781 | step=593920 | SPS=541
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+[600008] Regime switch detected! 1 -> 0. Snapshotting anchor model.
+update 590/781 | step=604160 | SPS=541
+update 590/781 | step=604160 | SPS=541
+update 590/781 | step=604160 | SPS=541
+update 590/781 | step=604160 | SPS=541
+update 600/781 | step=614400 | SPS=541
+update 600/781 | step=614400 | SPS=541
+update 600/781 | step=614400 | SPS=541
+update 600/781 | step=614400 | SPS=541
+update 610/781 | step=624640 | SPS=541
+update 610/781 | step=624640 | SPS=541
+update 610/781 | step=624640 | SPS=541
+update 610/781 | step=624640 | SPS=541
+update 620/781 | step=634880 | SPS=541
+update 620/781 | step=634880 | SPS=541
+update 620/781 | step=634880 | SPS=541
+update 620/781 | step=634880 | SPS=541
+update 630/781 | step=645120 | SPS=541
+update 630/781 | step=645120 | SPS=541
+update 630/781 | step=645120 | SPS=541
+update 630/781 | step=645120 | SPS=541
+update 640/781 | step=655360 | SPS=541
+update 640/781 | step=655360 | SPS=541
+update 640/781 | step=655360 | SPS=541
+update 640/781 | step=655360 | SPS=541
+update 650/781 | step=665600 | SPS=541
+update 650/781 | step=665600 | SPS=541
+update 650/781 | step=665600 | SPS=541
+update 650/781 | step=665600 | SPS=541
+update 660/781 | step=675840 | SPS=541
+update 660/781 | step=675840 | SPS=540
+update 660/781 | step=675840 | SPS=540
+update 660/781 | step=675840 | SPS=540
+update 670/781 | step=686080 | SPS=541
+update 670/781 | step=686080 | SPS=541
+update 670/781 | step=686080 | SPS=541
+update 670/781 | step=686080 | SPS=540
+update 680/781 | step=696320 | SPS=541
+update 680/781 | step=696320 | SPS=541
+update 680/781 | step=696320 | SPS=541
+update 680/781 | step=696320 | SPS=540
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+[700008] Regime switch detected! 0 -> 1. Snapshotting anchor model.
+update 690/781 | step=706560 | SPS=541
+update 690/781 | step=706560 | SPS=541
+update 690/781 | step=706560 | SPS=540
+update 690/781 | step=706560 | SPS=540
+update 700/781 | step=716800 | SPS=541
+update 700/781 | step=716800 | SPS=541
+update 700/781 | step=716800 | SPS=540
+update 700/781 | step=716800 | SPS=540
+update 710/781 | step=727040 | SPS=541
+update 710/781 | step=727040 | SPS=540
+update 710/781 | step=727040 | SPS=540
+update 710/781 | step=727040 | SPS=540
+update 720/781 | step=737280 | SPS=541
+update 720/781 | step=737280 | SPS=541
+update 720/781 | step=737280 | SPS=540
+update 720/781 | step=737280 | SPS=540
+update 730/781 | step=747520 | SPS=541
+update 730/781 | step=747520 | SPS=540
+update 730/781 | step=747520 | SPS=540
+update 730/781 | step=747520 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 740/781 | step=757760 | SPS=540
+update 750/781 | step=768000 | SPS=541
+update 750/781 | step=768000 | SPS=541
+update 750/781 | step=768000 | SPS=540
+update 750/781 | step=768000 | SPS=540
+update 760/781 | step=778240 | SPS=541
+update 760/781 | step=778240 | SPS=541
+update 760/781 | step=778240 | SPS=540
+update 760/781 | step=778240 | SPS=540
+update 770/781 | step=788480 | SPS=541
+update 770/781 | step=788480 | SPS=541
+update 770/781 | step=788480 | SPS=540
+update 770/781 | step=788480 | SPS=540
+update 780/781 | step=798720 | SPS=541
+update 780/781 | step=798720 | SPS=541
+update 780/781 | step=798720 | SPS=541
+update 780/781 | step=798720 | SPS=540
+update 781/781 | step=799744 | SPS=540
+update 781/781 | step=799744 | SPS=540
+update 781/781 | step=799744 | SPS=540
+update 781/781 | step=799744 | SPS=540
+Episode 4/4 | reward=-21.1633 | avg10=-22.2896 | avg_success_rate=0.8250 | steps=78 | time=1484.4s
+  [brain ckpt] runs/scoutv2_brain_neuromod_seed4_20260705-114954/episode_4/brain_ep4.pt
+Saved Brain model to: runs/scoutv2_brain_neuromod_seed4_20260705-114954/brain_model.pt
+
+Brain training complete. Total RL episodes: 4
