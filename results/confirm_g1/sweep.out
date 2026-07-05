@@ -1,0 +1,16 @@
+[sweep] preset=scoutv2 conditions=['brain_neuromod', 'brain_neuromod_actor_only', 'brain_neuromod_gain05'] seeds=[3, 4]
+[sweep] 6 cells, max_parallel=1 -> sweeps/confirm_g1
+[sweep] (1/6) brain_neuromod seed=3 -> failed
+[sweep] (2/6) brain_neuromod seed=4 -> failed
+[sweep] (3/6) brain_neuromod_actor_only seed=3 -> failed
+[sweep] (4/6) brain_neuromod_actor_only seed=4 -> failed
+[sweep] (5/6) brain_neuromod_gain05 seed=3 -> failed
+[sweep] (6/6) brain_neuromod_gain05 seed=4 -> failed
+
+[sweep] done. per-run -> sweeps/confirm_g1/runs.csv | summary -> sweeps/confirm_g1/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod       no scored runs
+  brain_neuromod_actor_only no scored runs
+  brain_neuromod_gain05 no scored runs
+[run_sweep] sweep exited ec=0
