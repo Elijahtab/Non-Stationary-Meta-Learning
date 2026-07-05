@@ -52,3 +52,4 @@ Concrete next actions or open questions.
 | [0003](./0003-2026-06-18-recovery-reward-oscillation-fix.md) | 2026-06-18 | `recovery` reward farms oscillation; add `recovery_v2` | Accepted |
 | [0004](./0004-2026-07-04-scout-v2-8x8.md) | 2026-07-04 | Scout v1 (5×5) saturates; primary → `fast_switch_scout_v2` (8×8) | Accepted |
 | [0005](./0005-2026-07-05-confirmation-sweep-prediction.md) | 2026-07-05 | Registered prediction: actor-only & gain-α0.5 n=8 confirmation sweep | Accepted |
+| [0006](./0006-2026-07-05-amortized-multiseed-baseline.md) | 2026-07-05 | Amortized 3-seed scout baseline (`baseline_primary`) | Accepted |

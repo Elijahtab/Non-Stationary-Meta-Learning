@@ -263,3 +263,14 @@ def test_score_brain_run_aggregates_recovery_and_neuromodulation(tmp_path):
     # the threshold terms remain as standalone diagnostics but no longer enter the composite.
     assert score.composite_score == pytest.approx(0.8875)
     assert score.composite_score == pytest.approx(score.mean_post_switch_window_success_rate)
+
+
+def test_scout_v2_baseline_spec_shares_args_and_adds_seeds():
+    from lifelong_learning.research.benchmarking import get_frozen_benchmark
+
+    scout = get_frozen_benchmark("fast_switch_scout_v2")
+    anchor = get_frozen_benchmark("fast_switch_scout_v2_baseline")
+
+    assert anchor.seeds == (0, 1, 2)
+    assert anchor.fixed_train_args is scout.fixed_train_args, "must share args by reference (zero drift)"
+    assert anchor.sustained_points_required == scout.sustained_points_required

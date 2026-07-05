@@ -79,6 +79,12 @@ class ValidationConfig:
 class BenchmarkConfig:
     primary: str
     holdout: tuple[str, ...] = ()
+    # Optional multi-seed anchor for the baseline only: trials stay scored on `primary`
+    # (cheap, n=1) while the baseline they must beat is the mean of this benchmark's seeds.
+    # Motivated by the 2026-07-05 confirmation sweep: the n=1 scout baseline was a low
+    # hit_rate_80 draw, making every variant look better (regression to the mean). The
+    # fingerprint cache amortizes the extra cost across sessions.
+    baseline_primary: str | None = None
     device: str = "cuda"
     primary_improvement_epsilon: float = DEFAULT_PRIMARY_IMPROVEMENT_EPSILON
     holdout_regression_tolerance: float = DEFAULT_HOLDOUT_REGRESSION_TOLERANCE
@@ -249,6 +255,9 @@ def load_research_manifest(path: str | Path) -> AutoresearchManifest:
         benchmark=BenchmarkConfig(
             primary=str(benchmark["primary"]),
             holdout=tuple(str(item) for item in benchmark.get("holdout", [])),
+            baseline_primary=(
+                str(benchmark["baseline_primary"]) if "baseline_primary" in benchmark else None
+            ),
             device=str(benchmark.get("device", "cuda")),
             primary_improvement_epsilon=float(
                 benchmark.get(
@@ -739,8 +748,17 @@ class AutoresearchSupervisor:
         self.ledger_path = self.repo_root / self.manifest.outputs.ledger_path
         self.initial_snapshot: RepoSnapshot | None = None
 
+    @property
+    def baseline_benchmark(self) -> str:
+        """Benchmark used for the baseline anchor (falls back to the trial primary)."""
+        return self.manifest.benchmark.baseline_primary or self.manifest.benchmark.primary
+
     def validate(self) -> dict[str, Any]:
-        for benchmark_name in (self.manifest.benchmark.primary, *self.manifest.benchmark.holdout):
+        for benchmark_name in (
+            self.manifest.benchmark.primary,
+            self.baseline_benchmark,
+            *self.manifest.benchmark.holdout,
+        ):
             get_frozen_benchmark(benchmark_name)
 
         missing_surface = [
@@ -908,7 +926,7 @@ class AutoresearchSupervisor:
 
         primary_execution = self.benchmark_runner(
             self.repo_root,
-            self.manifest.benchmark.primary,
+            self.baseline_benchmark,
             self.device,
             self.manifest.benchmark.benchmark_timeout_seconds,
             baseline_dir / "primary.stdout.log",
@@ -1305,6 +1323,13 @@ class AutoresearchSupervisor:
                 continue
             cache_info = entry.get("baseline_cache", {})
             if cache_info.get("fingerprint") != fingerprint:
+                continue
+            # A cached baseline scored on a different benchmark (e.g. the old n=1 primary
+            # before baseline_primary existed) is not a valid anchor for this manifest.
+            cached_benchmark = (
+                (entry.get("primary_benchmark") or {}).get("aggregate") or {}
+            ).get("benchmark")
+            if cached_benchmark is not None and cached_benchmark != self.baseline_benchmark:
                 continue
             if not _baseline_reports_exist(entry):
                 continue

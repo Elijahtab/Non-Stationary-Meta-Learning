@@ -195,6 +195,21 @@ FROZEN_BENCHMARKS: dict[str, FrozenBenchmarkSpec] = {
     ),
 }
 
+# Multi-seed anchor for the autoresearch BASELINE only (manifest [benchmark].baseline_primary):
+# trials stay scored on the n=1 scout, but the bar they must clear is this 3-seed mean. Added
+# after the 2026-07-05 confirmation sweep showed the n=1 baseline was a low hit_rate_80 draw
+# that made every variant look better (research-log 0006). Shares fixed_train_args with
+# fast_switch_scout_v2 by reference so the two specs cannot drift.
+FROZEN_BENCHMARKS["fast_switch_scout_v2_baseline"] = FrozenBenchmarkSpec(
+    name="fast_switch_scout_v2_baseline",
+    description=(
+        "Three-seed baseline anchor for fast_switch_scout_v2. Identical config; used only "
+        "as the autoresearch baseline so single-seed noise cannot set the acceptance bar."
+    ),
+    seeds=(0, 1, 2),
+    fixed_train_args=FROZEN_BENCHMARKS["fast_switch_scout_v2"].fixed_train_args,
+)
+
 
 @dataclass
 class ThresholdRecoverySummary:

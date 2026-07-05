@@ -10,6 +10,7 @@ research_timeout_seconds = 1800
 
 [benchmark]
 primary = "fast_switch_scout_v2"
+baseline_primary = "fast_switch_scout_v2_baseline"
 holdout = ["fast_switch_holdout_v1"]
 device = "cuda"
 reuse_cached_baseline = true

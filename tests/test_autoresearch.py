@@ -589,3 +589,39 @@ def test_scoutv2_preset_matches_frozen_spec():
     assert score["sustained_points_required"] == spec.sustained_points_required
     assert score["post_switch_window_ratio"] == spec.post_switch_window_ratio
     assert score["post_switch_buffer_steps"] == spec.post_switch_buffer_steps
+
+
+def test_baseline_primary_benchmark_used_for_baseline_only(tmp_path):
+    manifest_path = _make_repo(tmp_path, include_holdout=False)
+    manifest_text = manifest_path.read_text(encoding="utf-8")
+    manifest_text = manifest_text.replace(
+        'primary = "fast_switch_scout_v1"',
+        'primary = "fast_switch_scout_v1"\nbaseline_primary = "fast_switch_holdout_v1"',
+    )
+    manifest_path.write_text(manifest_text, encoding="utf-8")
+
+    benchmark_calls = []
+
+    def tracking_benchmark_runner(repo_root, benchmark_name, device, timeout, stdout_path, stderr_path):
+        benchmark_calls.append(benchmark_name)
+        inner = _fake_benchmark_runner_factory(
+            {"fast_switch_scout_v1": [0.50] * 4, "fast_switch_holdout_v1": [0.40] * 4}
+        )
+        return inner(repo_root, benchmark_name, device, timeout, stdout_path, stderr_path)
+
+    def mutate_trial(command: str, repo_root: Path):
+        target = repo_root / "src" / "lifelong_learning" / "agents" / "brain" / "neuromod.py"
+        with open(target, "a", encoding="utf-8") as handle:
+            handle.write(f"# {command}\n")
+
+    supervisor = AutoresearchSupervisor(
+        repo_root=tmp_path,
+        manifest_path=manifest_path,
+        research_command="trial-{trial}",
+        command_runner=_fake_command_runner_factory(tmp_path, mutate_trial=mutate_trial),
+        benchmark_runner=tracking_benchmark_runner,
+    )
+    supervisor.run(max_trials=1)
+
+    assert benchmark_calls[0] == "fast_switch_holdout_v1", "baseline must use baseline_primary"
+    assert benchmark_calls[1:] == ["fast_switch_scout_v1"], "trials must stay on primary"
