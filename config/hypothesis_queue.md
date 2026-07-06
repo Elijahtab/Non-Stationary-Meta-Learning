@@ -7,6 +7,16 @@ this list into each trial prompt; the agent takes the highest entry without a sc
 **Agents must not edit this file** — it is outside the manifest's editable surface, so the
 diff audit rejects any trial that touches it. Humans append/reorder; keep entries one line.
 
+## STATUS 2026-07-05: FAMILY CLOSED (research-log 0005/0006)
+
+All five entries below received science verdicts on `fast_switch_scout_v2` (n=1 campaign,
+session 20260704-203740) and the two strongest were refuted at n=8 (results/confirm_g0..g3):
+actor-only and gain-α0.5 sit at/below the frozen control on BOTH composite and hit_rate_80
+(control 0.5534 [.548,.559] / hit80 .829). The apparent n=1 "signature" was regression to the
+mean around a low baseline draw — fixed going forward by the 3-seed `baseline_primary` anchor.
+**Do not re-queue members of this family without a qualitatively new mechanism idea.**
+The queue is EMPTY of live priorities; new entries need human curation.
+
 Priority order (from notes 0001/0002 "next levers" + pilot diagnostics):
 
 1. Actor-only modulation — apply the mask to the actor pathway only; the critic reads raw encoder features. Motivation: baseline post-switch policy KL ≈ 0.0014 vs |value delta| ≈ 0.917 — today's shared mask barely steers the policy while whiplashing the critic (biased GAE exactly in the scored post-switch windows).
