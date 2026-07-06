@@ -55,6 +55,21 @@ sides (note 0003, outcome 2).
 - **Idle capacity:** backfill with seeds 2–3 of remaining candidates, then n=8 extension
   cells, in queue-rank order.
 
+## Addendum 2026-07-06 (registered before any scout results): idle-capacity explore variants
+
+Four flag-combo conditions for idle box GPUs (n=1 screens, `explore_ld_*` out dirs, NOT part
+of the confirmation decision rules above — a promising explore hit enters the Confirmation
+Queue like any lead):
+
+- `gradgate_gain` (gate ∈ [0.5, 1.5]): composite ↑ if amplify-where-relearning beats
+  protect-only; watch for instability (amplified gradients).
+- `critic_code_gradgate` (entries 1+2 stacked): ≥ the better of its parents if the
+  mechanisms are complementary (plasticity steering + value conditioning); below either
+  parent = interference.
+- `auxcode_hi` (coef 0.15): dose-response check for entry 3.
+- `adamflush_lo` (threshold 0.1): more frequent flushes; composite ↑ only if flushing is
+  cheap — hit80 ↓ expected if not.
+
 ## Outcome
 
 _(open — filled at gates; living doc `autoresearch/live/RUN-20260706.md` has interim state)_

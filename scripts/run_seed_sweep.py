@@ -247,6 +247,16 @@ CONDITIONS: dict[str, dict] = {
     "brain_neuromod_critic_code": {"neuromod_critic_code": True},
     "brain_neuromod_auxcode": {"neuromod_aux_code_coef": 0.05},
     "brain_neuromod_adamflush": {"neuromod_adam_flush_threshold": 0.25},
+    # --- Idle-capacity exploration variants (log 0007 addendum; explore_* out dirs) -------
+    # Flag combos of the mechanisms above — no new code paths. n=1 screens only.
+    #   gradgate_gain: two-sided plasticity gate in [0.5, 1.5] (gain decode feeds the
+    #                  backward gate) — the Brain can AMPLIFY learning, not just protect.
+    #   critic_code_gradgate: queue entries 1+2 stacked (independent by construction).
+    #   auxcode_hi / adamflush_lo: dose variants of entries 3-4.
+    "brain_neuromod_gradgate_gain": {"neuromod_grad_gate": True, "neuromod_gain_alpha": 0.5},
+    "brain_neuromod_critic_code_gradgate": {"neuromod_grad_gate": True, "neuromod_critic_code": True},
+    "brain_neuromod_auxcode_hi": {"neuromod_aux_code_coef": 0.15},
+    "brain_neuromod_adamflush_lo": {"neuromod_adam_flush_threshold": 0.1},
 }
 
 # Metrics pulled from each scored run into the per-run table.
