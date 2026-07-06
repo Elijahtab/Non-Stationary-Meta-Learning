@@ -1,0 +1,9 @@
+[sweep] preset=scoutv2 conditions=['brain_neuromod_adamflush'] seeds=[1]
+[sweep] 1 cells, max_parallel=1 -> sweeps/confirm_ld_g3
+[sweep] (1/1) brain_neuromod_adamflush seed=1 -> scored composite=0.5401050871981314
+
+[sweep] done. per-run -> sweeps/confirm_ld_g3/runs.csv | summary -> sweeps/confirm_ld_g3/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod_adamflush 0.5401 [0.5401, 0.5401]  (n=1)
+[run_sweep] sweep exited ec=0
