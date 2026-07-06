@@ -62,7 +62,7 @@ Index with one-liners: [docs/autoresearch-loops/README.md](docs/autoresearch-loo
 - [LOOP-0002 — v1 scout campaign](docs/autoresearch-loops/LOOP-0002-v1-scout-campaign.md): 6 rejections on a saturated 5×5 instrument → scout v2
 - [LOOP-0003 — v2 scout campaign](docs/autoresearch-loops/LOOP-0003-v2-scout-campaign.md): 4/5 beat the n=1 anchor, 0 survived holdout → anchor flaw exposed
 - [LOOP-0004 — confirmation sweep](docs/autoresearch-loops/LOOP-0004-confirmation-sweep.md): falsifier at n=8; mechanism family closed; 3-seed baseline adopted
-- [LOOP-0005 — brainstorm](docs/autoresearch-loops/LOOP-0005-brainstorm.md): **OPEN** — generate the next hypothesis family (start here)
+- [LOOP-0005 — brainstorm](docs/autoresearch-loops/LOOP-0005-brainstorm.md): **OPEN** — 5 candidates delivered (top pick: [note 0003](docs/research-notes/0003-code-directed-plasticity-gating.md)); awaiting human queue commit
 
 ## Deeper references
 

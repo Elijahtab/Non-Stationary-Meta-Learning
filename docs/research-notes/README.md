@@ -35,3 +35,4 @@ Rough division of labor:
 
 - [0001 — Trainable vs. Frozen Neuromodulation Decoder](./0001-trainable-vs-frozen-decoder.md)
 - [0002 — Stabilizing the Trainable Decoder (slowbrain / declr / long / combo)](./0002-stabilizing-trainable-decoder.md)
+- [0003 — Code-Directed Plasticity Gating (gradient-side mask)](./0003-code-directed-plasticity-gating.md)

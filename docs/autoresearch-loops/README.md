@@ -68,4 +68,4 @@ The loop note is its curated, committed afterlife, written at loop close-out.
 | [LOOP-0002](./LOOP-0002-v1-scout-campaign.md) | 2026-07-04 | v1 (5×5) campaign: 6 mechanism rejections on a saturated instrument → scout v2 | closed |
 | [LOOP-0003](./LOOP-0003-v2-scout-campaign.md) | 2026-07-04–05 | v2 (8×8) campaign: 4/5 beat the n=1 anchor, 0 survived holdout → anchor flaw exposed | closed |
 | [LOOP-0004](./LOOP-0004-confirmation-sweep.md) | 2026-07-05 | n=8 box sweep: falsifier fired, mechanism family closed, 3-seed baseline adopted | closed |
-| [LOOP-0005](./LOOP-0005-brainstorm.md) | OPEN | Brainstorm run: generate the next hypothesis family (queue is empty) | **OPEN** |
+| [LOOP-0005](./LOOP-0005-brainstorm.md) | OPEN | Brainstorm run: 5 candidates delivered 2026-07-05 (top pick: plasticity gating, note 0003) — awaiting human queue commit | **OPEN** |
