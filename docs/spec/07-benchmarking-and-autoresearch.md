@@ -7,7 +7,7 @@ This is the automation layer sitting above the two RL loops. It has two parts:
 2. an **autoresearch supervisor** that drives an external coding agent through bounded,
    append-only research trials, keeping only the changes the frozen benchmark says helped.
 
-The governing contract is [AUTORESEARCH.md](../../AUTORESEARCH.md); the per-trial research
+The governing contract is [AUTORESEARCH.md](../../AUTORESEARCH.md) (since 2026-07-05 a short checklist + decisions register; the full v1 contract text is archived at [docs/archive/AUTORESEARCH-v1.md](../archive/AUTORESEARCH-v1.md)); the per-trial research
 brief is [program_neuromod.md](../../config/program_neuromod.md).
 
 ---

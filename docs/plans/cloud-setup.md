@@ -118,3 +118,28 @@ the recovery metrics. Then run the headline analysis locally on the pulled `brai
 ```bash
 PYTHONPATH=src python scripts/analyze_regime_decoding.py runs/<brain_neuromod_run> --features code
 ```
+
+
+## Operational rules absorbed from AUTORESEARCH v1 (2026-07-05 restructure)
+
+Measured, load-bearing — full history in [docs/archive/AUTORESEARCH-v1.md](../archive/AUTORESEARCH-v1.md).
+
+- **Thread caps are mandatory** on many-core boxes: `OMP_NUM_THREADS=8` (+ `MKL`/`OPENBLAS`/
+  `NUMEXPR`) per invocation. Uncapped torch → ~131 threads/cell → load 321, GPUs idle. The cap
+  is a thread cap, NOT a per-cell core budget (cells use ~1.5 cores sync / ~6 cores async).
+  Note: `nproc` respects `OMP_NUM_THREADS`, so `run_sweep.sh` will print `cores=8` — harmless
+  with explicit `MAX_PARALLEL`.
+- **Packing densities (measured):** sync calib8x8 cells ~1.6 GB VRAM → ~3/GPU on 24 GB (3090,
+  util 23–61%). Async scoutv2 cells ~1.45 GB VRAM but **compute-bound at 99–100% util → 1
+  cell/GPU regardless of VRAM** (RTX 3060, 2026-07-05; SPS ≈ 544/stream, ~9.9 h for 6
+  sequential cells). Budget by GPU *utilization*, not VRAM or vCPU.
+- **Durability:** assume `workspace_is_volume: false` — push results (`AUTO_PUSH=1` → `results`
+  branch) at every wave; never accumulate unpushed results on an ephemeral disk; destroy idle
+  boxes (recreation ≈ 20 min via bootstrap).
+- **Launch shape:** one `run_sweep.sh` invocation per GPU via `CUDA_VISIBLE_DEVICES=N`,
+  `MAX_PARALLEL` explicit, `RESUME=1` for spot safety. SSH gotchas: filter the 3-line vast
+  banner; non-interactive shells don't activate `/venv/main`; kill with the bracket trick
+  (`pkill -9 -f "[t]rain_brain.py"`).
+- **Linux + async Brain configs require the spawn fix** (in code since `e756bad`): fork was
+  never viable (`Cannot re-initialize CUDA in forked subprocess`); anything reverting
+  `context="spawn"` breaks every Linux box run.

@@ -54,7 +54,7 @@ stability fix (separate/smaller decoder LR).
 > **This box was over-sized.** Measured usage (12 cells): **~14–16 of 128 vCPU**, 31/251 GB RAM,
 > ~1.6/24 GB VRAM per GPU. Next time provision **~32 vCPU + ~64 GB + 4× GPU** (a cheaper GPU class
 > is fine — VRAM need is ~1.6 GB/cell) and set `OMP_NUM_THREADS=8`. Size vCPU ≈ 2× max concurrent
-> cells. See `AUTORESEARCH.md` → "Right-sizing the box" for the full rationale.
+> cells. See [cloud-setup.md](../plans/cloud-setup.md) → "Operational rules" (absorbed from AUTORESEARCH v1) for the full rationale.
 
 ## 3. SSH from a separate Claude session
 

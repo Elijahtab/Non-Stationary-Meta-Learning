@@ -15,6 +15,7 @@ learner, with a frozen-benchmark + autoresearch layer on top.
 | [docs/plans/](docs/plans/) | Roadmap, budget, experiment matrix |
 | [docs/research-notes/](docs/research-notes/) | **Lab notebook for the paper** — see below |
 | [docs/research-log/](docs/research-log/) | Dated, chronological trial/session records |
+| [docs/autoresearch-loops/](docs/autoresearch-loops/) | **One note per autoresearch loop** — run info, obstacles, verdicts, pickup state |
 
 ## Research notes convention (important)
 
@@ -28,6 +29,14 @@ argument (hypotheses → predictions → results → interpretation), accreting 
 - Keep mechanics in `docs/spec/`, roadmap in `docs/plans/`, dated logs in `docs/research-log/`.
 - When you make a research assumption, discover a finding, or take a design decision with
   rationale during a task here, **record it as (or into) a research note.**
+
+## Autoresearch (important)
+
+**Before doing ANY autoresearch work, read [AUTORESEARCH.md](AUTORESEARCH.md) (the checklist +
+decisions register) and the relevant loop note(s) in
+[docs/autoresearch-loops/](docs/autoresearch-loops/).** The register says what is currently
+true; the latest loop note's *pickup state* says what to do next. Never edit snapshot-managed
+files in the main tree while a local trial is in flight — use a worktree.
 
 ## Core vocabulary
 

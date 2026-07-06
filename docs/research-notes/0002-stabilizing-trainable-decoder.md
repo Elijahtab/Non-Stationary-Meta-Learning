@@ -80,7 +80,7 @@ result: 5 trainable variants now fail to beat frozen, not 1.
 
 Run on the 4×3090 Vast box, one condition per GPU (`CUDA_VISIBLE_DEVICES`), combo squeezed into
 spare capacity at ~zero cost (measured ~1.5 cores + ~1.6 GB VRAM per cell — see
-`AUTORESEARCH.md` → cloud notes). Results auto-pushed to the `results` branch.
+[cloud-setup.md](../plans/cloud-setup.md) → cloud notes (absorbed from AUTORESEARCH v1)). Results auto-pushed to the `results` branch.
 
 ## 60-ep preview (seeds 1–2 only, 2026-07-01 — logged against the registered prediction)
 
