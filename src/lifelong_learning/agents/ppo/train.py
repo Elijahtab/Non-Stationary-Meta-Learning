@@ -166,6 +166,9 @@ def init_inner_training(
     neuromod_decoder_lr: float | None = None,
     actor_only_neuromod: bool = False,
     neuromod_gain_alpha: float = 0.0,
+    grad_gate_neuromod: bool = False,
+    critic_code_neuromod: bool = False,
+    aux_code_coef: float = 0.0,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -176,6 +179,7 @@ def init_inner_training(
 
     # Clone the config so meta-controller mutations stay local to this inner run.
     cfg = copy.deepcopy(cfg)
+    cfg.aux_code_coef = aux_code_coef
 
     seed_everything(cfg.seed)
     configure_runtime_threads(cpu_threads)
@@ -217,6 +221,9 @@ def init_inner_training(
         trainable_neuromod=trainable_neuromod,
         actor_only_neuromod=actor_only_neuromod,
         neuromod_gain_alpha=neuromod_gain_alpha,
+        grad_gate_neuromod=grad_gate_neuromod,
+        critic_code_neuromod=critic_code_neuromod,
+        aux_code_head=aux_code_coef > 0.0,
     ).to(device)
     if trainable_neuromod and neuromod_decoder_lr is not None:
         # Give the neuromodulation decoder its own param group + (smaller) LR so it no longer rides
@@ -243,6 +250,9 @@ def init_inner_training(
         trainable_neuromod=trainable_neuromod,
         actor_only_neuromod=actor_only_neuromod,
         neuromod_gain_alpha=neuromod_gain_alpha,
+        grad_gate_neuromod=grad_gate_neuromod,
+        critic_code_neuromod=critic_code_neuromod,
+        aux_code_head=aux_code_coef > 0.0,
     ).to(device)
     anchor_model.load_state_dict(model.state_dict())
     anchor_model.eval()

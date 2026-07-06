@@ -391,6 +391,10 @@ def train_brain(args):
             neuromod_decoder_lr=getattr(args, "neuromod_decoder_lr", None),
             actor_only_neuromod=getattr(args, "neuromod_actor_only", False),
             neuromod_gain_alpha=getattr(args, "neuromod_gain_alpha", 0.0),
+            grad_gate_neuromod=getattr(args, "neuromod_grad_gate", False),
+            critic_code_neuromod=getattr(args, "neuromod_critic_code", False),
+            aux_code_coef=getattr(args, "neuromod_aux_code_coef", 0.0),
+            neuromod_adam_flush_threshold=getattr(args, "neuromod_adam_flush_threshold", 0.0),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -838,6 +842,27 @@ def main():
                    help="If > 0, use a two-sided gain mask 1 + alpha*s*tanh(decoder(code)) in "
                         "[1-alpha, 1+alpha] instead of the suppress-only mask. 0.0 (default) = "
                         "paper-faithful suppressive masking. Typical research value: 0.5.")
+    # --- LOOP-0006 learning-dynamics family (research note 0003 + loop note) -----------
+    p.add_argument("--neuromod_grad_gate", action="store_true",
+                   help="Plasticity gating: the decoded mask leaves the forward pass and instead "
+                        "gates the BACKWARD gradient into the encoder (identity forward; heads "
+                        "keep full plasticity). The code steers WHERE the encoder learns. "
+                        "Default off = paper-faithful forward mask.")
+    p.add_argument("--neuromod_critic_code", action="store_true",
+                   help="Concatenate the 8-D context code to the critic head input so value "
+                        "re-fits per regime through a small fast pathway (policy path and mask "
+                        "unchanged). Adds parameters: checkpoints are NOT interchangeable with "
+                        "baseline. Default off.")
+    p.add_argument("--neuromod_aux_code_coef", type=float, default=0.0,
+                   help="If > 0, add an auxiliary loss (this weight) training a small head to "
+                        "predict the Brain's context code from encoder features — the code as "
+                        "teaching signal, making representations regime-separable. Default 0.0 "
+                        "= off. Typical research value: 0.05.")
+    p.add_argument("--neuromod_adam_flush_threshold", type=float, default=0.0,
+                   help="If > 0, reset the inner Adam optimizer state whenever the context-code "
+                        "strength (||code||/sqrt(dim), in [0,1]) jumps by at least this much "
+                        "between Brain decisions — flushing stale curvature after regime shifts. "
+                        "Default 0.0 = off. Typical research value: 0.25.")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

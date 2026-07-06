@@ -84,6 +84,10 @@ class MetaEnv(gym.Env):
         neuromod_decoder_lr: float | None = None,
         actor_only_neuromod: bool = False,
         neuromod_gain_alpha: float = 0.0,
+        grad_gate_neuromod: bool = False,
+        critic_code_neuromod: bool = False,
+        aux_code_coef: float = 0.0,
+        neuromod_adam_flush_threshold: float = 0.0,
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
@@ -127,6 +131,14 @@ class MetaEnv(gym.Env):
         self.neuromod_decoder_lr = neuromod_decoder_lr
         self.actor_only_neuromod = actor_only_neuromod
         self.neuromod_gain_alpha = neuromod_gain_alpha
+        self.grad_gate_neuromod = grad_gate_neuromod
+        self.critic_code_neuromod = critic_code_neuromod
+        self.aux_code_coef = aux_code_coef
+        # LOOP-0006 hypothesis 4: when > 0, reset the inner Adam optimizer state whenever
+        # the context-code strength (‖code‖/√dim, clamped to [0,1]) jumps by at least this
+        # much between Brain decisions — a Brain-directed "flush stale curvature" signal.
+        self.neuromod_adam_flush_threshold = neuromod_adam_flush_threshold
+        self._prev_context_strength: float | None = None
         self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
 
@@ -197,6 +209,9 @@ class MetaEnv(gym.Env):
         if self._state is not None:
             close_inner_training(self._state)
 
+        # Adam-flush spike detector starts fresh each episode (new optimizer, new inner run).
+        self._prev_context_strength = None
+
         self._episode_counter += 1
         run_name = self.inner_run_name or f"ep{self._episode_counter}_env{self.env_index}"
 
@@ -220,6 +235,9 @@ class MetaEnv(gym.Env):
             neuromod_decoder_lr=self.neuromod_decoder_lr,
             actor_only_neuromod=self.actor_only_neuromod,
             neuromod_gain_alpha=self.neuromod_gain_alpha,
+            grad_gate_neuromod=self.grad_gate_neuromod,
+            critic_code_neuromod=self.critic_code_neuromod,
+            aux_code_coef=self.aux_code_coef,
         )
         if self.inner_log_dir is not None:
             ep_log_dir = os.path.join(self.inner_log_dir, f"{self._episode_prefix}_{self._episode_counter}")
@@ -434,7 +452,29 @@ class MetaEnv(gym.Env):
             code = self._resolve_context_code(action)
             context_code = torch.tensor(code, dtype=torch.float32, device=s.device)
             s.model.set_context_code(context_code)
+            self._maybe_flush_optimizer_state(code)
             self._log_neuromodulation_snapshot(context_code)
+
+    def _maybe_flush_optimizer_state(self, code: np.ndarray) -> None:
+        """LOOP-0006 hypothesis 4: reset stale Adam moments on a context-strength spike.
+
+        Strength = ‖code‖/√dim clamped to [0,1] (same scalar that scales the decoded
+        mask). A jump ≥ threshold between consecutive Brain decisions clears the inner
+        optimizer's per-param state (exp_avg, exp_avg_sq, step) — Adam re-estimates
+        curvature from post-spike gradients instead of mis-scaling updates with
+        pre-switch second moments. Default threshold 0.0 = disabled (baseline).
+        """
+        if self.neuromod_adam_flush_threshold <= 0.0:
+            return
+        strength = min(1.0, float(np.linalg.norm(code)) / float(np.sqrt(CONTEXT_CODE_DIM)))
+        prev = self._prev_context_strength
+        self._prev_context_strength = strength
+        if prev is None or abs(strength - prev) < self.neuromod_adam_flush_threshold:
+            return
+        s = self._state
+        s.optimizer.state.clear()
+        if s.logger is not None:
+            s.logger.scalar("brain_neuromod/adam_flush_event", 1.0, s.global_step)
 
     def _resolve_context_code(self, action: np.ndarray) -> np.ndarray:
         """Select the neuromodulation context code per ``context_code_source``.

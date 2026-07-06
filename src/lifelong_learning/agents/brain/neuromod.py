@@ -86,6 +86,32 @@ def log_neuromodulation_snapshot(
         )
 
 
+class _GradientGate(torch.autograd.Function):
+    """Identity in the forward pass; scales the backward gradient by a fixed gate.
+
+    Used by the plasticity-gating mode (LOOP-0006 hypothesis 1, research note 0003):
+    the decoded mask stops modulating what the network computes and instead modulates
+    the per-feature gradient flowing into the encoder — the code steers WHERE the
+    encoder learns. A gate of all-ones (zero code) is exactly the unmodulated baseline
+    in both directions.
+    """
+
+    @staticmethod
+    def forward(ctx, features: torch.Tensor, gate: torch.Tensor) -> torch.Tensor:
+        ctx.save_for_backward(gate)
+        return features.view_as(features)
+
+    @staticmethod
+    def backward(ctx, grad_output: torch.Tensor):
+        (gate,) = ctx.saved_tensors
+        return grad_output * gate, None
+
+
+def gradient_gate(features: torch.Tensor, gate: torch.Tensor) -> torch.Tensor:
+    """Apply the identity-forward / gated-backward op (gate is treated as constant)."""
+    return _GradientGate.apply(features, gate.detach())
+
+
 class FeatureMaskNeuromodulator(nn.Module):
     """
     Decode a Brain context code into a suppressive feature mask.

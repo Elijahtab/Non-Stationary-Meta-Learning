@@ -7,6 +7,7 @@ import torch.nn as nn
 from lifelong_learning.agents.brain.neuromod import (
     CONTEXT_CODE_DIM,
     FeatureMaskNeuromodulator,
+    gradient_gate,
 )
 
 
@@ -31,6 +32,9 @@ class CNNActorCritic(nn.Module):
         trainable_neuromod: bool = False,
         actor_only_neuromod: bool = False,
         neuromod_gain_alpha: float = 0.0,
+        grad_gate_neuromod: bool = False,
+        critic_code_neuromod: bool = False,
+        aux_code_head: bool = False,
     ):
         super().__init__()
         self.c, self.h, self.w = obs_shape
@@ -40,6 +44,16 @@ class CNNActorCritic(nn.Module):
         # 20260704-022146/001 + 20260704-203740/001; confirmation sweep docs/plans/2026-07-05).
         # Neither flag adds parameters, so checkpoints are interchangeable across modes.
         self.actor_only_neuromod = actor_only_neuromod
+        # LOOP-0006 learning-dynamics family (research note 0003 + loop note):
+        #   grad_gate_neuromod  — the decoded mask gates the BACKWARD pass into the encoder
+        #                         (forward untouched); mutually exclusive with the forward
+        #                         mask modes above by construction (it replaces the multiply).
+        #   critic_code_neuromod — the raw 8-D context code is concatenated to the critic
+        #                          head input (adds params: critic first layer widens).
+        #   aux_code_head        — small head predicting the current context code from
+        #                          encoder features (adds params; loss hooked via ppo.py).
+        self.grad_gate_neuromod = grad_gate_neuromod
+        self.critic_code_neuromod = critic_code_neuromod
 
         # Shared CNN feature extractor
         self.encoder = nn.Sequential(
@@ -73,12 +87,25 @@ class CNNActorCritic(nn.Module):
             nn.Linear(256, n_actions),
         )
 
-        # Critic head (value function)
+        # Critic head (value function); with critic_code_neuromod the first layer also
+        # reads the 8-D context code, so value can re-fit per regime through a small,
+        # fast-adapting pathway without touching the policy path.
+        critic_in_dim = flat_size + (CONTEXT_CODE_DIM if critic_code_neuromod else 0)
         self.critic_head = nn.Sequential(
-            nn.Linear(flat_size, 256),
+            nn.Linear(critic_in_dim, 256),
             nn.ReLU(),
             nn.Linear(256, 1),
         )
+
+        # Auxiliary regime-inference head: predict the Brain's context code from features
+        # (code as teaching signal, not modulator). Only built when the aux loss is active.
+        self.code_prediction_head = None
+        if aux_code_head:
+            self.code_prediction_head = nn.Sequential(
+                nn.Linear(flat_size, 64),
+                nn.ReLU(),
+                nn.Linear(64, CONTEXT_CODE_DIM),
+            )
 
         # Weight initialization
         self.apply(self._init_weights)
@@ -131,12 +158,45 @@ class CNNActorCritic(nn.Module):
     def _expand_mask(self, features: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
         return self.neuromodulator.expand_mask(features, mask)
 
+    def _batch_context_code(self, batch_size: int, ref: torch.Tensor) -> torch.Tensor:
+        """The current 8-D context code, detached and broadcast over the batch."""
+        code = self.neuromodulator.current_code.detach().to(dtype=ref.dtype)
+        return code.expand(batch_size, -1)
+
     def forward_with_mask(self, obs: torch.Tensor, mask: torch.Tensor | None = None):
         features = self.encoder(obs)
+        if self.grad_gate_neuromod:
+            # Plasticity gating: the mask leaves the forward pass entirely and instead
+            # gates the gradient flowing back into the encoder (identity forward). Head
+            # weights keep full plasticity; only encoder learning is code-directed.
+            # code=0 => mask=1 => exact baseline in both directions.
+            gated = gradient_gate(features, self._expand_mask(features, mask))
+            critic_in = gated
+            if self.critic_code_neuromod:
+                critic_in = torch.cat(
+                    [gated, self._batch_context_code(gated.shape[0], gated)], dim=-1
+                )
+            return self.actor_head(gated), self.critic_head(critic_in).squeeze(-1)
         masked = features * self._expand_mask(features, mask)
-        if self.actor_only_neuromod:
-            return self.actor_head(masked), self.critic_head(features).squeeze(-1)
-        return self.actor_head(masked), self.critic_head(masked).squeeze(-1)
+        critic_in = features if self.actor_only_neuromod else masked
+        if self.critic_code_neuromod:
+            critic_in = torch.cat(
+                [critic_in, self._batch_context_code(critic_in.shape[0], critic_in)], dim=-1
+            )
+        return self.actor_head(masked), self.critic_head(critic_in).squeeze(-1)
+
+    def aux_code_loss(self, obs: torch.Tensor) -> torch.Tensor:
+        """MSE between the code-prediction head's output and the current context code.
+
+        Shapes the shared representation to make regime information (as carried by the
+        Brain's code) linearly decodable — the code acts as a teaching signal. The target
+        is the detached current code, constant over a minibatch.
+        """
+        assert self.code_prediction_head is not None, "aux_code_head was not enabled"
+        features = self.encoder(obs)
+        pred = self.code_prediction_head(features)
+        target = self._batch_context_code(pred.shape[0], pred)
+        return torch.nn.functional.mse_loss(pred, target)
 
     def describe_neuromodulation(self, obs: torch.Tensor) -> dict[str, torch.Tensor | float]:
         """Summarize the current context mask and its effect on a reference batch."""

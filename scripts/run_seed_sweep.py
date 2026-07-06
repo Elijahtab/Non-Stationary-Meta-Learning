@@ -240,6 +240,13 @@ CONDITIONS: dict[str, dict] = {
     # gain-a0.5 +10.7pts). Run with --preset scoutv2 against brain_neuromod as control.
     "brain_neuromod_actor_only": {"neuromod_actor_only": True},
     "brain_neuromod_gain05": {"neuromod_gain_alpha": 0.5},
+    # --- LOOP-0006 learning-dynamics family (queue entries 1-4; note 0003 + loop note) ----
+    # Code -> learning dynamics instead of forward-path modulation. Screen at n=1 (seed 1)
+    # vs the LOOP-0004 n=8 frozen control, extend seeds per research-log 0007 decision rules.
+    "brain_neuromod_gradgate": {"neuromod_grad_gate": True},
+    "brain_neuromod_critic_code": {"neuromod_critic_code": True},
+    "brain_neuromod_auxcode": {"neuromod_aux_code_coef": 0.05},
+    "brain_neuromod_adamflush": {"neuromod_adam_flush_threshold": 0.25},
 }
 
 # Metrics pulled from each scored run into the per-run table.
