@@ -3,8 +3,10 @@
 **Goal:** Generate the next hypothesis family for the neuromodulation research program. The
 feature-mask mechanism family is CLOSED (LOOP-0004, research-log 0005); the queue is empty;
 compute is not the constraint — idea quality is.
-**Verdict:** _(open — brainstorm output delivered 2026-07-05, see below; awaiting human queue
-curation before LOOP-0006 can launch)_
+**Verdict:** CLOSED 2026-07-06 — all 5 candidates human-committed to the queue verbatim
+(ranked by confidence); `ppo.py`/`train.py` opened as optional editable surface for entries
+3–5 (human-directed). LOOP-0006 (dual-box campaign, box=entries 1–4, home=entry 5) launches
+from this output.
 
 ## What a brainstorm session should do
 
@@ -95,17 +97,9 @@ None yet — the next screening campaign (LOOP-0006) starts from this loop's out
 
 ## Pickup state
 
-**Brainstorm delivered (2026-07-05); the loop now blocks on human curation.** Next actions:
-1. Human reviews the 5 candidates above + [research note 0003](../research-notes/0003-code-directed-plasticity-gating.md)
-   and commits the chosen entries into `config/hypothesis_queue.md` (updating its STATUS
-   block and the AUTORESEARCH.md queue-register row **in the same commit**, per the register
-   rule). Entries 1–2 are runnable on the current manifest surface; entries 3–5 first need a
-   human decision to extend the editable surface (`config/research_manifest.toml`).
-2. Then finalize this note (verdict) and launch LOOP-0006 screening under the 3-seed
-   `baseline_primary` anchor — the first run pays its one-time ~3.8 h anchor, then amortizes
-   via the fingerprint cache.
-3. For hypothesis 1, the trial must add gradient-side diagnostics and must not misread the
-   zeroed forward diagnostics as "modulation off" (note 0003, H3/A4).
+**CLOSED — nothing to pick up here.** Human curation happened 2026-07-06 (user-directed via
+`/autoresearch-run`): all 5 entries committed to the queue ranked by confidence, surface
+extended for 3–5. Continue from [LOOP-0006](./LOOP-0006-learning-dynamics-campaign.md).
 
 ## Links
 `config/hypothesis_queue.md` (closed-family guard + format); `config/program_neuromod.md`

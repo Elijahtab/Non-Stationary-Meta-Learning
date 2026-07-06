@@ -20,12 +20,12 @@ commit** (this is how the register stays alive; the archived v1 doc rotted by re
 | Baseline anchor | `fast_switch_scout_v2_baseline` (3-seed mean; amortized via fingerprint cache) | [log 0006](docs/research-log/0006-2026-07-05-amortized-multiseed-baseline.md) |
 | Holdout gate | `fast_switch_holdout_v1` (seeds 11/23/37, zero regression tolerance), runs only on scout improvement | [manifest](config/research_manifest.toml) |
 | Gate refinement (ε margins, hit80 as second criterion) | **OPEN — deliberately not adopted**: the 0005 falsifier removed the evidence of need | [log 0005](docs/research-log/0005-2026-07-05-confirmation-sweep-prediction.md) |
-| Editable / immutable surfaces | see manifest (`docs/research-notes` is editable; scorer/benchmark/envs immutable) | [config/research_manifest.toml](config/research_manifest.toml) |
+| Editable / immutable surfaces | see manifest (`docs/research-notes` is editable; scorer/benchmark/envs immutable; `ppo.py`/`train.py` opened as optional surface 2026-07-06 for the learning-dynamics family, flag-guarded default-off only) | [config/research_manifest.toml](config/research_manifest.toml) |
 | Trial agent | local `claude -p` (claude-fable-5) via [invoke_claude_exec.ps1](scripts/invoke_claude_exec.ps1)/[.sh](scripts/invoke_claude_exec.sh); ~$3.60 + ~85 min per trial | wrappers + [run_local_loop.ps1](scripts/run_local_loop.ps1) |
 | Interpreter rule | manifests use `{python}` (resolved to `sys.executable`) — never hardcode venv paths | [log 0006](docs/research-log/0006-2026-07-05-amortized-multiseed-baseline.md) commit trail |
 | Kill safety | `autoresearch/STOP` sentinel (graceful, trial-boundary) + write-ahead journal with startup recovery — the supervisor is safe to kill any time | [autoresearch.py](src/lifelong_learning/research/autoresearch.py) |
 | Verdict semantics | benchmark-scoped; science verdicts (`accepted`/`primary_score_did_not_improve`/`holdout_regressed`) retire a hypothesis on that benchmark, infra failures are retryable; science verdicts never age out of injected history | [trial_prompt.py](src/lifelong_learning/research/trial_prompt.py) |
-| Hypothesis queue | [config/hypothesis_queue.md](config/hypothesis_queue.md) — human-curated, agent-read-only. **Currently: family closed, queue empty** | queue file + [log 0005](docs/research-log/0005-2026-07-05-confirmation-sweep-prediction.md) |
+| Hypothesis queue | [config/hypothesis_queue.md](config/hypothesis_queue.md) — human-curated, agent-read-only. **Currently: 5 live LOOP-0005 entries (learning-dynamics family); 1–4 box-assigned, home starts at 5** | queue file + [LOOP-0005](docs/autoresearch-loops/LOOP-0005-brainstorm.md) |
 | Dual-box orchestration | `/autoresearch-run` skill (home = n=1 screening; box = n=8 confirmation + idle exploration; gates via living doc) | [.claude/skills/autoresearch-run/SKILL.md](.claude/skills/autoresearch-run/SKILL.md) |
 | Linux async runs | require `context="spawn"` (in code); Pascal boxes require the cu126 torch downgrade | [cloud-setup.md](docs/plans/cloud-setup.md) |
 
@@ -62,7 +62,8 @@ Index with one-liners: [docs/autoresearch-loops/README.md](docs/autoresearch-loo
 - [LOOP-0002 — v1 scout campaign](docs/autoresearch-loops/LOOP-0002-v1-scout-campaign.md): 6 rejections on a saturated 5×5 instrument → scout v2
 - [LOOP-0003 — v2 scout campaign](docs/autoresearch-loops/LOOP-0003-v2-scout-campaign.md): 4/5 beat the n=1 anchor, 0 survived holdout → anchor flaw exposed
 - [LOOP-0004 — confirmation sweep](docs/autoresearch-loops/LOOP-0004-confirmation-sweep.md): falsifier at n=8; mechanism family closed; 3-seed baseline adopted
-- [LOOP-0005 — brainstorm](docs/autoresearch-loops/LOOP-0005-brainstorm.md): **OPEN** — 5 candidates delivered (top pick: [note 0003](docs/research-notes/0003-code-directed-plasticity-gating.md)); awaiting human queue commit
+- [LOOP-0005 — brainstorm](docs/autoresearch-loops/LOOP-0005-brainstorm.md): 5 learning-dynamics candidates ([note 0003](docs/research-notes/0003-code-directed-plasticity-gating.md)); all queued 2026-07-06
+- [LOOP-0006 — learning-dynamics campaign](docs/autoresearch-loops/LOOP-0006-learning-dynamics-campaign.md): **OPEN** — dual-box screen of the 5 candidates (box 1–4, home 5)
 
 ## Deeper references
 

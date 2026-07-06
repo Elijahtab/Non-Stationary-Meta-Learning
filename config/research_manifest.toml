@@ -39,6 +39,12 @@ paths = [
 paths = [
   "src/lifelong_learning/agents/brain/signals.py",
   "src/lifelong_learning/agents/brain/meta_agent.py",
+  # Opened 2026-07-06 (human-directed, LOOP-0006): the LOOP-0005 learning-dynamics family
+  # needs loss/optimizer hookups (aux code loss, code-weighted anchoring, Adam flush).
+  # Changes must stay flag-guarded and default-off; the frozen benchmark/scorer surface
+  # below is unchanged.
+  "src/lifelong_learning/agents/ppo/ppo.py",
+  "src/lifelong_learning/agents/ppo/train.py",
 ]
 
 [immutable_surface]
