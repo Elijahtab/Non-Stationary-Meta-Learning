@@ -1,0 +1,9 @@
+[sweep] preset=scoutv2 conditions=['brain_neuromod_encoder_lr_lo'] seeds=[2]
+[sweep] 1 cells, max_parallel=1 -> sweeps/confirm_lr_enc_s2
+[sweep] (1/1) brain_neuromod_encoder_lr_lo seed=2 -> scored composite=0.5497309585346627
+
+[sweep] done. per-run -> sweeps/confirm_lr_enc_s2/runs.csv | summary -> sweeps/confirm_lr_enc_s2/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod_encoder_lr_lo 0.5497 [0.5497, 0.5497]  (n=1)
+[run_sweep] sweep exited ec=0
