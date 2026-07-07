@@ -1,0 +1,9 @@
+[sweep] preset=scoutv2 conditions=['brain_constant_action'] seeds=[1]
+[sweep] 1 cells, max_parallel=1 -> sweeps/confirm_d0_s1
+[sweep] (1/1) brain_constant_action seed=1 -> scored composite=0.5637616255888889
+
+[sweep] done. per-run -> sweeps/confirm_d0_s1/runs.csv | summary -> sweeps/confirm_d0_s1/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_constant_action 0.5638 [0.5638, 0.5638]  (n=1)
+[run_sweep] sweep exited ec=0
