@@ -206,6 +206,7 @@ def init_inner_training(
     aux_code_coef: float = 0.0,
     critic_lr_scale: float = 1.0,
     encoder_lr_scale: float = 1.0,
+    plasticity_norm: bool = False,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -265,6 +266,7 @@ def init_inner_training(
         grad_gate_neuromod=grad_gate_neuromod,
         critic_code_neuromod=critic_code_neuromod,
         aux_code_head=aux_code_coef > 0.0,
+        plasticity_norm=plasticity_norm,
     ).to(device)
     # Param groups. Group 0 ("main") always holds the LR the Brain lever + anneal
     # drive (via apply_inner_lr). Optional extra groups carve out params that need
@@ -316,6 +318,7 @@ def init_inner_training(
         grad_gate_neuromod=grad_gate_neuromod,
         critic_code_neuromod=critic_code_neuromod,
         aux_code_head=aux_code_coef > 0.0,
+        plasticity_norm=plasticity_norm,
     ).to(device)
     anchor_model.load_state_dict(model.state_dict())
     anchor_model.eval()

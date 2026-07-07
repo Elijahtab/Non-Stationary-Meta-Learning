@@ -397,6 +397,7 @@ def train_brain(args):
             neuromod_adam_flush_threshold=getattr(args, "neuromod_adam_flush_threshold", 0.0),
             critic_lr_scale=getattr(args, "neuromod_critic_lr_scale", 1.0),
             encoder_lr_scale=getattr(args, "neuromod_encoder_lr_scale", 1.0),
+            plasticity_norm=getattr(args, "neuromod_plasticity_norm", False),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -877,6 +878,11 @@ def main():
                         "own optimizer group whose LR = (Brain/anneal main LR) * this scale (<1), so "
                         "features stay stable across regimes while the heads re-map fast. Code-free, "
                         "uniform analogue of the null gradgate. Default 1.0 = off. Typical: 0.5.")
+    p.add_argument("--neuromod_plasticity_norm", action="store_true",
+                   help="LOOP-0007 cand 3 (code-free, static): add a LayerNorm on the shared "
+                        "flattened encoder representation (Lyle 2023 plasticity preservation), "
+                        "applied before the neuromod mask and both heads. Adds params (checkpoints "
+                        "NOT baseline-interchangeable). Also the A1 test. Default off.")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

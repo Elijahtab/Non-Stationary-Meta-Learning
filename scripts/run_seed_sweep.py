@@ -282,8 +282,13 @@ CONDITIONS: dict[str, dict] = {
     #     features stay stable across regimes while heads re-map fast. Code-free, uniform
     #     analogue of the null gradgate — isolates whether the two-timescale idea itself carries
     #     value once the (dead) code-gating is removed. Predict composite ↑; null retires it.
+    #   plasticity_norm (cand 3): static LayerNorm on the shared encoder representation (Lyle
+    #     2023), no code/lever. Predict composite ↑ / hit_80 ↑ via sustained cross-regime
+    #     adaptability; also the A1 test — if it does nothing, plasticity loss probably isn't the
+    #     bottleneck on this 2-regime task. Adds params (not baseline-interchangeable).
     "brain_neuromod_critic_lr_lo": {"neuromod_critic_lr_scale": 0.5},
     "brain_neuromod_encoder_lr_lo": {"neuromod_encoder_lr_scale": 0.5},
+    "brain_neuromod_plasticity_norm": {"neuromod_plasticity_norm": True},
 }
 
 # Metrics pulled from each scored run into the per-run table.

@@ -35,6 +35,7 @@ class CNNActorCritic(nn.Module):
         grad_gate_neuromod: bool = False,
         critic_code_neuromod: bool = False,
         aux_code_head: bool = False,
+        plasticity_norm: bool = False,
     ):
         super().__init__()
         self.c, self.h, self.w = obs_shape
@@ -70,6 +71,15 @@ class CNNActorCritic(nn.Module):
             dummy = torch.zeros(1, self.c, self.h, self.w)
             flat_size = self.encoder(dummy).shape[1]
         self.flat_size = flat_size
+
+        # LOOP-0007 cand 3 (research note 0004; Lyle 2023): static LayerNorm on the shared
+        # flattened encoder representation to mitigate plasticity loss across regimes. No code,
+        # no lever — a fixed architectural change applied to every forward before both the
+        # neuromod mask and the heads. Adds params (LayerNorm weight/bias), so checkpoints are
+        # NOT interchangeable with baseline. Also the A1 test: if it does nothing, plasticity
+        # loss probably isn't the bottleneck on this 2-regime task.
+        self.plasticity_norm = plasticity_norm
+        self.feature_norm = nn.LayerNorm(flat_size) if plasticity_norm else None
 
         # Keep the neuromodulation implementation isolated from the rest of the
         # actor-critic so future research can iterate on it in one place.
@@ -163,8 +173,19 @@ class CNNActorCritic(nn.Module):
         code = self.neuromodulator.current_code.detach().to(dtype=ref.dtype)
         return code.expand(batch_size, -1)
 
-    def forward_with_mask(self, obs: torch.Tensor, mask: torch.Tensor | None = None):
+    def _encode(self, obs: torch.Tensor) -> torch.Tensor:
+        """Shared encoder features, with optional static plasticity LayerNorm (cand 3).
+
+        Single choke-point so every consumer (forward, aux head, diagnostics) sees the
+        same representation. When plasticity_norm is off this is exactly self.encoder(obs).
+        """
         features = self.encoder(obs)
+        if self.feature_norm is not None:
+            features = self.feature_norm(features)
+        return features
+
+    def forward_with_mask(self, obs: torch.Tensor, mask: torch.Tensor | None = None):
+        features = self._encode(obs)
         if self.grad_gate_neuromod:
             # Plasticity gating: the mask leaves the forward pass entirely and instead
             # gates the gradient flowing back into the encoder (identity forward). Head
@@ -193,7 +214,7 @@ class CNNActorCritic(nn.Module):
         is the detached current code, constant over a minibatch.
         """
         assert self.code_prediction_head is not None, "aux_code_head was not enabled"
-        features = self.encoder(obs)
+        features = self._encode(obs)
         pred = self.code_prediction_head(features)
         target = self._batch_context_code(pred.shape[0], pred)
         return torch.nn.functional.mse_loss(pred, target)

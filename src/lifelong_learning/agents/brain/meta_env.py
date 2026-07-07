@@ -91,6 +91,7 @@ class MetaEnv(gym.Env):
         neuromod_adam_flush_threshold: float = 0.0,
         critic_lr_scale: float = 1.0,
         encoder_lr_scale: float = 1.0,
+        plasticity_norm: bool = False,
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
@@ -147,6 +148,9 @@ class MetaEnv(gym.Env):
         # features, fast readout re-map). 1.0 == off (baseline-identical).
         self.critic_lr_scale = critic_lr_scale
         self.encoder_lr_scale = encoder_lr_scale
+        # LOOP-0007 cand 3: static LayerNorm on the shared encoder representation
+        # (plasticity preservation, Lyle 2023). No code, no lever; also the A1 test.
+        self.plasticity_norm = plasticity_norm
         self._prev_context_strength: float | None = None
         self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
@@ -249,6 +253,7 @@ class MetaEnv(gym.Env):
             aux_code_coef=self.aux_code_coef,
             critic_lr_scale=self.critic_lr_scale,
             encoder_lr_scale=self.encoder_lr_scale,
+            plasticity_norm=self.plasticity_norm,
         )
         if self.inner_log_dir is not None:
             ep_log_dir = os.path.join(self.inner_log_dir, f"{self._episode_prefix}_{self._episode_counter}")
