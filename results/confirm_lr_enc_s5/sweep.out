@@ -1,0 +1,19 @@
+[sweep] preset=scoutv2 conditions=['brain_neuromod_encoder_lr_lo'] seeds=[5]
+[sweep] 1 cells, max_parallel=1 -> sweeps/confirm_lr_enc_s5
+[sweep] (1/1) brain_neuromod_encoder_lr_lo seed=5 -> scored composite=0.538675728090106
+
+[sweep] done. per-run -> sweeps/confirm_lr_enc_s5/runs.csv | summary -> sweeps/confirm_lr_enc_s5/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod_encoder_lr_lo 0.5387 [0.5387, 0.5387]  (n=1)
+[run_sweep] sweep exited ec=0
+[push] staged light bundle (368K); fallback tar: sweeps/confirm_lr_enc_s5/results_bundle.tgz
+Preparing worktree (detached HEAD 4cb0737)
+To https://github.com/Elijahtab/Non-Stationary-Meta-Learning.git
+ ! [rejected]        HEAD -> results (non-fast-forward)
+error: failed to push some refs to 'https://github.com/Elijahtab/Non-Stationary-Meta-Learning.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[run_sweep] push_results.sh failed (non-fatal)
