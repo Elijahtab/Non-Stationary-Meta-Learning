@@ -134,3 +134,24 @@ in the pushed sweep dir; the LOOP-0007 redo gate was probe-blind without this).
   `docs/references/Combating Catastrophic Forgetting.pdf`
 - Instrument definition: `fast_switch_scout_v2` in
   `src/lifelong_learning/research/benchmarking.py` (`brain_episodes=4` — Finding 1c)
+
+## Addendum (2026-07-07 ~19:05Z) — the recovered probe adjudicates A1: FALSE
+
+The redo dormant-fraction probe (note 0004's pre-registered A1 adjudicator, recovered from
+the box inner logs via the new `probes/` pipeline; all 10 seeds, 240 checks each):
+
+- Dormant fraction is **highest at the first check (~0.92 actor / ~0.77 critic)** — a fresh
+  random net measured on a narrow obs batch is mostly-inactive ReLUs — and **falls
+  monotonically to ~0.35** by run end (Q1 0.88 → Q4 0.35 actor; 0.75 → 0.36 critic;
+  seed-1 shown, all seeds match the max/mean signature).
+- It never rises across the run or across regime switches. The accumulating-dormancy
+  signature from many-regime, long-horizon continual RL (Sokar 2023, Lyle 2023) is
+  **absent on this 2-regime fast-switch task**.
+- Consequences: **A1 FALSE** — cands 2 (ReDo) and 3 (plasticity_norm) lose their premise;
+  redo's marginal n=8 Path-B blip (which already failed at n=10) is expected to be noise;
+  the pre-registered expectation for the W10 holdout is REJECT. Note also that early-run
+  ReDo was re-initializing ~90% of head units every 50 updates with barely any composite
+  effect — further evidence of how insensitive this instrument is to inner-head surgery.
+- Caveat: the trace comes from redo-ON runs (the probe only logs when the mechanism is
+  on), so the trajectory includes reset effects; but resets can only *lower* subsequent
+  dormancy readings, so the absence of any rising trend is conservative.
