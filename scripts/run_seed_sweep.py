@@ -257,6 +257,20 @@ CONDITIONS: dict[str, dict] = {
     "brain_neuromod_critic_code_gradgate": {"neuromod_grad_gate": True, "neuromod_critic_code": True},
     "brain_neuromod_auxcode_hi": {"neuromod_aux_code_coef": 0.15},
     "brain_neuromod_adamflush_lo": {"neuromod_adam_flush_threshold": 0.1},
+    # --- Reliability-fork follow-ups (LOOP-0006 gate 2026-07-06; RUN-20260706 living doc) ----
+    # The two DURABLE leads were reliability-signature wins (composite flat, hit_80 > baseline
+    # CI): critic_code (holdout-CONFIRMED) and auxcode_hi (n=3 signature). Their n=1 "composite
+    # leads" were noise; gradgate_gain's composite lead FAILED holdout. So we deepen the
+    # reliability axis, not composite. Screen n=1 per fork; predictions in log 0007 addendum.
+    #   critic_code_auxhi: do the two reliability winners STACK? (independent code paths:
+    #     critic reads code as input; aux adds a code-prediction loss). Predict hit_80 ≥ the
+    #     better single (~0.86) with composite still flat — additive reliability if mechanisms
+    #     are complementary, sub-additive if they tap the same signal.
+    #   auxcode coef curve: 0.05 was KILLED, 0.15 wins on reliability. Map the dose-response
+    #     between/above to locate the reliability optimum (0.10 interpolates, 0.25 pushes).
+    "brain_neuromod_critic_code_auxhi": {"neuromod_critic_code": True, "neuromod_aux_code_coef": 0.15},
+    "brain_neuromod_auxcode_010": {"neuromod_aux_code_coef": 0.10},
+    "brain_neuromod_auxcode_025": {"neuromod_aux_code_coef": 0.25},
 }
 
 # Metrics pulled from each scored run into the per-run table.
