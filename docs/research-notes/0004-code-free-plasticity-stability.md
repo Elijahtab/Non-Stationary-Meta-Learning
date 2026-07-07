@@ -103,6 +103,33 @@ of the kind that fooled us at n=3 in LOOP-0006.
 
 ## Pickup state
 Brainstorm drafted 2026-07-07 (LOOP-0007), user-directed pivot after LOOP-0006 closed null.
-**Next: human curation** — user selects which candidates to pursue; candidates 2/4/5 (and the
-lever in 1) need surface sign-off / implementation before box screening. Candidates 1 and 5
-are the cheapest first screens. See [LOOP-0007 loop note](../autoresearch-loops/LOOP-0007-brainstorm.md).
+User curated **all 5 candidates** and signed off the surface for cands 2 & 4 (train loop).
+
+**Implemented (2026-07-07 ~05:58Z), on `autoresearch-run-20260706`:**
+- **Cand 1 — decoupled critic LR** (`brain_neuromod_critic_lr_lo`, scale 0.5, commit 7d4c651).
+  Resolved the open (a)-vs-(b) design as **(b)**: critic group LR *tracks* the Brain-lever/anneal
+  main LR × scale (single write path `apply_inner_lr`, mirrored at all 3 LR sites). Default
+  1.0 = off, baseline-identical.
+- **Cand 5 — two-timescale encoder LR** (`brain_neuromod_encoder_lr_lo`, scale 0.5, commit
+  0477a63). Same param-group mechanics; encoder LR = main × scale.
+- **Cand 3 — plasticity LayerNorm** (`brain_neuromod_plasticity_norm`, commit e35b5a3). Static
+  `nn.LayerNorm(flat_size)` on the shared encoder representation, before mask + heads; also the
+  A1 test. Off = forward byte-identical to baseline.
+- **Cand 4 — surprise-triggered spike** (`brain_neuromod_surprise_spike`, threshold 0.5, commit
+  f758a45). Change-point detector on the agent's own per-update TD-error surprise (`value_loss`);
+  on a detected jump, transiently ×2 ent_coef + intrinsic_coef for 3 updates. Off = no-op.
+- **Cand 2 — ReDo dormant reset** (`brain_neuromod_redo`, interval 50, commit fa864a1). Every 50
+  updates, reset dormant actor/critic head units (Sokar 2023); logs
+  `redo_dormant_fraction_{actor,critic}` — the registered probe, which also serves as cand 3's
+  A1 diagnostic. Trigger = generic activation stat (forward hooks), not the code.
+- Tests: `test_decoupled_critic_lr.py` (11) + `test_plasticity_norm.py` (6) +
+  `test_surprise_spike.py` (6) + `test_redo_reset.py` (5). Full regression incl. `test_meta_env`
+  — **55 pass**. All 5 code-free, flag-guarded default-off; 31 conditions total.
+
+**Box screening:** wave 1 launched 06:11Z — cands 1 & 5 seeds 1,2 (early cross-read), extending
+to n=8 over follow-on waves; cands 3/4/2 queued (available on box after next pull). Gate each
+with the reliability fork at **n≥8 ONLY**. For cands 2 & 3, the dormant-fraction probe must move
+or they fail regardless of score.
+
+**Next:** screen all 5 to n=8 on the box; then LOOP-0006 close-out (register/log/note/merge).
+See [LOOP-0007 loop note](../autoresearch-loops/LOOP-0007-brainstorm.md).
