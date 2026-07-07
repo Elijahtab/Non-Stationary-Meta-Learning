@@ -60,7 +60,11 @@ AUTO_PUSH="${AUTO_PUSH:-1}"
     sweep_ec=$?
     echo "[run_sweep] sweep exited ec=$sweep_ec"
     if [ "$AUTO_PUSH" = "1" ]; then
-        bash scripts/cloud/push_results.sh "$OUT_DIR" || echo "[run_sweep] push_results.sh failed (non-fatal)"
+        # push_results.sh retries branch races internally; a final failure prints the
+        # greppable RESULTS_PUSH_FAILED marker so watchers can alert instead of the
+        # dir silently vanishing from origin/results.
+        bash scripts/cloud/push_results.sh "$OUT_DIR" \
+            || echo "[run_sweep] RESULTS_PUSH_FAILED for $OUT_DIR — recover ${OUT_DIR}/results_bundle.tgz manually"
     fi
 } > "$LOG" 2>&1 &
 disown 2>/dev/null || true
