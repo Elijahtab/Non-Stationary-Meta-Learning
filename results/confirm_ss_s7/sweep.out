@@ -1,0 +1,9 @@
+[sweep] preset=scoutv2 conditions=['brain_neuromod_surprise_spike'] seeds=[7]
+[sweep] 1 cells, max_parallel=1 -> sweeps/confirm_ss_s7
+[sweep] (1/1) brain_neuromod_surprise_spike seed=7 -> scored composite=0.5369315478681524
+
+[sweep] done. per-run -> sweeps/confirm_ss_s7/runs.csv | summary -> sweeps/confirm_ss_s7/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod_surprise_spike 0.5369 [0.5369, 0.5369]  (n=1)
+[run_sweep] sweep exited ec=0
