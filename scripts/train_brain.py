@@ -400,6 +400,8 @@ def train_brain(args):
             plasticity_norm=getattr(args, "neuromod_plasticity_norm", False),
             surprise_spike_threshold=getattr(args, "neuromod_surprise_spike", 0.0),
             redo_interval=getattr(args, "neuromod_redo_interval", 0),
+            critic_lr_oracle_scale=getattr(args, "neuromod_critic_lr_oracle", 0.0),
+            policy_swap_topline=getattr(args, "neuromod_policy_swap", False),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -594,6 +596,13 @@ def train_brain(args):
                 action, log_prob, entropy, value = brain_model.act(obs_t)
 
             action_np = action.cpu().numpy()  # Shape: [num_envs, Brain action dim]
+            if args.constant_brain_action:
+                # D0 bottom-rung control (research note 0005): sever the Brain. A zero
+                # action maps to the exact midpoint of every lever bound and a zero
+                # context code — empirically the levels trained scout Brains settle at —
+                # with none of the policy's sampling noise. What remains is the inner
+                # learner under fixed mid-bound HPs.
+                action_np = np.zeros_like(action_np)
             next_obs, rewards, terminations, truncations, infos = meta_env.step(action_np)
             
             # Track inner hyperparameter stats from envs
@@ -654,8 +663,13 @@ def train_brain(args):
         )
 
         # PPO update on this episode's data
-        batch = rollout.get_batches(device)
-        update_stats = brain_ppo_update(brain_model, brain_optimizer, batch, brain_cfg)
+        if args.constant_brain_action:
+            # D0: the Brain's actions are overridden, so training it would be
+            # meaningless mutation — skip the update entirely.
+            update_stats = {}
+        else:
+            batch = rollout.get_batches(device)
+            update_stats = brain_ppo_update(brain_model, brain_optimizer, batch, brain_cfg)
 
         # Log Mean across vector environments
         ep_time = time.time() - ep_start
@@ -897,6 +911,25 @@ def main():
                         "<= tau) — re-init incoming weights, zero outgoing, clear Adam moments — to "
                         "restore plasticity. Trigger is a generic activation statistic, not the "
                         "code; dormant-fraction probe logged. Default 0 = off. Typical: 50.")
+    p.add_argument("--constant_brain_action", action="store_true",
+                   help="D0 bottom-rung control (research note 0005): sever the Brain — every "
+                        "decision emits the ZERO action (exact midpoint of every lever bound, "
+                        "zero context code; the levels trained scout Brains empirically settle "
+                        "at) and Brain PPO updates are skipped. Measures what the Brain adds "
+                        "over tuned static HPs on this instrument. Default off.")
+    p.add_argument("--neuromod_critic_lr_oracle", type=float, default=0.0,
+                   help="O1 oracle rung (research note 0005): on each DETECTED regime switch "
+                        "(ground truth from the env, not the Brain code), damp the critic "
+                        "optimizer group to main_lr * this scale for the detection update + 15 "
+                        "following updates, then revert. A perfectly-timed damp upper-bounds any "
+                        "Brain-learned critic damp (the adaptive A2 test). Default 0.0 = off. "
+                        "Registered variant: 0.5.")
+    p.add_argument("--neuromod_policy_swap", action="store_true",
+                   help="O2 oracle rung (research note 0005), DIAGNOSTIC ONLY: snapshot the full "
+                        "inner learner (model, world model, Adam states) per regime at switch-away "
+                        "and restore it on regime revisit — the zero-forgetting ceiling of this "
+                        "instrument. Never a method; used to size the headroom above the frozen "
+                        "control. Default off.")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

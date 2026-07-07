@@ -94,6 +94,8 @@ class MetaEnv(gym.Env):
         plasticity_norm: bool = False,
         surprise_spike_threshold: float = 0.0,
         redo_interval: int = 0,
+        critic_lr_oracle_scale: float = 0.0,
+        policy_swap_topline: bool = False,
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
@@ -159,6 +161,14 @@ class MetaEnv(gym.Env):
         # LOOP-0007 cand 2: ReDo — reset dormant head units every redo_interval updates
         # (Sokar 2023); dormant-fraction probe logged. 0 == off.
         self.redo_interval = redo_interval
+        # O1 oracle rung (research note 0005): ground-truth-timed critic-LR damp — on each
+        # detected regime switch the critic group runs at main_lr * this scale for a fixed
+        # window. Upper-bounds any Brain-learned critic damp. 0.0 == off.
+        self.critic_lr_oracle_scale = critic_lr_oracle_scale
+        # O2 oracle rung (research note 0005): per-regime learner snapshot/restore on
+        # revisit — the zero-forgetting ceiling of this instrument (diagnostic, never a
+        # method). False == off.
+        self.policy_swap_topline = policy_swap_topline
         self._prev_context_strength: float | None = None
         self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
@@ -264,6 +274,8 @@ class MetaEnv(gym.Env):
             plasticity_norm=self.plasticity_norm,
             surprise_spike_threshold=self.surprise_spike_threshold,
             redo_interval=self.redo_interval,
+            critic_lr_oracle_scale=self.critic_lr_oracle_scale,
+            policy_swap_topline=self.policy_swap_topline,
         )
         if self.inner_log_dir is not None:
             ep_log_dir = os.path.join(self.inner_log_dir, f"{self._episode_prefix}_{self._episode_counter}")

@@ -299,6 +299,21 @@ CONDITIONS: dict[str, dict] = {
     "brain_neuromod_plasticity_norm": {"neuromod_plasticity_norm": True},
     "brain_neuromod_surprise_spike": {"neuromod_surprise_spike": 0.5},
     "brain_neuromod_redo": {"neuromod_redo_interval": 50},
+    # Bottom-rung + oracle-rung controls (research note 0005) — the strategic-fork tests.
+    #   constant_action (D0): Brain severed — zero action every decision = exact mid-bound
+    #     HPs (the levels trained scout Brains empirically settle at, note 0005) with no
+    #     sampling noise, Brain updates skipped. Directly measures what the Brain — an
+    #     effectively untrained, noisy controller on this instrument (note 0005 A1 probe) —
+    #     adds vs tuned static HPs.
+    #   critic_lr_oracle (O1): ground-truth-timed critic damp (×0.5, detection update + 15
+    #     following). Upper-bounds ANY Brain-learned critic damp — the adaptive A2 test the
+    #     static cand-1 null could not answer. If this fails at n=8, A2 is dead.
+    #   policy_swap (O2): per-regime learner snapshot/restore on revisit — the
+    #     zero-forgetting CEILING of the instrument (diagnostic, never a method); sizes the
+    #     headroom above the frozen control (reading ①).
+    "brain_constant_action": {"constant_brain_action": True},
+    "brain_critic_lr_oracle": {"neuromod_critic_lr_oracle": 0.5},
+    "brain_oracle_policy_swap": {"neuromod_policy_swap": True},
 }
 
 # Metrics pulled from each scored run into the per-run table.
@@ -386,6 +401,36 @@ def _bootstrap_ci(values: list[float], n_boot: int = 10000, alpha: float = 0.05,
     return (mean, lo, hi, len(arr))
 
 
+# Inner-run scalar prefix that marks a mechanism probe (e.g. the ReDo dormant-fraction —
+# note 0004's registered probe — or the O1/O2 oracle activity flags).
+PROBE_PREFIX = "brain_neuromod/"
+
+
+def _extract_probes(run_dir: Path, out_dir: Path, run_name: str) -> str | None:
+    """Copy every mechanism-probe series (brain_neuromod/* scalars) out of the ephemeral
+    episode_*/ inner logs into the sweep dir, so probes land on origin/results alongside
+    the scores instead of dying with the box disk. The LOOP-0007 redo gate was probe-blind
+    because these series lived only in the inner logs (research note 0005) — this makes
+    pre-registered probe discipline enforceable from the pushed artifacts."""
+    probes: dict[str, dict] = {}
+    for data_json in sorted(run_dir.glob("episode_*/**/*_data.json")):
+        try:
+            with open(data_json, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except Exception:
+            continue
+        series = {k: v for k, v in data.items() if k.startswith(PROBE_PREFIX)}
+        if series:
+            probes[str(data_json.parent.relative_to(run_dir))] = series
+    if not probes:
+        return None
+    dest = out_dir / "probes" / f"{run_name}_probes.json"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with open(dest, "w", encoding="utf-8") as fh:
+        json.dump(probes, fh, separators=(",", ":"))
+    return str(dest)
+
+
 def run_cell(*, preset_name: str, preset: dict, condition: str, seed: int, device: str,
              out_dir: Path, dry_run: bool, resume: bool = False) -> dict:
     base = dict(preset["base"])
@@ -460,6 +505,15 @@ def run_cell(*, preset_name: str, preset: dict, condition: str, seed: int, devic
             record["status"] = "no_run_dir"
             return record
     record["run_dir"] = str(run_dir)
+
+    # Probe extraction runs regardless of scoring outcome — a probe-blind gate is worse
+    # than a score-blind one for probe-gated candidates.
+    try:
+        probes_path = _extract_probes(run_dir, out_dir, run_name)
+        if probes_path:
+            record["probes_path"] = probes_path
+    except Exception as exc:
+        record["probes_error"] = str(exc)
 
     try:
         score = score_brain_run(run_dir, **preset["score"])
@@ -571,7 +625,7 @@ def main() -> None:
 
     run_columns = ["preset", "condition", "seed", "run_name", "status", "returncode",
                    "duration_seconds", *SCORE_METRICS, "inner_run_count", "switch_count",
-                   "run_dir", "log_path", "error", "command"]
+                   "run_dir", "probes_path", "log_path", "error", "command"]
     _write_csv(out_dir / "runs.csv", rows, run_columns)
     (out_dir / "runs.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
 

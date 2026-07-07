@@ -81,6 +81,15 @@ def apply_inner_lr(optimizer, lr: float, cfg=None) -> None:
         if attr is None:
             continue
         scale = getattr(cfg, attr, 1.0)
+        if group.get("name") == "critic" and getattr(cfg, "critic_lr_oracle_scale", 0.0) > 0.0:
+            # O1 oracle-timed critic damp (research note 0005): while the post-switch
+            # window armed by a DETECTED regime switch is live, damp the critic group;
+            # otherwise the group tracks the main LR exactly (scale is 1.0 in the pure
+            # oracle condition, but the damp composes with a static critic_lr_scale too).
+            if getattr(cfg, "critic_oracle_remaining", 0) > 0:
+                scale = scale * cfg.critic_lr_oracle_scale
+            group["lr"] = lr * scale
+            continue
         if scale != 1.0:
             group["lr"] = lr * scale
 
@@ -188,6 +197,14 @@ class InnerTrainState:
     # restore plasticity; the dormant-fraction probe is logged. 0 == off.
     redo_interval: int = 0
 
+    # --- O2 oracle rung (research note 0005): policy-swap headroom topline ---
+    # DIAGNOSTIC ceiling, never a method: bank the full learner (model, world model,
+    # optimizer states) per regime at switch-away and restore it on regime revisit —
+    # measures how much post-switch score a zero-forgetting agent could achieve on
+    # this instrument. False == off (baseline-identical).
+    policy_swap_topline: bool = False
+    policy_swap_snapshots: dict = field(default_factory=dict, repr=False)
+
 
 # Cand-4 spike shape (fixed; only the trigger threshold is exposed as a lever).
 SURPRISE_SPIKE_FACTOR = 2.0     # transient multiplier on ent_coef + intrinsic_coef
@@ -287,6 +304,38 @@ def redo_reset_heads(model, optimizer, obs, tau: float = REDO_TAU) -> dict:
     return fractions
 
 
+# O1 oracle-timed critic damp (research note 0005): damp window length. The damp covers
+# the remainder of the update in which the switch is detected plus this many subsequent
+# updates. Fixed shape — only the damp scale is exposed as a flag (one variant, no
+# multiplicity), mirroring the surprise-spike convention.
+CRITIC_ORACLE_UPDATES = 15
+
+
+def _snapshot_learner(state) -> dict:
+    """O2 policy-swap topline (research note 0005): deep-copy everything the learner
+    would 'forget' across a regime switch — model, world model, and both Adam states."""
+    s = state
+    return {
+        "model": copy.deepcopy(s.model.state_dict()),
+        "world_model": copy.deepcopy(s.world_model.state_dict()),
+        "optimizer": copy.deepcopy(s.optimizer.state_dict()),
+        "wm_optimizer": copy.deepcopy(s.wm_optimizer.state_dict()),
+    }
+
+
+def _restore_learner(state, snap: dict) -> None:
+    """O2: restore a banked per-regime learner. Optimizer state_dicts carry the LRs from
+    snapshot time, so the current main LR (anneal / Brain lever) is re-applied after the
+    load — the swap must never clobber the live LR schedule."""
+    s = state
+    main_lr = s.optimizer.param_groups[0]["lr"]
+    s.model.load_state_dict(snap["model"])
+    s.world_model.load_state_dict(snap["world_model"])
+    s.optimizer.load_state_dict(copy.deepcopy(snap["optimizer"]))
+    s.wm_optimizer.load_state_dict(copy.deepcopy(snap["wm_optimizer"]))
+    apply_inner_lr(s.optimizer, main_lr, s.cfg)
+
+
 def init_inner_training(
     env_id: str,
     cfg: PPOConfig,
@@ -321,6 +370,8 @@ def init_inner_training(
     plasticity_norm: bool = False,
     surprise_spike_threshold: float = 0.0,
     redo_interval: int = 0,
+    critic_lr_oracle_scale: float = 0.0,
+    policy_swap_topline: bool = False,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -336,6 +387,11 @@ def init_inner_training(
     # group LR at main_lr * scale wherever the main LR is written. 1.0 == off.
     cfg.critic_lr_scale = critic_lr_scale
     cfg.encoder_lr_scale = encoder_lr_scale
+    # O1 oracle-timed critic damp (research note 0005): apply_inner_lr damps the critic
+    # group by this scale while critic_oracle_remaining > 0 (armed on each DETECTED
+    # regime switch — ground truth from the env, not the Brain code). 0.0 == off.
+    cfg.critic_lr_oracle_scale = critic_lr_oracle_scale
+    cfg.critic_oracle_remaining = 0
 
     seed_everything(cfg.seed)
     configure_runtime_threads(cpu_threads)
@@ -391,7 +447,8 @@ def init_inner_training(
     # mechanism is active, so a plain run stays a single-group optimizer
     # byte-identical to the previous behaviour.
     decouple_decoder = trainable_neuromod and neuromod_decoder_lr is not None
-    decouple_critic = critic_lr_scale != 1.0
+    # O1 also needs the critic in its own group (at scale 1.0 outside damp windows).
+    decouple_critic = critic_lr_scale != 1.0 or critic_lr_oracle_scale > 0.0
     decouple_encoder = encoder_lr_scale != 1.0
     if decouple_decoder or decouple_critic or decouple_encoder:
         reserved_ids: set[int] = set()
@@ -536,6 +593,7 @@ def init_inner_training(
         current_mode_regime=start_regime,
         surprise_spike_threshold=surprise_spike_threshold,
         redo_interval=redo_interval,
+        policy_swap_topline=policy_swap_topline,
     )
 
 
@@ -590,6 +648,21 @@ def run_inner_update(state: InnerTrainState) -> dict:
     else:
         lrnow = s.optimizer.param_groups[0]["lr"]
 
+    # -----------------------------------------------------------------
+    # O1 oracle-timed critic damp (research note 0005): keep the critic group
+    # damped while the window armed by a detected switch is live (explicit
+    # resync covers the no-anneal path), consume one window update, and log
+    # the probe. The arm itself happens in the Phase-A switch handler below,
+    # which also resyncs immediately so the damp covers the detection update's
+    # own PPO phases.
+    # -----------------------------------------------------------------
+    if s.cfg.critic_lr_oracle_scale > 0.0:
+        apply_inner_lr(s.optimizer, lrnow, s.cfg)
+        oracle_live = s.cfg.critic_oracle_remaining > 0
+        s.logger.scalar("brain_neuromod/critic_oracle_active", float(oracle_live), s.global_step)
+        if oracle_live:
+            s.cfg.critic_oracle_remaining -= 1
+
     s.buffer.reset()
 
     # =====================================================================
@@ -630,7 +703,28 @@ def run_inner_update(state: InnerTrainState) -> dict:
         # Handle regime switch
         if current_env_regime != s.current_mode_regime:
             print(f"[{s.global_step}] Regime switch detected! {s.current_mode_regime} -> {current_env_regime}. Snapshotting anchor model.")
+            prev_regime = s.current_mode_regime
             s.current_mode_regime = current_env_regime
+            # O2 policy-swap topline (research note 0005): bank the outgoing regime's
+            # learner; restore the incoming regime's if we've seen it before. The restore
+            # lands mid-rollout, so this update's PPO phase mixes two policies — an
+            # accepted, conservative imprecision for a ceiling estimate. Restore precedes
+            # the anchor snapshot so the anchor tracks the restored policy.
+            if s.policy_swap_topline:
+                s.policy_swap_snapshots[prev_regime] = _snapshot_learner(s)
+                snap = s.policy_swap_snapshots.get(current_env_regime)
+                if snap is not None:
+                    _restore_learner(s, snap)
+                s.logger.scalar(
+                    "brain_neuromod/policy_swap_restored",
+                    float(snap is not None),
+                    s.global_step,
+                )
+            # O1 oracle-timed critic damp (research note 0005): arm the ground-truth-timed
+            # damp window and resync now so the damp already covers this update's PPO phases.
+            if s.cfg.critic_lr_oracle_scale > 0.0:
+                s.cfg.critic_oracle_remaining = CRITIC_ORACLE_UPDATES
+                apply_inner_lr(s.optimizer, s.optimizer.param_groups[0]["lr"], s.cfg)
             if s.anchor_model is not None:
                 s.anchor_model.load_state_dict(s.model.state_dict())
 
