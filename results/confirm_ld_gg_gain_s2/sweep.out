@@ -1,0 +1,14 @@
+[sweep] preset=scoutv2 conditions=['brain_neuromod_gradgate_gain'] seeds=[2]
+[sweep] 1 cells, max_parallel=1 -> sweeps/confirm_ld_gg_gain_s2
+[sweep] (1/1) brain_neuromod_gradgate_gain seed=2 -> scored composite=0.5531918424477792
+
+[sweep] done. per-run -> sweeps/confirm_ld_gg_gain_s2/runs.csv | summary -> sweeps/confirm_ld_gg_gain_s2/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod_gradgate_gain 0.5532 [0.5532, 0.5532]  (n=1)
+[run_sweep] sweep exited ec=0
+[push] staged light bundle (368K); fallback tar: sweeps/confirm_ld_gg_gain_s2/results_bundle.tgz
+Preparing worktree (detached HEAD ed88910)
+fatal: cannot lock ref 'HEAD': is at fb21cea96b54881b0ca0a59d30e542df1885b757 but expected ed8891014a69278cc315dc2f18b68973c350c542
+[push] nothing to commit
+[push] pushed results/confirm_ld_gg_gain_s2 to branch 'results'.
