@@ -1,9 +1,0 @@
-[sweep] preset=scoutv2 conditions=['brain_critic_lr_oracle'] seeds=[4]
-[sweep] 1 cells, max_parallel=1 -> sweeps/confirm_o1_s4
-[sweep] (1/1) brain_critic_lr_oracle seed=4 -> scored composite=0.5447924638465391
-
-[sweep] done. per-run -> sweeps/confirm_o1_s4/runs.csv | summary -> sweeps/confirm_o1_s4/summary.csv
-
-[sweep] composite_score (mean [95% CI], n):
-  brain_critic_lr_oracle 0.5448 [0.5448, 0.5448]  (n=1)
-[run_sweep] sweep exited ec=0
