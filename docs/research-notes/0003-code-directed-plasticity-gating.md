@@ -1,6 +1,17 @@
 # 0003 — Code-Directed Plasticity Gating (gradient-side mask)
 
-**Status:** 📋 PROPOSED 2026-07-05 — registered before any trial exists; top pick of the
+**Status:** ❌ CLOSED NULL 2026-07-07 (LOOP-0006, n=8). H1 FALSIFIED: gradgate n=3 composite
+0.53658 sat 0.0168 *below* the control mean — the code-directed learning-dynamics family (gradgate
++ critic_code + auxcode + adamflush + scaled/stacked variants) does not beat the frozen control at
+n=8 on the scout primary. The two apparent n=3 reliability leads (critic_code, auxcode_hi) were
+lucky-triple artifacts that washed out at n=8. This closes the note as **outcome 2** ("scalar-HP
+control is sufficient"), now standing on BOTH the forward-modulation and learning-dynamics
+families. Trail: [research-log 0007 §Outcome](../research-log/0007-2026-07-06-learning-dynamics-preregistration.md),
+[RUN-20260706](../../autoresearch/live/RUN-20260706.md). Pivot → code-free family,
+[note 0004](./0004-code-free-plasticity-stability.md).
+_(original proposal below, preserved for the record.)_
+
+**Status (historical):** 📋 PROPOSED 2026-07-05 — registered before any trial exists; top pick of the
 LOOP-0005 brainstorm, awaiting human queue curation.
 **Owner:** Elijah · **Relates to:** [LOOP-0005](../autoresearch-loops/LOOP-0005-brainstorm.md)
 (sibling hypotheses + predictions), notes [0001](./0001-trainable-vs-frozen-decoder.md)/
