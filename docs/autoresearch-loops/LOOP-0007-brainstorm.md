@@ -1,9 +1,18 @@
-# LOOP-0007 — brainstorm (OPEN, created 2026-07-07)
+# LOOP-0007 — brainstorm + code-free campaign (2026-07-07, CLOSED NULL)
 
 **Goal:** Generate the next hypothesis family after the code-directed learning-dynamics family
 (LOOP-0005/0006) closed **NULL** at n=8. User-directed pivot (2026-07-07, via RUN-20260706
 gate loop) to a family **outside code→inner-agent routing**.
-**Verdict:** OPEN — brainstorm drafted; awaiting human curation of which candidates to pursue.
+**Verdict:** **CLOSED NULL 2026-07-07 — 0/5 at n≥8.** critic_lr_lo REJECT (0.5490/0.8248);
+encoder_lr_lo REJECT (0.5531/0.7589, reliability −7 pts — two-timescale retired);
+plasticity_norm KILLED n=2 (degenerate LayerNorm(4096) operationalization); surprise_spike
+REJECT (0.5427/0.8103 — over-explores); redo REJECT — n=8 Path-B pass (0.5522/0.8527) failed
+n=10 (0.5480/0.8393), holdout n=3 passed the mechanical bar (0.5472/0.8363) on ONE carrying
+seed (2/3 below baseline; n=4 with s41 ≈ baseline), and the **pre-registered dormant-fraction
+probe adjudicated A1 FALSE** (dormancy falls 0.9→0.35 over the run, never accumulates —
+note 0005 addendum). redo = the third and deepest-surviving small-n reliability mirage
+(after critic_code, auxcode_hi). Full trail: RUN-20260706 living doc W1–W10 +
+[note 0004 outcome addendum](../research-notes/0004-code-free-plasticity-stability.md).
 
 ## The forcing evidence
 Two families now closed: forward-modulation (LOOP-0002/0004, 20 variants, 0 wins) and
@@ -39,10 +48,12 @@ at n≥8. Register predictions before results; probe-based candidates (2,3) must
 starts from its null verdict + the diagnostic pathologies it left unaddressed.
 
 ## Pickup state
-**Awaiting human curation.** User selects candidates → I implement the chosen conditions
-(cands 1 and 5 are cheapest; 2/4 need surface sign-off) as `run_seed_sweep.py` conditions and
-screen at n≥8 on the box. The box is currently finishing a LOOP-0006 dose-response probe
-(auxcode_010 n=8); it has no LOOP-0007 work until conditions are implemented.
+**CLOSED — nothing to pick up here.** The program's live thread is
+[LOOP-0008](./LOOP-0008-controls-campaign.md): the bottom-rung/oracle control campaign
+(D0/O1/O2 + oracle_code) pre-registered in
+[note 0005](../research-notes/0005-untested-controller-bottom-rung-oracle.md), which also
+records this loop's biggest retrospective finding — the scout Brain is effectively untrained,
+so all three closed families screened their mechanisms under a noise controller.
 
 ## Links
 [research note 0004](../research-notes/0004-code-free-plasticity-stability.md) ·

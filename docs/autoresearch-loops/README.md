@@ -69,4 +69,6 @@ The loop note is its curated, committed afterlife, written at loop close-out.
 | [LOOP-0003](./LOOP-0003-v2-scout-campaign.md) | 2026-07-04–05 | v2 (8×8) campaign: 4/5 beat the n=1 anchor, 0 survived holdout → anchor flaw exposed | closed |
 | [LOOP-0004](./LOOP-0004-confirmation-sweep.md) | 2026-07-05 | n=8 box sweep: falsifier fired, mechanism family closed, 3-seed baseline adopted | closed |
 | [LOOP-0005](./LOOP-0005-brainstorm.md) | 2026-07-05–06 | Brainstorm: 5 learning-dynamics candidates (top pick: plasticity gating, note 0003); all 5 human-committed to queue | closed |
-| [LOOP-0006](./LOOP-0006-learning-dynamics-campaign.md) | 2026-07-06 | Dual-box campaign: box screens entries 1–4 (master conditions), home screens entry 5 (trial loop) | **OPEN** |
+| [LOOP-0006](./LOOP-0006-learning-dynamics-campaign.md) | 2026-07-06–07 | Dual-box campaign: all 5 candidates + scaled variants closed NULL at n=8; two n=3 "reliability leads" exposed as sampling artifacts | closed |
+| [LOOP-0007](./LOOP-0007-brainstorm.md) | 2026-07-07 | Code-free plasticity/stability family: 0/5 at n≥8; A1 (plasticity loss) adjudicated FALSE by the registered probe; redo = third small-n mirage | closed |
+| [LOOP-0008](./LOOP-0008-controls-campaign.md) | 2026-07-07 | Bottom-rung & oracle controls (D0/O1/O2 + oracle_code): does the Brain add anything, what could a timed lever achieve, how much headroom exists | **OPEN** |

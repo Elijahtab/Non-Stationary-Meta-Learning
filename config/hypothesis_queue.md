@@ -7,7 +7,14 @@ this list into each trial prompt; the agent takes the highest entry without a sc
 **Agents must not edit this file** — it is outside the manifest's editable surface, so the
 diff audit rejects any trial that touches it. Humans append/reorder; keep entries one line.
 
-## STATUS 2026-07-06: LIVE — LOOP-0005 learning-dynamics family (human-committed)
+## STATUS 2026-07-07: EXHAUSTED — all 5 LOOP-0005 entries science-rejected (LOOP-0006 closed NULL at n=8)
+
+Entries 1–4 rejected on the box (n=3/n=8, RUN-20260706 verdicts); entry 5 rejected at home
+(trial `ld_home_t2`). Scaled variants (gradgate_gain, auxcode_hi/010/025, combos) also null —
+family closed; do not requeue members without a qualitatively new mechanism idea. The program's
+live work is LOOP-0008 (control conditions, master-implemented — no queue entries needed).
+
+## ~~STATUS 2026-07-06: LIVE — LOOP-0005 learning-dynamics family (human-committed)~~
 
 Five entries from the LOOP-0005 brainstorm (docs/autoresearch-loops/LOOP-0005-brainstorm.md,
 research note 0003), ranked by confidence. **Routing for the current dual-box run:** entries
