@@ -396,6 +396,7 @@ def train_brain(args):
             aux_code_coef=getattr(args, "neuromod_aux_code_coef", 0.0),
             neuromod_adam_flush_threshold=getattr(args, "neuromod_adam_flush_threshold", 0.0),
             critic_lr_scale=getattr(args, "neuromod_critic_lr_scale", 1.0),
+            encoder_lr_scale=getattr(args, "neuromod_encoder_lr_scale", 1.0),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -871,6 +872,11 @@ def main():
                         "The Brain's proven LR lever still reaches the critic, scaled. No code fed "
                         "to the inner agent. Default 1.0 = off (single-group, baseline-identical). "
                         "Typical research value: 0.5.")
+    p.add_argument("--neuromod_encoder_lr_scale", type=float, default=1.0,
+                   help="LOOP-0007 cand 5 (code-free two-timescale): put the shared encoder in its "
+                        "own optimizer group whose LR = (Brain/anneal main LR) * this scale (<1), so "
+                        "features stay stable across regimes while the heads re-map fast. Code-free, "
+                        "uniform analogue of the null gradgate. Default 1.0 = off. Typical: 0.5.")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

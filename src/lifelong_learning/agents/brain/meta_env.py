@@ -90,6 +90,7 @@ class MetaEnv(gym.Env):
         aux_code_coef: float = 0.0,
         neuromod_adam_flush_threshold: float = 0.0,
         critic_lr_scale: float = 1.0,
+        encoder_lr_scale: float = 1.0,
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
@@ -140,10 +141,12 @@ class MetaEnv(gym.Env):
         # the context-code strength (‖code‖/√dim, clamped to [0,1]) jumps by at least this
         # much between Brain decisions — a Brain-directed "flush stale curvature" signal.
         self.neuromod_adam_flush_threshold = neuromod_adam_flush_threshold
-        # LOOP-0007 cand 1 (research note 0004): critic head in its own optimizer
-        # group at LR = main_lr * critic_lr_scale, to damp the measured critic
-        # whiplash. 1.0 == off (single-group optimizer, baseline-identical).
+        # LOOP-0007 cands 1/5 (research note 0004): critic head / shared encoder in
+        # their own optimizer group at LR = main_lr * scale — cand 1 damps critic
+        # whiplash, cand 5 makes the encoder learn slower than the heads (stable
+        # features, fast readout re-map). 1.0 == off (baseline-identical).
         self.critic_lr_scale = critic_lr_scale
+        self.encoder_lr_scale = encoder_lr_scale
         self._prev_context_strength: float | None = None
         self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
@@ -245,6 +248,7 @@ class MetaEnv(gym.Env):
             critic_code_neuromod=self.critic_code_neuromod,
             aux_code_coef=self.aux_code_coef,
             critic_lr_scale=self.critic_lr_scale,
+            encoder_lr_scale=self.encoder_lr_scale,
         )
         if self.inner_log_dir is not None:
             ep_log_dir = os.path.join(self.inner_log_dir, f"{self._episode_prefix}_{self._episode_counter}")

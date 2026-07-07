@@ -50,25 +50,39 @@ def configure_runtime_threads(num_threads: int | None):
         pass
 
 
+# LOOP-0007 code-free two-timescale mechanisms: param groups whose LR *tracks* the
+# main LR scaled by a cfg lever, keyed by group name -> cfg attribute holding the
+# scale. The Brain's proven LR lever still moves these groups (design choice (b)),
+# just damped, instead of being silently bypassed. The "decoder" group
+# (trainable-neuromod) is deliberately absent here — it holds a fixed LR.
+_SCALED_LR_GROUPS = {
+    "critic": "critic_lr_scale",   # cand 1: damp post-switch critic whiplash
+    "encoder": "encoder_lr_scale",  # cand 5: slow shared encoder vs fast heads
+}
+
+
 def apply_inner_lr(optimizer, lr: float, cfg=None) -> None:
-    """Set the main param-group LR and mirror any decoupled critic group.
+    """Set the main param-group LR and mirror any scaled two-timescale group.
 
     Group 0 ("main") always carries the LR the Brain controls (action[0]) and the
-    anneal schedule — the proven-causal scalar lever. LOOP-0007 candidate 1
-    (decoupled critic LR, research note 0004) puts the critic head in its own
-    group ("critic") whose LR *tracks the main LR scaled by cfg.critic_lr_scale*
-    (design choice (b)): the Brain's lever still moves the critic, just damped, so
-    the lever is never silently bypassed. This helper is the single write path for
-    the main LR — call it everywhere the main LR is set (anneal, Brain lever, eval
-    Brain lever) so the critic group stays in sync. Decoder groups
-    (trainable-neuromod) are intentionally NOT mirrored (they hold a fixed LR).
+    anneal schedule — the proven-causal scalar lever. LOOP-0007 candidates 1/5
+    (research note 0004) carve the critic head / shared encoder into their own
+    groups whose LR tracks the main LR scaled by a cfg lever (see
+    _SCALED_LR_GROUPS). This helper is the single write path for the main LR — call
+    it everywhere the main LR is set (anneal, Brain lever, eval Brain lever) so the
+    scaled groups stay in sync. When no lever is active it is a plain
+    param_groups[0] write, byte-identical to the previous behaviour.
     """
     optimizer.param_groups[0]["lr"] = lr
-    scale = getattr(cfg, "critic_lr_scale", 1.0) if cfg is not None else 1.0
-    if scale != 1.0:
-        for group in optimizer.param_groups:
-            if group.get("name") == "critic":
-                group["lr"] = lr * scale
+    if cfg is None:
+        return
+    for group in optimizer.param_groups:
+        attr = _SCALED_LR_GROUPS.get(group.get("name"))
+        if attr is None:
+            continue
+        scale = getattr(cfg, attr, 1.0)
+        if scale != 1.0:
+            group["lr"] = lr * scale
 
 
 def resolve_inner_save_dir(*, save_dir: str, log_dir: str, logger_full_dir: str) -> str:
@@ -191,6 +205,7 @@ def init_inner_training(
     critic_code_neuromod: bool = False,
     aux_code_coef: float = 0.0,
     critic_lr_scale: float = 1.0,
+    encoder_lr_scale: float = 1.0,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -202,9 +217,10 @@ def init_inner_training(
     # Clone the config so meta-controller mutations stay local to this inner run.
     cfg = copy.deepcopy(cfg)
     cfg.aux_code_coef = aux_code_coef
-    # LOOP-0007 cand 1: read by apply_inner_lr to keep the critic group's LR at
-    # main_lr * critic_lr_scale wherever the main LR is written. 1.0 == off.
+    # LOOP-0007 cands 1/5: read by apply_inner_lr to keep the critic / encoder
+    # group LR at main_lr * scale wherever the main LR is written. 1.0 == off.
     cfg.critic_lr_scale = critic_lr_scale
+    cfg.encoder_lr_scale = encoder_lr_scale
 
     seed_everything(cfg.seed)
     configure_runtime_threads(cpu_threads)
@@ -253,13 +269,15 @@ def init_inner_training(
     # Param groups. Group 0 ("main") always holds the LR the Brain lever + anneal
     # drive (via apply_inner_lr). Optional extra groups carve out params that need
     # a different LR: the neuromod decoder (fixed LR, docs/multi_agent/0002) and —
-    # LOOP-0007 cand 1 — the critic head (LR = main * critic_lr_scale, tracked so
-    # the Brain's proven LR lever still reaches it, damped). Groups are built only
-    # when their mechanism is active, so a plain run stays a single-group optimizer
+    # LOOP-0007 cands 1/5 — the critic head (LR = main * critic_lr_scale) and the
+    # shared encoder (LR = main * encoder_lr_scale), both tracked so the Brain's
+    # proven LR lever still reaches them, damped. Groups are built only when their
+    # mechanism is active, so a plain run stays a single-group optimizer
     # byte-identical to the previous behaviour.
     decouple_decoder = trainable_neuromod and neuromod_decoder_lr is not None
     decouple_critic = critic_lr_scale != 1.0
-    if decouple_decoder or decouple_critic:
+    decouple_encoder = encoder_lr_scale != 1.0
+    if decouple_decoder or decouple_critic or decouple_encoder:
         reserved_ids: set[int] = set()
         param_groups = []
         if decouple_decoder:
@@ -268,6 +286,9 @@ def init_inner_training(
         if decouple_critic:
             critic_params = list(model.critic_head.parameters())
             reserved_ids |= {id(p) for p in critic_params}
+        if decouple_encoder:
+            encoder_params = list(model.encoder.parameters())
+            reserved_ids |= {id(p) for p in encoder_params}
         main_params = [p for p in model.parameters() if id(p) not in reserved_ids]
         param_groups.append({"params": main_params, "lr": cfg.lr, "name": "main"})
         if decouple_decoder:
@@ -277,6 +298,10 @@ def init_inner_training(
         if decouple_critic:
             param_groups.append(
                 {"params": critic_params, "lr": cfg.lr * critic_lr_scale, "name": "critic"}
+            )
+        if decouple_encoder:
+            param_groups.append(
+                {"params": encoder_params, "lr": cfg.lr * encoder_lr_scale, "name": "encoder"}
             )
         optimizer = torch.optim.Adam(param_groups, eps=1e-5)
     else:

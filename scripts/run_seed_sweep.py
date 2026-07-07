@@ -278,7 +278,12 @@ CONDITIONS: dict[str, dict] = {
     #     DAMP the measured post-switch critic whiplash (|ΔV|≈0.92 vs policy-KL≈0.001). The
     #     Brain's proven LR lever still moves the critic, halved. Predict composite ↑ via
     #     less-biased GAE + hit_80 ↑. Code-free analogue of the null critic_code.
+    #   encoder_lr_lo (cand 5): shared encoder in its own group at LR = main_lr * 0.5, so
+    #     features stay stable across regimes while heads re-map fast. Code-free, uniform
+    #     analogue of the null gradgate — isolates whether the two-timescale idea itself carries
+    #     value once the (dead) code-gating is removed. Predict composite ↑; null retires it.
     "brain_neuromod_critic_lr_lo": {"neuromod_critic_lr_scale": 0.5},
+    "brain_neuromod_encoder_lr_lo": {"neuromod_encoder_lr_scale": 0.5},
 }
 
 # Metrics pulled from each scored run into the per-run table.

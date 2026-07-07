@@ -1,6 +1,7 @@
 """
-Regression tests for LOOP-0007 candidate 1 — decoupled critic learning rate
-(research note 0004, code-free plasticity/stability family).
+Regression tests for LOOP-0007 candidates 1 & 5 — decoupled critic learning rate
+and two-timescale encoder-vs-heads (research note 0004, code-free
+plasticity/stability family). Both use the same param-group + LR-mirror mechanics.
 
 The mechanism's contract:
   - critic_lr_scale == 1.0 (default): single-group optimizer, byte-identical to
@@ -147,5 +148,60 @@ def test_decoupled_critic_composes_with_decoder_group():
         assert abs(groups["main"]["lr"] - 9e-4) < 1e-12
         assert abs(groups["critic"]["lr"] - 9e-4 * 0.5) < 1e-12
         assert abs(groups["decoder"]["lr"] - 1e-5) < 1e-12
+    finally:
+        state.envs.close()
+
+
+# --------------------------------------------------------------------------- #
+# LOOP-0007 cand 5 — two-timescale encoder-vs-heads (same mechanics)
+# --------------------------------------------------------------------------- #
+
+def test_apply_inner_lr_mirrors_encoder_group():
+    opt = SimpleNamespace(param_groups=[
+        {"name": "main", "lr": 0.0},
+        {"name": "encoder", "lr": 0.0},
+    ])
+    cfg = SimpleNamespace(encoder_lr_scale=0.5)
+    apply_inner_lr(opt, 1e-3, cfg)
+    assert opt.param_groups[0]["lr"] == 1e-3
+    assert opt.param_groups[1]["lr"] == 5e-4
+
+
+def test_decoupled_encoder_builds_scaled_group():
+    lr = 2.5e-4
+    scale = 0.5
+    state = init_inner_training(ENV_ID, _tiny_cfg(lr=lr), encoder_lr_scale=scale)
+    try:
+        groups = _groups_by_name(state.optimizer)
+        assert set(groups) == {"main", "encoder"}
+        assert abs(groups["main"]["lr"] - lr) < 1e-12
+        assert abs(groups["encoder"]["lr"] - lr * scale) < 1e-12
+
+        encoder_ids = {id(p) for p in state.model.encoder.parameters()}
+        assert {id(p) for p in groups["encoder"]["params"]} == encoder_ids
+        assert not (encoder_ids & {id(p) for p in groups["main"]["params"]})
+    finally:
+        state.envs.close()
+
+
+def test_critic_and_encoder_levers_compose():
+    lr = 2.5e-4
+    state = init_inner_training(
+        ENV_ID, _tiny_cfg(lr=lr), critic_lr_scale=0.5, encoder_lr_scale=0.25
+    )
+    try:
+        groups = _groups_by_name(state.optimizer)
+        assert set(groups) == {"main", "critic", "encoder"}
+        # main holds neither critic nor encoder params (both carved out).
+        carved = {id(p) for p in state.model.critic_head.parameters()} | {
+            id(p) for p in state.model.encoder.parameters()
+        }
+        assert not (carved & {id(p) for p in groups["main"]["params"]})
+
+        apply_inner_lr(state.optimizer, 9e-4, state.cfg)
+        groups = _groups_by_name(state.optimizer)
+        assert abs(groups["main"]["lr"] - 9e-4) < 1e-12
+        assert abs(groups["critic"]["lr"] - 9e-4 * 0.5) < 1e-12
+        assert abs(groups["encoder"]["lr"] - 9e-4 * 0.25) < 1e-12
     finally:
         state.envs.close()
