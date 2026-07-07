@@ -7,3 +7,6 @@
 [sweep] composite_score (mean [95% CI], n):
   brain_neuromod_redo  0.5563 [0.5563, 0.5563]  (n=1)
 [run_sweep] sweep exited ec=0
+[push] staged light bundle (368K); fallback tar: sweeps/confirm_redo_s6/results_bundle.tgz
+Preparing worktree (detached HEAD 51c3902)
+[push] pushed results/confirm_redo_s6 to branch 'results'.
