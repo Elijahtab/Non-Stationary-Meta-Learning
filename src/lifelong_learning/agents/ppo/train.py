@@ -183,6 +183,11 @@ class InnerTrainState:
     surprise_value_ema: float | None = None
     surprise_spike_remaining: int = 0
 
+    # --- LOOP-0007 cand 2: ReDo dormant-neuron reset (research note 0004; Sokar 2023) ---
+    # Every redo_interval updates, reset dormant hidden units in the actor/critic heads to
+    # restore plasticity; the dormant-fraction probe is logged. 0 == off.
+    redo_interval: int = 0
+
 
 # Cand-4 spike shape (fixed; only the trigger threshold is exposed as a lever).
 SURPRISE_SPIKE_FACTOR = 2.0     # transient multiplier on ent_coef + intrinsic_coef
@@ -208,6 +213,78 @@ def _update_surprise_spike(state, value_loss_now: float) -> None:
         SURPRISE_EMA_DECAY * s.surprise_value_ema
         + (1.0 - SURPRISE_EMA_DECAY) * value_loss_now
     )
+
+
+# Cand-2 ReDo (Sokar 2023): dormancy threshold on the normalized per-neuron activation
+# score. tau=0 resets only exactly-dead ReLU units; a small tau also catches near-dead.
+REDO_TAU = 0.025
+
+
+def _reset_adam_state(optimizer, param, rows=None, cols=None) -> None:
+    """Zero the Adam moment estimates for reset neurons so they restart cleanly (ReDo)."""
+    st = optimizer.state.get(param)
+    if not st:
+        return
+    for key in ("exp_avg", "exp_avg_sq"):
+        if key in st:
+            if rows is not None:
+                st[key][rows] = 0.0
+            if cols is not None:
+                st[key][:, cols] = 0.0
+
+
+def redo_reset_heads(model, optimizer, obs, tau: float = REDO_TAU) -> dict:
+    """LOOP-0007 cand 2 (ReDo, Sokar 2023): reset dormant hidden units in the actor & critic
+    heads to restore plasticity. A unit is dormant if its normalized mean-abs activation over
+    the batch is <= tau. Reset = re-init incoming weights (orthogonal) + zero bias, zero the
+    outgoing weights (so the reset does not perturb the output immediately), and clear the Adam
+    moments for the touched params. The trigger is a generic activation statistic, NOT the Brain
+    code. Returns {head: dormant_fraction} — the registered mechanism probe (note 0004)."""
+    activations: dict = {}
+
+    def _hook(name):
+        def _capture(module, inp, out):
+            activations[name] = out.detach()
+        return _capture
+
+    handles = [
+        model.actor_head[1].register_forward_hook(_hook("actor")),
+        model.critic_head[1].register_forward_hook(_hook("critic")),
+    ]
+    try:
+        with torch.no_grad():
+            model(obs)
+    finally:
+        for h in handles:
+            h.remove()
+
+    fractions: dict = {}
+    heads = [
+        ("actor", model.actor_head[0], model.actor_head[2]),
+        ("critic", model.critic_head[0], model.critic_head[2]),
+    ]
+    for name, in_layer, out_layer in heads:
+        act = activations[name]  # (batch, hidden)
+        mean_abs = act.abs().mean(dim=0)
+        score = mean_abs / (mean_abs.mean() + 1e-9)
+        dormant = (score <= tau).nonzero(as_tuple=True)[0]
+        fractions[name] = float(dormant.numel()) / float(mean_abs.numel())
+        if dormant.numel() == 0:
+            continue
+        with torch.no_grad():
+            new_rows = torch.empty(
+                dormant.numel(), in_layer.weight.shape[1], device=in_layer.weight.device
+            )
+            torch.nn.init.orthogonal_(new_rows, gain=np.sqrt(2))
+            in_layer.weight[dormant] = new_rows
+            if in_layer.bias is not None:
+                in_layer.bias[dormant] = 0.0
+            out_layer.weight[:, dormant] = 0.0
+            _reset_adam_state(optimizer, in_layer.weight, rows=dormant)
+            if in_layer.bias is not None:
+                _reset_adam_state(optimizer, in_layer.bias, rows=dormant)
+            _reset_adam_state(optimizer, out_layer.weight, cols=dormant)
+    return fractions
 
 
 def init_inner_training(
@@ -243,6 +320,7 @@ def init_inner_training(
     encoder_lr_scale: float = 1.0,
     plasticity_norm: bool = False,
     surprise_spike_threshold: float = 0.0,
+    redo_interval: int = 0,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -457,6 +535,7 @@ def init_inner_training(
         regime_step_counter=regime_step_counter,
         current_mode_regime=start_regime,
         surprise_spike_threshold=surprise_spike_threshold,
+        redo_interval=redo_interval,
     )
 
 
@@ -831,6 +910,12 @@ def run_inner_update(state: InnerTrainState) -> dict:
     if s.surprise_spike_threshold > 0.0:
         _update_surprise_spike(s, float(avg_stats.get("loss/value", 0.0)))
         s.logger.scalar("brain_neuromod/surprise_spike_active", float(spike_active), s.global_step)
+
+    # LOOP-0007 cand 2: periodic ReDo reset of dormant head units; log the dormant-fraction probe.
+    if s.redo_interval > 0 and update % s.redo_interval == 0:
+        redo_fractions = redo_reset_heads(s.model, s.optimizer, s.obs_t)
+        for head, frac in redo_fractions.items():
+            s.logger.scalar(f"brain_neuromod/redo_dormant_fraction_{head}", frac, s.global_step)
 
     for k, v in avg_stats.items():
         s.logger.scalar(k, v, s.global_step)

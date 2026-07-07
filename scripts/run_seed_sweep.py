@@ -292,8 +292,13 @@ CONDITIONS: dict[str, dict] = {
     #     guard: over-exploration could depress within-regime hit_80.
     "brain_neuromod_critic_lr_lo": {"neuromod_critic_lr_scale": 0.5},
     "brain_neuromod_encoder_lr_lo": {"neuromod_encoder_lr_scale": 0.5},
+    #   redo (cand 2): ReDo dormant-neuron reset every 50 updates (Sokar 2023); reset dormant
+    #     actor/critic head units to restore plasticity. Predict composite ↑ via faster
+    #     re-adaptation; registered mechanism probe = dormant-fraction (logged) must move, else
+    #     it fails cleanly. Trigger = generic activation stat, not the code.
     "brain_neuromod_plasticity_norm": {"neuromod_plasticity_norm": True},
     "brain_neuromod_surprise_spike": {"neuromod_surprise_spike": 0.5},
+    "brain_neuromod_redo": {"neuromod_redo_interval": 50},
 }
 
 # Metrics pulled from each scored run into the per-run table.

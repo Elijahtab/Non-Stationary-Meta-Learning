@@ -399,6 +399,7 @@ def train_brain(args):
             encoder_lr_scale=getattr(args, "neuromod_encoder_lr_scale", 1.0),
             plasticity_norm=getattr(args, "neuromod_plasticity_norm", False),
             surprise_spike_threshold=getattr(args, "neuromod_surprise_spike", 0.0),
+            redo_interval=getattr(args, "neuromod_redo_interval", 0),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -890,6 +891,12 @@ def main():
                         "NOT the Brain code). On a detected switch, transiently boost ent_coef + "
                         "intrinsic_coef for a few updates — faster than the Brain's decision cadence. "
                         "Default 0.0 = off. Typical research value: 0.5 (a 50%% value-loss jump).")
+    p.add_argument("--neuromod_redo_interval", type=int, default=0,
+                   help="LOOP-0007 cand 2 (code-free, ReDo/Sokar 2023): every N updates, reset "
+                        "dormant hidden units in the actor/critic heads (normalized activation "
+                        "<= tau) — re-init incoming weights, zero outgoing, clear Adam moments — to "
+                        "restore plasticity. Trigger is a generic activation statistic, not the "
+                        "code; dormant-fraction probe logged. Default 0 = off. Typical: 50.")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

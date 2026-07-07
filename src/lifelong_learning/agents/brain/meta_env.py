@@ -93,6 +93,7 @@ class MetaEnv(gym.Env):
         encoder_lr_scale: float = 1.0,
         plasticity_norm: bool = False,
         surprise_spike_threshold: float = 0.0,
+        redo_interval: int = 0,
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
@@ -155,6 +156,9 @@ class MetaEnv(gym.Env):
         # LOOP-0007 cand 4: transiently spike ent/intrinsic when the inner agent's own
         # TD-error surprise change-points (relative jump threshold); 0.0 == off.
         self.surprise_spike_threshold = surprise_spike_threshold
+        # LOOP-0007 cand 2: ReDo — reset dormant head units every redo_interval updates
+        # (Sokar 2023); dormant-fraction probe logged. 0 == off.
+        self.redo_interval = redo_interval
         self._prev_context_strength: float | None = None
         self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
@@ -259,6 +263,7 @@ class MetaEnv(gym.Env):
             encoder_lr_scale=self.encoder_lr_scale,
             plasticity_norm=self.plasticity_norm,
             surprise_spike_threshold=self.surprise_spike_threshold,
+            redo_interval=self.redo_interval,
         )
         if self.inner_log_dir is not None:
             ep_log_dir = os.path.join(self.inner_log_dir, f"{self._episode_prefix}_{self._episode_counter}")
