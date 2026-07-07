@@ -1,0 +1,28 @@
+[
+  {
+    "preset": "scoutv2",
+    "condition": "brain_constant_action",
+    "seed": 3,
+    "run_name": "scoutv2_brain_constant_action_seed3",
+    "resume_action": "fresh",
+    "command": "/venv/main/bin/python /workspace/Lifelong-Learning/scripts/train_brain.py --env_id MiniGrid-MultiGoal-8x8-v0 --num_regimes 2 --start_regime 0 --inner_total_timesteps 800000 --inner_steps_per_regime 100000 --inner_num_envs 8 --inner_num_steps 128 --inner_mode dyna --inner_intrinsic_coef 0.015 --inner_imagined_horizon 10 --inner_wm_lr 0.0001 --brain_num_envs 4 --brain_vectorization async --pretrain_episodes 0 --pretrain_mode recovery --brain_episodes 4 --brain_lr 0.0001 --brain_ent_coef 0.0 --decision_interval 10 --reward_alpha 0.1 --reward_beta 0.5 --reward_mode recovery --episodic_memory_capacity 50000 --max_inner_lr 0.003 --min_inner_lr 0.0001 --min_ent_coef 0.001 --max_ent_coef 0.1 --min_intrinsic_coef 0.001 --max_intrinsic_coef 0.5 --save_every_episodes 5 --plot_every_episodes 0 --constant_brain_action --seed 3 --device cuda --run_name scoutv2_brain_constant_action_seed3",
+    "duration_seconds": 4691.8,
+    "returncode": 0,
+    "log_path": "sweeps/confirm_d0_s3/logs/scoutv2_brain_constant_action_seed3.log",
+    "run_dir": "/workspace/Lifelong-Learning/runs/scoutv2_brain_constant_action_seed3_20260707-193717",
+    "probes_path": "sweeps/confirm_d0_s3/probes/scoutv2_brain_constant_action_seed3_probes.json",
+    "composite_score": 0.5812317438544825,
+    "mean_post_switch_window_success_rate": 0.5812317438544825,
+    "mean_episode_avg_success_rate": 0.949999988079071,
+    "median_steps_to_80": 33076.0,
+    "median_steps_to_95": 85244.0,
+    "hit_rate_80": 0.8571428571428571,
+    "hit_rate_95": 0.5714285714285714,
+    "mean_post_switch_policy_kl": 0.0,
+    "mean_post_switch_value_delta_abs": 0.0,
+    "mean_post_switch_neuromod_activity": 0.0,
+    "inner_run_count": 16,
+    "switch_count": 112,
+    "status": "scored"
+  }
+]
