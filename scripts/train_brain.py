@@ -395,6 +395,7 @@ def train_brain(args):
             critic_code_neuromod=getattr(args, "neuromod_critic_code", False),
             aux_code_coef=getattr(args, "neuromod_aux_code_coef", 0.0),
             neuromod_adam_flush_threshold=getattr(args, "neuromod_adam_flush_threshold", 0.0),
+            critic_lr_scale=getattr(args, "neuromod_critic_lr_scale", 1.0),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -863,6 +864,13 @@ def main():
                         "strength (||code||/sqrt(dim), in [0,1]) jumps by at least this much "
                         "between Brain decisions — flushing stale curvature after regime shifts. "
                         "Default 0.0 = off. Typical research value: 0.25.")
+    p.add_argument("--neuromod_critic_lr_scale", type=float, default=1.0,
+                   help="LOOP-0007 cand 1 (code-free): put the critic head in its own optimizer "
+                        "group whose LR = (Brain/anneal main LR) * this scale, to DAMP the measured "
+                        "post-switch critic whiplash without conditioning the critic on anything. "
+                        "The Brain's proven LR lever still reaches the critic, scaled. No code fed "
+                        "to the inner agent. Default 1.0 = off (single-group, baseline-identical). "
+                        "Typical research value: 0.5.")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

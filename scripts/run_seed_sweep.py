@@ -271,6 +271,14 @@ CONDITIONS: dict[str, dict] = {
     "brain_neuromod_critic_code_auxhi": {"neuromod_critic_code": True, "neuromod_aux_code_coef": 0.15},
     "brain_neuromod_auxcode_010": {"neuromod_aux_code_coef": 0.10},
     "brain_neuromod_auxcode_025": {"neuromod_aux_code_coef": 0.25},
+    # --- LOOP-0007: code-free plasticity & stability (research note 0004) ---------------------
+    # Nothing routes the regime code into the inner agent (dead across two families). These
+    # attack the two MEASURED pathologies directly. Screen at n≥8 from the start (the n=3 lesson).
+    #   critic_lr_lo (cand 1): critic head in its own optimizer group at LR = main_lr * 0.5, to
+    #     DAMP the measured post-switch critic whiplash (|ΔV|≈0.92 vs policy-KL≈0.001). The
+    #     Brain's proven LR lever still moves the critic, halved. Predict composite ↑ via
+    #     less-biased GAE + hit_80 ↑. Code-free analogue of the null critic_code.
+    "brain_neuromod_critic_lr_lo": {"neuromod_critic_lr_scale": 0.5},
 }
 
 # Metrics pulled from each scored run into the per-run table.

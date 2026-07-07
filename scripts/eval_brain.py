@@ -25,6 +25,7 @@ from lifelong_learning.agents.ppo.train import (
     init_inner_training,
     run_inner_update,
     close_inner_training,
+    apply_inner_lr,
 )
 from lifelong_learning.agents.brain.neuromod import BRAIN_CONTEXT_SLICE
 from lifelong_learning.agents.brain.signals import SignalExtractor
@@ -243,7 +244,7 @@ def eval_brain(args):
 
             # Action[0]: lr scale
             new_lr = map_to_range(float(action[0]), lr_bounds)
-            state.optimizer.param_groups[0]["lr"] = new_lr
+            apply_inner_lr(state.optimizer, new_lr, state.cfg)
 
             # Action[1]: entropy coefficient
             new_ent = map_to_range(float(action[1]), ent_coef_bounds)

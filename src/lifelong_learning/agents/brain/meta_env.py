@@ -18,6 +18,7 @@ from lifelong_learning.agents.ppo.train import (
     init_inner_training,
     run_inner_update,
     close_inner_training,
+    apply_inner_lr,
 )
 from lifelong_learning.agents.brain.neuromod import (
     BRAIN_ACTION_DIM,
@@ -88,6 +89,7 @@ class MetaEnv(gym.Env):
         critic_code_neuromod: bool = False,
         aux_code_coef: float = 0.0,
         neuromod_adam_flush_threshold: float = 0.0,
+        critic_lr_scale: float = 1.0,
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
@@ -138,6 +140,10 @@ class MetaEnv(gym.Env):
         # the context-code strength (‖code‖/√dim, clamped to [0,1]) jumps by at least this
         # much between Brain decisions — a Brain-directed "flush stale curvature" signal.
         self.neuromod_adam_flush_threshold = neuromod_adam_flush_threshold
+        # LOOP-0007 cand 1 (research note 0004): critic head in its own optimizer
+        # group at LR = main_lr * critic_lr_scale, to damp the measured critic
+        # whiplash. 1.0 == off (single-group optimizer, baseline-identical).
+        self.critic_lr_scale = critic_lr_scale
         self._prev_context_strength: float | None = None
         self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
@@ -238,6 +244,7 @@ class MetaEnv(gym.Env):
             grad_gate_neuromod=self.grad_gate_neuromod,
             critic_code_neuromod=self.critic_code_neuromod,
             aux_code_coef=self.aux_code_coef,
+            critic_lr_scale=self.critic_lr_scale,
         )
         if self.inner_log_dir is not None:
             ep_log_dir = os.path.join(self.inner_log_dir, f"{self._episode_prefix}_{self._episode_counter}")
@@ -425,7 +432,7 @@ class MetaEnv(gym.Env):
 
         # Action[0]: lr scale
         new_lr = map_to_range(action[0], self.lr_bounds)
-        s.optimizer.param_groups[0]["lr"] = new_lr
+        apply_inner_lr(s.optimizer, new_lr, s.cfg)
 
         # Action[1]: ent_coef
         s.cfg.ent_coef = map_to_range(action[1], self.ent_coef_bounds)
