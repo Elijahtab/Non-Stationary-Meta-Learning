@@ -1,0 +1,9 @@
+[sweep] preset=scoutv2 conditions=['brain_neuromod_auxcode_025'] seeds=[1]
+[sweep] 1 cells, max_parallel=1 -> sweeps/explore_ld_aux025
+[sweep] (1/1) brain_neuromod_auxcode_025 seed=1 -> scored composite=0.5303785943449562
+
+[sweep] done. per-run -> sweeps/explore_ld_aux025/runs.csv | summary -> sweeps/explore_ld_aux025/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod_auxcode_025 0.5304 [0.5304, 0.5304]  (n=1)
+[run_sweep] sweep exited ec=0
