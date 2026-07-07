@@ -1,0 +1,9 @@
+[sweep] preset=scoutv2 conditions=['brain_neuromod_plasticity_norm'] seeds=[2]
+[sweep] 1 cells, max_parallel=1 -> sweeps/confirm_pn_s2
+[sweep] (1/1) brain_neuromod_plasticity_norm seed=2 -> scored composite=0.4749751069358335
+
+[sweep] done. per-run -> sweeps/confirm_pn_s2/runs.csv | summary -> sweeps/confirm_pn_s2/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_neuromod_plasticity_norm 0.4750 [0.4750, 0.4750]  (n=1)
+[run_sweep] sweep exited ec=0
