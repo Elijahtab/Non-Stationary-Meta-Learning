@@ -398,6 +398,7 @@ def train_brain(args):
             critic_lr_scale=getattr(args, "neuromod_critic_lr_scale", 1.0),
             encoder_lr_scale=getattr(args, "neuromod_encoder_lr_scale", 1.0),
             plasticity_norm=getattr(args, "neuromod_plasticity_norm", False),
+            surprise_spike_threshold=getattr(args, "neuromod_surprise_spike", 0.0),
             runtime_cpu_threads=get_meta_env_runtime_cpu_threads(args.brain_vectorization),
         )
         for env_idx in range(args.brain_num_envs)
@@ -883,6 +884,12 @@ def main():
                         "flattened encoder representation (Lyle 2023 plasticity preservation), "
                         "applied before the neuromod mask and both heads. Adds params (checkpoints "
                         "NOT baseline-interchangeable). Also the A1 test. Default off.")
+    p.add_argument("--neuromod_surprise_spike", type=float, default=0.0,
+                   help="LOOP-0007 cand 4 (code-free): relative-jump threshold for a change-point "
+                        "detector on the inner agent's own per-update TD-error surprise (value_loss, "
+                        "NOT the Brain code). On a detected switch, transiently boost ent_coef + "
+                        "intrinsic_coef for a few updates — faster than the Brain's decision cadence. "
+                        "Default 0.0 = off. Typical research value: 0.5 (a 50%% value-loss jump).")
 
     # Episodic Memory
     p.add_argument("--episodic_memory_capacity", type=int, default=50000,

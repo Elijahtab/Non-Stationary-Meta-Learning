@@ -92,6 +92,7 @@ class MetaEnv(gym.Env):
         critic_lr_scale: float = 1.0,
         encoder_lr_scale: float = 1.0,
         plasticity_norm: bool = False,
+        surprise_spike_threshold: float = 0.0,
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
@@ -151,6 +152,9 @@ class MetaEnv(gym.Env):
         # LOOP-0007 cand 3: static LayerNorm on the shared encoder representation
         # (plasticity preservation, Lyle 2023). No code, no lever; also the A1 test.
         self.plasticity_norm = plasticity_norm
+        # LOOP-0007 cand 4: transiently spike ent/intrinsic when the inner agent's own
+        # TD-error surprise change-points (relative jump threshold); 0.0 == off.
+        self.surprise_spike_threshold = surprise_spike_threshold
         self._prev_context_strength: float | None = None
         self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
@@ -254,6 +258,7 @@ class MetaEnv(gym.Env):
             critic_lr_scale=self.critic_lr_scale,
             encoder_lr_scale=self.encoder_lr_scale,
             plasticity_norm=self.plasticity_norm,
+            surprise_spike_threshold=self.surprise_spike_threshold,
         )
         if self.inner_log_dir is not None:
             ep_log_dir = os.path.join(self.inner_log_dir, f"{self._episode_prefix}_{self._episode_counter}")

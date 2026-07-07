@@ -286,9 +286,14 @@ CONDITIONS: dict[str, dict] = {
     #     2023), no code/lever. Predict composite ↑ / hit_80 ↑ via sustained cross-regime
     #     adaptability; also the A1 test — if it does nothing, plasticity loss probably isn't the
     #     bottleneck on this 2-regime task. Adds params (not baseline-interchangeable).
+    #   surprise_spike (cand 4): change-point detector on the agent's own per-update TD-error
+    #     surprise (value_loss) transiently spikes ent/intrinsic at DETECTED switches — faster
+    #     than the Brain's decision_interval. Predict faster post-switch recovery (composite ↑);
+    #     guard: over-exploration could depress within-regime hit_80.
     "brain_neuromod_critic_lr_lo": {"neuromod_critic_lr_scale": 0.5},
     "brain_neuromod_encoder_lr_lo": {"neuromod_encoder_lr_scale": 0.5},
     "brain_neuromod_plasticity_norm": {"neuromod_plasticity_norm": True},
+    "brain_neuromod_surprise_spike": {"neuromod_surprise_spike": 0.5},
 }
 
 # Metrics pulled from each scored run into the per-run table.

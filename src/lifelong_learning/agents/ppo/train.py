@@ -174,6 +174,41 @@ class InnerTrainState:
     regime_step_counter: list = field(default_factory=lambda: [0])
     current_mode_regime: int = 0
 
+    # --- LOOP-0007 cand 4: surprise-triggered exploration spike (research note 0004) ---
+    # A generic change-point detector on the inner agent's own per-update TD-error surprise
+    # (value_loss) — NOT the Brain code. When value_loss jumps > threshold above its EMA, a
+    # regime switch is inferred and ent_coef/intrinsic_coef are transiently boosted for a few
+    # updates, faster than the Brain's decision_interval cadence. threshold 0.0 == off.
+    surprise_spike_threshold: float = 0.0
+    surprise_value_ema: float | None = None
+    surprise_spike_remaining: int = 0
+
+
+# Cand-4 spike shape (fixed; only the trigger threshold is exposed as a lever).
+SURPRISE_SPIKE_FACTOR = 2.0     # transient multiplier on ent_coef + intrinsic_coef
+SURPRISE_SPIKE_UPDATES = 3      # updates the boost persists after a detected switch
+SURPRISE_EMA_DECAY = 0.9        # EMA smoothing of the value-loss baseline
+
+
+def _update_surprise_spike(state, value_loss_now: float) -> None:
+    """Cand-4 change-point detector (research note 0004): arm the exploration spike when the
+    per-update TD-error surprise (value_loss) jumps more than surprise_spike_threshold above
+    its EMA baseline — a generic switch signal from the agent's own learning dynamics, not the
+    Brain code. Mutates state.surprise_spike_remaining / surprise_value_ema in place. No-op when
+    the mechanism is off. First observation only seeds the baseline (never triggers)."""
+    s = state
+    if s.surprise_spike_threshold <= 0.0:
+        return
+    if s.surprise_value_ema is None:
+        s.surprise_value_ema = value_loss_now
+        return
+    if value_loss_now > s.surprise_value_ema * (1.0 + s.surprise_spike_threshold):
+        s.surprise_spike_remaining = SURPRISE_SPIKE_UPDATES
+    s.surprise_value_ema = (
+        SURPRISE_EMA_DECAY * s.surprise_value_ema
+        + (1.0 - SURPRISE_EMA_DECAY) * value_loss_now
+    )
+
 
 def init_inner_training(
     env_id: str,
@@ -207,6 +242,7 @@ def init_inner_training(
     critic_lr_scale: float = 1.0,
     encoder_lr_scale: float = 1.0,
     plasticity_norm: bool = False,
+    surprise_spike_threshold: float = 0.0,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -420,6 +456,7 @@ def init_inner_training(
         episodic_memory_capacity=episodic_memory_capacity,
         regime_step_counter=regime_step_counter,
         current_mode_regime=start_regime,
+        surprise_spike_threshold=surprise_spike_threshold,
     )
 
 
@@ -448,6 +485,21 @@ def run_inner_update(state: InnerTrainState) -> dict:
 
     if update > s.num_updates:
         return {"done": True, "global_step": s.global_step}
+
+    # -----------------------------------------------------------------
+    # LOOP-0007 cand 4: surprise-triggered exploration spike (transient).
+    # If a prior update's TD-error jump armed the spike, boost ent_coef +
+    # intrinsic_coef for THIS update only (base values are restored after the
+    # update, below, so the Brain's own settings are never overwritten). No-op
+    # unless the mechanism is armed (threshold > 0 and a switch was detected).
+    # -----------------------------------------------------------------
+    spike_active = s.surprise_spike_remaining > 0
+    base_ent_coef = s.cfg.ent_coef
+    base_intrinsic_coef = s.intrinsic_coef
+    if spike_active:
+        s.cfg.ent_coef = base_ent_coef * SURPRISE_SPIKE_FACTOR
+        s.intrinsic_coef = base_intrinsic_coef * SURPRISE_SPIKE_FACTOR
+        s.surprise_spike_remaining -= 1
 
     # -----------------------------------------------------------------
     # Learning rate annealing
@@ -770,6 +822,15 @@ def run_inner_update(state: InnerTrainState) -> dict:
 
     avg_stats = {k: np.mean([st[k] for st in update_stats]) for k in update_stats[0]} if update_stats else {}
     avg_wm_stats = {k: np.mean([st[k] for st in wm_stats]) for k in wm_stats[0]} if wm_stats else {}
+
+    # LOOP-0007 cand 4: restore the Brain's base coefs (undo this update's transient spike),
+    # then run the change-point detector on this update's TD-error surprise (value_loss) to
+    # arm the spike for upcoming updates if a regime switch is inferred.
+    s.cfg.ent_coef = base_ent_coef
+    s.intrinsic_coef = base_intrinsic_coef
+    if s.surprise_spike_threshold > 0.0:
+        _update_surprise_spike(s, float(avg_stats.get("loss/value", 0.0)))
+        s.logger.scalar("brain_neuromod/surprise_spike_active", float(spike_active), s.global_step)
 
     for k, v in avg_stats.items():
         s.logger.scalar(k, v, s.global_step)
