@@ -26,6 +26,10 @@ class PPOConfig:
     device: str = "cuda"
     mode: str = "dyna"
     anchoring_weight: float = 0.0
+    # LOOP-0006 hypothesis 3: weight of the auxiliary regime-inference loss (predict the
+    # Brain's context code from encoder features). 0.0 (default) = off, byte-identical
+    # baseline; requires the model to be built with aux_code_head=True.
+    aux_code_coef: float = 0.0
 
 
 def ppo_update(
@@ -41,6 +45,7 @@ def ppo_update(
     Returns averaged logging scalars.
     """
     total_pg, total_v, total_ent, total_kl, total_loss = 0.0, 0.0, 0.0, 0.0, 0.0
+    total_aux_code = 0.0
     n = 0
 
     for i, (obs, actions, old_logprobs, advantages, returns, old_values) in enumerate(minibatches):
@@ -72,6 +77,13 @@ def ppo_update(
 
         loss = pg_loss - cfg.ent_coef * ent_loss + cfg.vf_coef * v_loss
 
+        # Auxiliary regime-inference loss (LOOP-0006 hypothesis 3): press the Brain's
+        # context code into the shared representation as a prediction target.
+        aux_code_loss = torch.tensor(0.0, device=loss.device)
+        if getattr(cfg, "aux_code_coef", 0.0) > 0.0 and hasattr(model, "aux_code_loss"):
+            aux_code_loss = model.aux_code_loss(obs)
+            loss = loss + cfg.aux_code_coef * aux_code_loss
+
         # Distillation / Anchoring loss
         kl_penalty = torch.tensor(0.0, device=loss.device)
         if cfg.anchoring_weight > 0.0 and anchor_logprobs_list is not None:
@@ -92,6 +104,7 @@ def ppo_update(
         total_v += float(v_loss.detach().cpu())
         total_ent += float(ent_loss.detach().cpu())
         total_kl += float(kl_penalty.detach().cpu()) if cfg.anchoring_weight > 0.0 else 0.0
+        total_aux_code += float(aux_code_loss.detach().cpu())
         total_loss += float(loss.detach().cpu())
         n += 1
 
@@ -103,5 +116,7 @@ def ppo_update(
     }
     if cfg.anchoring_weight > 0.0:
         stats["loss/kl_anchor"] = total_kl / max(n, 1)
+    if getattr(cfg, "aux_code_coef", 0.0) > 0.0:
+        stats["loss/aux_code"] = total_aux_code / max(n, 1)
 
     return stats

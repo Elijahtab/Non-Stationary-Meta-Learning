@@ -60,7 +60,12 @@ if [ -z "$TOKEN" ] && ! git config --get credential.helper >/dev/null 2>&1; then
   rm -rf "$STAGE"; exit 0
 fi
 
-# 3. Commit onto the results branch via a throwaway worktree (never touches the current checkout).
+# 3. Commit onto the results branch via a throwaway worktree (never touches the current
+#    checkout). Multiple cells finishing in the same window race on the branch tip; a losing
+#    non-fast-forward push used to be swallowed as "non-fatal" upstream and silently dropped
+#    the dir (LOOP-0006/0007 lost ~20 per-seed dirs this way). Now every attempt re-fetches
+#    the fresh tip, re-commits the bundle on top, and retries with backoff; exhausting the
+#    retries is a LOUD failure (nonzero exit + greppable marker in the sweep log).
 REMOTE_URL="${REMOTE_URL:-$(git remote get-url origin)}"
 PUSH_URL="$REMOTE_URL"
 # Embed the token only when we actually have one; otherwise rely on the credential helper.
@@ -69,24 +74,43 @@ if [ -n "$TOKEN" ]; then
     https://github.com/*) PUSH_URL="https://x-access-token:${TOKEN}@github.com/${REMOTE_URL#https://github.com/}" ;;
   esac
 fi
-git fetch --quiet "$PUSH_URL" "+refs/heads/${RESULTS_BRANCH}:refs/remotes/results_push/${RESULTS_BRANCH}" 2>/dev/null || true
 WT="$(mktemp -d)"
 cleanup() { git worktree remove --force "$WT" 2>/dev/null || true; rm -rf "$STAGE" "$WT"; }
 trap cleanup EXIT
-if git rev-parse -q --verify "refs/remotes/results_push/${RESULTS_BRANCH}" >/dev/null; then
-  git worktree add -f "$WT" "refs/remotes/results_push/${RESULTS_BRANCH}" >/dev/null
-  ( cd "$WT" && git checkout -qB "$RESULTS_BRANCH" )
-else
-  git worktree add -f "$WT" HEAD >/dev/null
-  ( cd "$WT" && git checkout -q --orphan "$RESULTS_BRANCH" && git rm -rqf . >/dev/null 2>&1 || true )
+git worktree add -f "$WT" HEAD >/dev/null
+
+MAX_PUSH_ATTEMPTS="${MAX_PUSH_ATTEMPTS:-6}"
+pushed=0
+for attempt in $(seq 1 "$MAX_PUSH_ATTEMPTS"); do
+  git fetch --quiet "$PUSH_URL" "+refs/heads/${RESULTS_BRANCH}:refs/remotes/results_push/${RESULTS_BRANCH}" 2>/dev/null || true
+  if git rev-parse -q --verify "refs/remotes/results_push/${RESULTS_BRANCH}" >/dev/null; then
+    ( cd "$WT" && git checkout -qB "$RESULTS_BRANCH" "refs/remotes/results_push/${RESULTS_BRANCH}" )
+  else
+    # First-ever push: build the branch as an orphan (retries reuse the local branch).
+    ( cd "$WT" && { git checkout -q --orphan "$RESULTS_BRANCH" 2>/dev/null \
+                      && { git rm -rqf . >/dev/null 2>&1 || true; } \
+                    || git checkout -q "$RESULTS_BRANCH"; } )
+  fi
+  rm -rf "$WT/results/$SWEEP_NAME"
+  mkdir -p "$WT/results"
+  cp -r "$STAGE/results/$SWEEP_NAME" "$WT/results/"
+  if (
+    cd "$WT"
+    git add -A "results/$SWEEP_NAME"
+    git -c user.email="cloud@runpod" -c user.name="cloud-sweep" \
+        commit -q -m "results: $SWEEP_NAME ($(date -u +%Y-%m-%dT%H:%M:%SZ))" \
+      || { echo "[push] nothing to commit — branch already has identical content"; exit 0; }
+    git push -q "$PUSH_URL" "HEAD:refs/heads/${RESULTS_BRANCH}"
+  ); then
+    pushed=1
+    break
+  fi
+  echo "[push] attempt $attempt/$MAX_PUSH_ATTEMPTS lost the branch race (or push failed); retrying on the fresh tip..."
+  sleep $(( (RANDOM % 5) + attempt * 3 ))
+done
+
+if [ "$pushed" != "1" ]; then
+  echo "[push] RESULTS_PUSH_FAILED: results/$SWEEP_NAME after $MAX_PUSH_ATTEMPTS attempts — bundle kept at $SWEEP_DIR/results_bundle.tgz"
+  exit 1
 fi
-mkdir -p "$WT/results"
-cp -r "$STAGE/results/$SWEEP_NAME" "$WT/results/"
-(
-  cd "$WT"
-  git add -A "results/$SWEEP_NAME"
-  git -c user.email="cloud@runpod" -c user.name="cloud-sweep" \
-      commit -q -m "results: $SWEEP_NAME ($(date -u +%Y-%m-%dT%H:%M:%SZ))" || { echo "[push] nothing to commit"; exit 0; }
-  git push -q "$PUSH_URL" "HEAD:refs/heads/${RESULTS_BRANCH}"
-)
 echo "[push] pushed results/$SWEEP_NAME to branch '${RESULTS_BRANCH}'."

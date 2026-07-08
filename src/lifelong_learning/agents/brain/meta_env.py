@@ -18,6 +18,7 @@ from lifelong_learning.agents.ppo.train import (
     init_inner_training,
     run_inner_update,
     close_inner_training,
+    apply_inner_lr,
 )
 from lifelong_learning.agents.brain.neuromod import (
     BRAIN_ACTION_DIM,
@@ -84,6 +85,17 @@ class MetaEnv(gym.Env):
         neuromod_decoder_lr: float | None = None,
         actor_only_neuromod: bool = False,
         neuromod_gain_alpha: float = 0.0,
+        grad_gate_neuromod: bool = False,
+        critic_code_neuromod: bool = False,
+        aux_code_coef: float = 0.0,
+        neuromod_adam_flush_threshold: float = 0.0,
+        critic_lr_scale: float = 1.0,
+        encoder_lr_scale: float = 1.0,
+        plasticity_norm: bool = False,
+        surprise_spike_threshold: float = 0.0,
+        redo_interval: int = 0,
+        critic_lr_oracle_scale: float = 0.0,
+        policy_swap_topline: bool = False,
         runtime_cpu_threads: int | None = None,
     ):
         super().__init__()
@@ -127,6 +139,37 @@ class MetaEnv(gym.Env):
         self.neuromod_decoder_lr = neuromod_decoder_lr
         self.actor_only_neuromod = actor_only_neuromod
         self.neuromod_gain_alpha = neuromod_gain_alpha
+        self.grad_gate_neuromod = grad_gate_neuromod
+        self.critic_code_neuromod = critic_code_neuromod
+        self.aux_code_coef = aux_code_coef
+        # LOOP-0006 hypothesis 4: when > 0, reset the inner Adam optimizer state whenever
+        # the context-code strength (‖code‖/√dim, clamped to [0,1]) jumps by at least this
+        # much between Brain decisions — a Brain-directed "flush stale curvature" signal.
+        self.neuromod_adam_flush_threshold = neuromod_adam_flush_threshold
+        # LOOP-0007 cands 1/5 (research note 0004): critic head / shared encoder in
+        # their own optimizer group at LR = main_lr * scale — cand 1 damps critic
+        # whiplash, cand 5 makes the encoder learn slower than the heads (stable
+        # features, fast readout re-map). 1.0 == off (baseline-identical).
+        self.critic_lr_scale = critic_lr_scale
+        self.encoder_lr_scale = encoder_lr_scale
+        # LOOP-0007 cand 3: static LayerNorm on the shared encoder representation
+        # (plasticity preservation, Lyle 2023). No code, no lever; also the A1 test.
+        self.plasticity_norm = plasticity_norm
+        # LOOP-0007 cand 4: transiently spike ent/intrinsic when the inner agent's own
+        # TD-error surprise change-points (relative jump threshold); 0.0 == off.
+        self.surprise_spike_threshold = surprise_spike_threshold
+        # LOOP-0007 cand 2: ReDo — reset dormant head units every redo_interval updates
+        # (Sokar 2023); dormant-fraction probe logged. 0 == off.
+        self.redo_interval = redo_interval
+        # O1 oracle rung (research note 0005): ground-truth-timed critic-LR damp — on each
+        # detected regime switch the critic group runs at main_lr * this scale for a fixed
+        # window. Upper-bounds any Brain-learned critic damp. 0.0 == off.
+        self.critic_lr_oracle_scale = critic_lr_oracle_scale
+        # O2 oracle rung (research note 0005): per-regime learner snapshot/restore on
+        # revisit — the zero-forgetting ceiling of this instrument (diagnostic, never a
+        # method). False == off.
+        self.policy_swap_topline = policy_swap_topline
+        self._prev_context_strength: float | None = None
         self._random_context_code = None
         self.runtime_cpu_threads = runtime_cpu_threads
 
@@ -197,6 +240,9 @@ class MetaEnv(gym.Env):
         if self._state is not None:
             close_inner_training(self._state)
 
+        # Adam-flush spike detector starts fresh each episode (new optimizer, new inner run).
+        self._prev_context_strength = None
+
         self._episode_counter += 1
         run_name = self.inner_run_name or f"ep{self._episode_counter}_env{self.env_index}"
 
@@ -220,6 +266,16 @@ class MetaEnv(gym.Env):
             neuromod_decoder_lr=self.neuromod_decoder_lr,
             actor_only_neuromod=self.actor_only_neuromod,
             neuromod_gain_alpha=self.neuromod_gain_alpha,
+            grad_gate_neuromod=self.grad_gate_neuromod,
+            critic_code_neuromod=self.critic_code_neuromod,
+            aux_code_coef=self.aux_code_coef,
+            critic_lr_scale=self.critic_lr_scale,
+            encoder_lr_scale=self.encoder_lr_scale,
+            plasticity_norm=self.plasticity_norm,
+            surprise_spike_threshold=self.surprise_spike_threshold,
+            redo_interval=self.redo_interval,
+            critic_lr_oracle_scale=self.critic_lr_oracle_scale,
+            policy_swap_topline=self.policy_swap_topline,
         )
         if self.inner_log_dir is not None:
             ep_log_dir = os.path.join(self.inner_log_dir, f"{self._episode_prefix}_{self._episode_counter}")
@@ -407,7 +463,7 @@ class MetaEnv(gym.Env):
 
         # Action[0]: lr scale
         new_lr = map_to_range(action[0], self.lr_bounds)
-        s.optimizer.param_groups[0]["lr"] = new_lr
+        apply_inner_lr(s.optimizer, new_lr, s.cfg)
 
         # Action[1]: ent_coef
         s.cfg.ent_coef = map_to_range(action[1], self.ent_coef_bounds)
@@ -434,7 +490,29 @@ class MetaEnv(gym.Env):
             code = self._resolve_context_code(action)
             context_code = torch.tensor(code, dtype=torch.float32, device=s.device)
             s.model.set_context_code(context_code)
+            self._maybe_flush_optimizer_state(code)
             self._log_neuromodulation_snapshot(context_code)
+
+    def _maybe_flush_optimizer_state(self, code: np.ndarray) -> None:
+        """LOOP-0006 hypothesis 4: reset stale Adam moments on a context-strength spike.
+
+        Strength = ‖code‖/√dim clamped to [0,1] (same scalar that scales the decoded
+        mask). A jump ≥ threshold between consecutive Brain decisions clears the inner
+        optimizer's per-param state (exp_avg, exp_avg_sq, step) — Adam re-estimates
+        curvature from post-spike gradients instead of mis-scaling updates with
+        pre-switch second moments. Default threshold 0.0 = disabled (baseline).
+        """
+        if self.neuromod_adam_flush_threshold <= 0.0:
+            return
+        strength = min(1.0, float(np.linalg.norm(code)) / float(np.sqrt(CONTEXT_CODE_DIM)))
+        prev = self._prev_context_strength
+        self._prev_context_strength = strength
+        if prev is None or abs(strength - prev) < self.neuromod_adam_flush_threshold:
+            return
+        s = self._state
+        s.optimizer.state.clear()
+        if s.logger is not None:
+            s.logger.scalar("brain_neuromod/adam_flush_event", 1.0, s.global_step)
 
     def _resolve_context_code(self, action: np.ndarray) -> np.ndarray:
         """Select the neuromodulation context code per ``context_code_source``.

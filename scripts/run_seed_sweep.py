@@ -240,6 +240,80 @@ CONDITIONS: dict[str, dict] = {
     # gain-a0.5 +10.7pts). Run with --preset scoutv2 against brain_neuromod as control.
     "brain_neuromod_actor_only": {"neuromod_actor_only": True},
     "brain_neuromod_gain05": {"neuromod_gain_alpha": 0.5},
+    # --- LOOP-0006 learning-dynamics family (queue entries 1-4; note 0003 + loop note) ----
+    # Code -> learning dynamics instead of forward-path modulation. Screen at n=1 (seed 1)
+    # vs the LOOP-0004 n=8 frozen control, extend seeds per research-log 0007 decision rules.
+    "brain_neuromod_gradgate": {"neuromod_grad_gate": True},
+    "brain_neuromod_critic_code": {"neuromod_critic_code": True},
+    "brain_neuromod_auxcode": {"neuromod_aux_code_coef": 0.05},
+    "brain_neuromod_adamflush": {"neuromod_adam_flush_threshold": 0.25},
+    # --- Idle-capacity exploration variants (log 0007 addendum; explore_* out dirs) -------
+    # Flag combos of the mechanisms above — no new code paths. n=1 screens only.
+    #   gradgate_gain: two-sided plasticity gate in [0.5, 1.5] (gain decode feeds the
+    #                  backward gate) — the Brain can AMPLIFY learning, not just protect.
+    #   critic_code_gradgate: queue entries 1+2 stacked (independent by construction).
+    #   auxcode_hi / adamflush_lo: dose variants of entries 3-4.
+    "brain_neuromod_gradgate_gain": {"neuromod_grad_gate": True, "neuromod_gain_alpha": 0.5},
+    "brain_neuromod_critic_code_gradgate": {"neuromod_grad_gate": True, "neuromod_critic_code": True},
+    "brain_neuromod_auxcode_hi": {"neuromod_aux_code_coef": 0.15},
+    "brain_neuromod_adamflush_lo": {"neuromod_adam_flush_threshold": 0.1},
+    # --- Reliability-fork follow-ups (LOOP-0006 gate 2026-07-06; RUN-20260706 living doc) ----
+    # The two DURABLE leads were reliability-signature wins (composite flat, hit_80 > baseline
+    # CI): critic_code (holdout-CONFIRMED) and auxcode_hi (n=3 signature). Their n=1 "composite
+    # leads" were noise; gradgate_gain's composite lead FAILED holdout. So we deepen the
+    # reliability axis, not composite. Screen n=1 per fork; predictions in log 0007 addendum.
+    #   critic_code_auxhi: do the two reliability winners STACK? (independent code paths:
+    #     critic reads code as input; aux adds a code-prediction loss). Predict hit_80 ≥ the
+    #     better single (~0.86) with composite still flat — additive reliability if mechanisms
+    #     are complementary, sub-additive if they tap the same signal.
+    #   auxcode coef curve: 0.05 was KILLED, 0.15 wins on reliability. Map the dose-response
+    #     between/above to locate the reliability optimum (0.10 interpolates, 0.25 pushes).
+    "brain_neuromod_critic_code_auxhi": {"neuromod_critic_code": True, "neuromod_aux_code_coef": 0.15},
+    "brain_neuromod_auxcode_010": {"neuromod_aux_code_coef": 0.10},
+    "brain_neuromod_auxcode_025": {"neuromod_aux_code_coef": 0.25},
+    # --- LOOP-0007: code-free plasticity & stability (research note 0004) ---------------------
+    # Nothing routes the regime code into the inner agent (dead across two families). These
+    # attack the two MEASURED pathologies directly. Screen at n≥8 from the start (the n=3 lesson).
+    #   critic_lr_lo (cand 1): critic head in its own optimizer group at LR = main_lr * 0.5, to
+    #     DAMP the measured post-switch critic whiplash (|ΔV|≈0.92 vs policy-KL≈0.001). The
+    #     Brain's proven LR lever still moves the critic, halved. Predict composite ↑ via
+    #     less-biased GAE + hit_80 ↑. Code-free analogue of the null critic_code.
+    #   encoder_lr_lo (cand 5): shared encoder in its own group at LR = main_lr * 0.5, so
+    #     features stay stable across regimes while heads re-map fast. Code-free, uniform
+    #     analogue of the null gradgate — isolates whether the two-timescale idea itself carries
+    #     value once the (dead) code-gating is removed. Predict composite ↑; null retires it.
+    #   plasticity_norm (cand 3): static LayerNorm on the shared encoder representation (Lyle
+    #     2023), no code/lever. Predict composite ↑ / hit_80 ↑ via sustained cross-regime
+    #     adaptability; also the A1 test — if it does nothing, plasticity loss probably isn't the
+    #     bottleneck on this 2-regime task. Adds params (not baseline-interchangeable).
+    #   surprise_spike (cand 4): change-point detector on the agent's own per-update TD-error
+    #     surprise (value_loss) transiently spikes ent/intrinsic at DETECTED switches — faster
+    #     than the Brain's decision_interval. Predict faster post-switch recovery (composite ↑);
+    #     guard: over-exploration could depress within-regime hit_80.
+    "brain_neuromod_critic_lr_lo": {"neuromod_critic_lr_scale": 0.5},
+    "brain_neuromod_encoder_lr_lo": {"neuromod_encoder_lr_scale": 0.5},
+    #   redo (cand 2): ReDo dormant-neuron reset every 50 updates (Sokar 2023); reset dormant
+    #     actor/critic head units to restore plasticity. Predict composite ↑ via faster
+    #     re-adaptation; registered mechanism probe = dormant-fraction (logged) must move, else
+    #     it fails cleanly. Trigger = generic activation stat, not the code.
+    "brain_neuromod_plasticity_norm": {"neuromod_plasticity_norm": True},
+    "brain_neuromod_surprise_spike": {"neuromod_surprise_spike": 0.5},
+    "brain_neuromod_redo": {"neuromod_redo_interval": 50},
+    # Bottom-rung + oracle-rung controls (research note 0005) — the strategic-fork tests.
+    #   constant_action (D0): Brain severed — zero action every decision = exact mid-bound
+    #     HPs (the levels trained scout Brains empirically settle at, note 0005) with no
+    #     sampling noise, Brain updates skipped. Directly measures what the Brain — an
+    #     effectively untrained, noisy controller on this instrument (note 0005 A1 probe) —
+    #     adds vs tuned static HPs.
+    #   critic_lr_oracle (O1): ground-truth-timed critic damp (×0.5, detection update + 15
+    #     following). Upper-bounds ANY Brain-learned critic damp — the adaptive A2 test the
+    #     static cand-1 null could not answer. If this fails at n=8, A2 is dead.
+    #   policy_swap (O2): per-regime learner snapshot/restore on revisit — the
+    #     zero-forgetting CEILING of the instrument (diagnostic, never a method); sizes the
+    #     headroom above the frozen control (reading ①).
+    "brain_constant_action": {"constant_brain_action": True},
+    "brain_critic_lr_oracle": {"neuromod_critic_lr_oracle": 0.5},
+    "brain_oracle_policy_swap": {"neuromod_policy_swap": True},
 }
 
 # Metrics pulled from each scored run into the per-run table.
@@ -327,6 +401,36 @@ def _bootstrap_ci(values: list[float], n_boot: int = 10000, alpha: float = 0.05,
     return (mean, lo, hi, len(arr))
 
 
+# Inner-run scalar prefix that marks a mechanism probe (e.g. the ReDo dormant-fraction —
+# note 0004's registered probe — or the O1/O2 oracle activity flags).
+PROBE_PREFIX = "brain_neuromod/"
+
+
+def _extract_probes(run_dir: Path, out_dir: Path, run_name: str) -> str | None:
+    """Copy every mechanism-probe series (brain_neuromod/* scalars) out of the ephemeral
+    episode_*/ inner logs into the sweep dir, so probes land on origin/results alongside
+    the scores instead of dying with the box disk. The LOOP-0007 redo gate was probe-blind
+    because these series lived only in the inner logs (research note 0005) — this makes
+    pre-registered probe discipline enforceable from the pushed artifacts."""
+    probes: dict[str, dict] = {}
+    for data_json in sorted(run_dir.glob("episode_*/**/*_data.json")):
+        try:
+            with open(data_json, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except Exception:
+            continue
+        series = {k: v for k, v in data.items() if k.startswith(PROBE_PREFIX)}
+        if series:
+            probes[str(data_json.parent.relative_to(run_dir))] = series
+    if not probes:
+        return None
+    dest = out_dir / "probes" / f"{run_name}_probes.json"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with open(dest, "w", encoding="utf-8") as fh:
+        json.dump(probes, fh, separators=(",", ":"))
+    return str(dest)
+
+
 def run_cell(*, preset_name: str, preset: dict, condition: str, seed: int, device: str,
              out_dir: Path, dry_run: bool, resume: bool = False) -> dict:
     base = dict(preset["base"])
@@ -401,6 +505,15 @@ def run_cell(*, preset_name: str, preset: dict, condition: str, seed: int, devic
             record["status"] = "no_run_dir"
             return record
     record["run_dir"] = str(run_dir)
+
+    # Probe extraction runs regardless of scoring outcome — a probe-blind gate is worse
+    # than a score-blind one for probe-gated candidates.
+    try:
+        probes_path = _extract_probes(run_dir, out_dir, run_name)
+        if probes_path:
+            record["probes_path"] = probes_path
+    except Exception as exc:
+        record["probes_error"] = str(exc)
 
     try:
         score = score_brain_run(run_dir, **preset["score"])
@@ -512,7 +625,7 @@ def main() -> None:
 
     run_columns = ["preset", "condition", "seed", "run_name", "status", "returncode",
                    "duration_seconds", *SCORE_METRICS, "inner_run_count", "switch_count",
-                   "run_dir", "log_path", "error", "command"]
+                   "run_dir", "probes_path", "log_path", "error", "command"]
     _write_csv(out_dir / "runs.csv", rows, run_columns)
     (out_dir / "runs.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
 

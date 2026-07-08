@@ -53,3 +53,4 @@ Concrete next actions or open questions.
 | [0004](./0004-2026-07-04-scout-v2-8x8.md) | 2026-07-04 | Scout v1 (5×5) saturates; primary → `fast_switch_scout_v2` (8×8) | Accepted |
 | [0005](./0005-2026-07-05-confirmation-sweep-prediction.md) | 2026-07-05 | Registered prediction: actor-only & gain-α0.5 n=8 confirmation sweep | Accepted |
 | [0006](./0006-2026-07-05-amortized-multiseed-baseline.md) | 2026-07-05 | Amortized 3-seed scout baseline (`baseline_primary`) | Accepted |
+| [0007](./0007-2026-07-06-learning-dynamics-preregistration.md) | 2026-07-06 | Registered predictions + decision rules: LOOP-0006 learning-dynamics screening | Accepted |

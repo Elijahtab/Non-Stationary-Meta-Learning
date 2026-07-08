@@ -50,6 +50,50 @@ def configure_runtime_threads(num_threads: int | None):
         pass
 
 
+# LOOP-0007 code-free two-timescale mechanisms: param groups whose LR *tracks* the
+# main LR scaled by a cfg lever, keyed by group name -> cfg attribute holding the
+# scale. The Brain's proven LR lever still moves these groups (design choice (b)),
+# just damped, instead of being silently bypassed. The "decoder" group
+# (trainable-neuromod) is deliberately absent here — it holds a fixed LR.
+_SCALED_LR_GROUPS = {
+    "critic": "critic_lr_scale",   # cand 1: damp post-switch critic whiplash
+    "encoder": "encoder_lr_scale",  # cand 5: slow shared encoder vs fast heads
+}
+
+
+def apply_inner_lr(optimizer, lr: float, cfg=None) -> None:
+    """Set the main param-group LR and mirror any scaled two-timescale group.
+
+    Group 0 ("main") always carries the LR the Brain controls (action[0]) and the
+    anneal schedule — the proven-causal scalar lever. LOOP-0007 candidates 1/5
+    (research note 0004) carve the critic head / shared encoder into their own
+    groups whose LR tracks the main LR scaled by a cfg lever (see
+    _SCALED_LR_GROUPS). This helper is the single write path for the main LR — call
+    it everywhere the main LR is set (anneal, Brain lever, eval Brain lever) so the
+    scaled groups stay in sync. When no lever is active it is a plain
+    param_groups[0] write, byte-identical to the previous behaviour.
+    """
+    optimizer.param_groups[0]["lr"] = lr
+    if cfg is None:
+        return
+    for group in optimizer.param_groups:
+        attr = _SCALED_LR_GROUPS.get(group.get("name"))
+        if attr is None:
+            continue
+        scale = getattr(cfg, attr, 1.0)
+        if group.get("name") == "critic" and getattr(cfg, "critic_lr_oracle_scale", 0.0) > 0.0:
+            # O1 oracle-timed critic damp (research note 0005): while the post-switch
+            # window armed by a DETECTED regime switch is live, damp the critic group;
+            # otherwise the group tracks the main LR exactly (scale is 1.0 in the pure
+            # oracle condition, but the damp composes with a static critic_lr_scale too).
+            if getattr(cfg, "critic_oracle_remaining", 0) > 0:
+                scale = scale * cfg.critic_lr_oracle_scale
+            group["lr"] = lr * scale
+            continue
+        if scale != 1.0:
+            group["lr"] = lr * scale
+
+
 def resolve_inner_save_dir(*, save_dir: str, log_dir: str, logger_full_dir: str) -> str:
     """
     Keep inner checkpoints colocated with the concrete logger directory.
@@ -139,6 +183,158 @@ class InnerTrainState:
     regime_step_counter: list = field(default_factory=lambda: [0])
     current_mode_regime: int = 0
 
+    # --- LOOP-0007 cand 4: surprise-triggered exploration spike (research note 0004) ---
+    # A generic change-point detector on the inner agent's own per-update TD-error surprise
+    # (value_loss) — NOT the Brain code. When value_loss jumps > threshold above its EMA, a
+    # regime switch is inferred and ent_coef/intrinsic_coef are transiently boosted for a few
+    # updates, faster than the Brain's decision_interval cadence. threshold 0.0 == off.
+    surprise_spike_threshold: float = 0.0
+    surprise_value_ema: float | None = None
+    surprise_spike_remaining: int = 0
+
+    # --- LOOP-0007 cand 2: ReDo dormant-neuron reset (research note 0004; Sokar 2023) ---
+    # Every redo_interval updates, reset dormant hidden units in the actor/critic heads to
+    # restore plasticity; the dormant-fraction probe is logged. 0 == off.
+    redo_interval: int = 0
+
+    # --- O2 oracle rung (research note 0005): policy-swap headroom topline ---
+    # DIAGNOSTIC ceiling, never a method: bank the full learner (model, world model,
+    # optimizer states) per regime at switch-away and restore it on regime revisit —
+    # measures how much post-switch score a zero-forgetting agent could achieve on
+    # this instrument. False == off (baseline-identical).
+    policy_swap_topline: bool = False
+    policy_swap_snapshots: dict = field(default_factory=dict, repr=False)
+
+
+# Cand-4 spike shape (fixed; only the trigger threshold is exposed as a lever).
+SURPRISE_SPIKE_FACTOR = 2.0     # transient multiplier on ent_coef + intrinsic_coef
+SURPRISE_SPIKE_UPDATES = 3      # updates the boost persists after a detected switch
+SURPRISE_EMA_DECAY = 0.9        # EMA smoothing of the value-loss baseline
+
+
+def _update_surprise_spike(state, value_loss_now: float) -> None:
+    """Cand-4 change-point detector (research note 0004): arm the exploration spike when the
+    per-update TD-error surprise (value_loss) jumps more than surprise_spike_threshold above
+    its EMA baseline — a generic switch signal from the agent's own learning dynamics, not the
+    Brain code. Mutates state.surprise_spike_remaining / surprise_value_ema in place. No-op when
+    the mechanism is off. First observation only seeds the baseline (never triggers)."""
+    s = state
+    if s.surprise_spike_threshold <= 0.0:
+        return
+    if s.surprise_value_ema is None:
+        s.surprise_value_ema = value_loss_now
+        return
+    if value_loss_now > s.surprise_value_ema * (1.0 + s.surprise_spike_threshold):
+        s.surprise_spike_remaining = SURPRISE_SPIKE_UPDATES
+    s.surprise_value_ema = (
+        SURPRISE_EMA_DECAY * s.surprise_value_ema
+        + (1.0 - SURPRISE_EMA_DECAY) * value_loss_now
+    )
+
+
+# Cand-2 ReDo (Sokar 2023): dormancy threshold on the normalized per-neuron activation
+# score. tau=0 resets only exactly-dead ReLU units; a small tau also catches near-dead.
+REDO_TAU = 0.025
+
+
+def _reset_adam_state(optimizer, param, rows=None, cols=None) -> None:
+    """Zero the Adam moment estimates for reset neurons so they restart cleanly (ReDo)."""
+    st = optimizer.state.get(param)
+    if not st:
+        return
+    for key in ("exp_avg", "exp_avg_sq"):
+        if key in st:
+            if rows is not None:
+                st[key][rows] = 0.0
+            if cols is not None:
+                st[key][:, cols] = 0.0
+
+
+def redo_reset_heads(model, optimizer, obs, tau: float = REDO_TAU) -> dict:
+    """LOOP-0007 cand 2 (ReDo, Sokar 2023): reset dormant hidden units in the actor & critic
+    heads to restore plasticity. A unit is dormant if its normalized mean-abs activation over
+    the batch is <= tau. Reset = re-init incoming weights (orthogonal) + zero bias, zero the
+    outgoing weights (so the reset does not perturb the output immediately), and clear the Adam
+    moments for the touched params. The trigger is a generic activation statistic, NOT the Brain
+    code. Returns {head: dormant_fraction} — the registered mechanism probe (note 0004)."""
+    activations: dict = {}
+
+    def _hook(name):
+        def _capture(module, inp, out):
+            activations[name] = out.detach()
+        return _capture
+
+    handles = [
+        model.actor_head[1].register_forward_hook(_hook("actor")),
+        model.critic_head[1].register_forward_hook(_hook("critic")),
+    ]
+    try:
+        with torch.no_grad():
+            model(obs)
+    finally:
+        for h in handles:
+            h.remove()
+
+    fractions: dict = {}
+    heads = [
+        ("actor", model.actor_head[0], model.actor_head[2]),
+        ("critic", model.critic_head[0], model.critic_head[2]),
+    ]
+    for name, in_layer, out_layer in heads:
+        act = activations[name]  # (batch, hidden)
+        mean_abs = act.abs().mean(dim=0)
+        score = mean_abs / (mean_abs.mean() + 1e-9)
+        dormant = (score <= tau).nonzero(as_tuple=True)[0]
+        fractions[name] = float(dormant.numel()) / float(mean_abs.numel())
+        if dormant.numel() == 0:
+            continue
+        with torch.no_grad():
+            new_rows = torch.empty(
+                dormant.numel(), in_layer.weight.shape[1], device=in_layer.weight.device
+            )
+            torch.nn.init.orthogonal_(new_rows, gain=np.sqrt(2))
+            in_layer.weight[dormant] = new_rows
+            if in_layer.bias is not None:
+                in_layer.bias[dormant] = 0.0
+            out_layer.weight[:, dormant] = 0.0
+            _reset_adam_state(optimizer, in_layer.weight, rows=dormant)
+            if in_layer.bias is not None:
+                _reset_adam_state(optimizer, in_layer.bias, rows=dormant)
+            _reset_adam_state(optimizer, out_layer.weight, cols=dormant)
+    return fractions
+
+
+# O1 oracle-timed critic damp (research note 0005): damp window length. The damp covers
+# the remainder of the update in which the switch is detected plus this many subsequent
+# updates. Fixed shape — only the damp scale is exposed as a flag (one variant, no
+# multiplicity), mirroring the surprise-spike convention.
+CRITIC_ORACLE_UPDATES = 15
+
+
+def _snapshot_learner(state) -> dict:
+    """O2 policy-swap topline (research note 0005): deep-copy everything the learner
+    would 'forget' across a regime switch — model, world model, and both Adam states."""
+    s = state
+    return {
+        "model": copy.deepcopy(s.model.state_dict()),
+        "world_model": copy.deepcopy(s.world_model.state_dict()),
+        "optimizer": copy.deepcopy(s.optimizer.state_dict()),
+        "wm_optimizer": copy.deepcopy(s.wm_optimizer.state_dict()),
+    }
+
+
+def _restore_learner(state, snap: dict) -> None:
+    """O2: restore a banked per-regime learner. Optimizer state_dicts carry the LRs from
+    snapshot time, so the current main LR (anneal / Brain lever) is re-applied after the
+    load — the swap must never clobber the live LR schedule."""
+    s = state
+    main_lr = s.optimizer.param_groups[0]["lr"]
+    s.model.load_state_dict(snap["model"])
+    s.world_model.load_state_dict(snap["world_model"])
+    s.optimizer.load_state_dict(copy.deepcopy(snap["optimizer"]))
+    s.wm_optimizer.load_state_dict(copy.deepcopy(snap["wm_optimizer"]))
+    apply_inner_lr(s.optimizer, main_lr, s.cfg)
+
 
 def init_inner_training(
     env_id: str,
@@ -166,6 +362,16 @@ def init_inner_training(
     neuromod_decoder_lr: float | None = None,
     actor_only_neuromod: bool = False,
     neuromod_gain_alpha: float = 0.0,
+    grad_gate_neuromod: bool = False,
+    critic_code_neuromod: bool = False,
+    aux_code_coef: float = 0.0,
+    critic_lr_scale: float = 1.0,
+    encoder_lr_scale: float = 1.0,
+    plasticity_norm: bool = False,
+    surprise_spike_threshold: float = 0.0,
+    redo_interval: int = 0,
+    critic_lr_oracle_scale: float = 0.0,
+    policy_swap_topline: bool = False,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -176,6 +382,16 @@ def init_inner_training(
 
     # Clone the config so meta-controller mutations stay local to this inner run.
     cfg = copy.deepcopy(cfg)
+    cfg.aux_code_coef = aux_code_coef
+    # LOOP-0007 cands 1/5: read by apply_inner_lr to keep the critic / encoder
+    # group LR at main_lr * scale wherever the main LR is written. 1.0 == off.
+    cfg.critic_lr_scale = critic_lr_scale
+    cfg.encoder_lr_scale = encoder_lr_scale
+    # O1 oracle-timed critic damp (research note 0005): apply_inner_lr damps the critic
+    # group by this scale while critic_oracle_remaining > 0 (armed on each DETECTED
+    # regime switch — ground truth from the env, not the Brain code). 0.0 == off.
+    cfg.critic_lr_oracle_scale = critic_lr_oracle_scale
+    cfg.critic_oracle_remaining = 0
 
     seed_everything(cfg.seed)
     configure_runtime_threads(cpu_threads)
@@ -217,23 +433,50 @@ def init_inner_training(
         trainable_neuromod=trainable_neuromod,
         actor_only_neuromod=actor_only_neuromod,
         neuromod_gain_alpha=neuromod_gain_alpha,
+        grad_gate_neuromod=grad_gate_neuromod,
+        critic_code_neuromod=critic_code_neuromod,
+        aux_code_head=aux_code_coef > 0.0,
+        plasticity_norm=plasticity_norm,
     ).to(device)
-    if trainable_neuromod and neuromod_decoder_lr is not None:
-        # Give the neuromodulation decoder its own param group + (smaller) LR so it no longer rides
-        # the inner LR the Brain controls via lever 0 — decoupling the two co-adapting learners to
-        # stabilize the trainable-decoder regime (docs/multi_agent/0002). Group 0 stays the main
-        # net, so the Brain's LR control / anneal (which only touch param_groups[0]) never move the
-        # decoder; group 1 (decoder) holds a fixed neuromod_decoder_lr.
-        decoder_params = list(model.neuromodulator.decoder.parameters())
-        decoder_ids = {id(p) for p in decoder_params}
-        main_params = [p for p in model.parameters() if id(p) not in decoder_ids]
-        optimizer = torch.optim.Adam(
-            [
-                {"params": main_params, "lr": cfg.lr},
-                {"params": decoder_params, "lr": neuromod_decoder_lr},
-            ],
-            eps=1e-5,
-        )
+    # Param groups. Group 0 ("main") always holds the LR the Brain lever + anneal
+    # drive (via apply_inner_lr). Optional extra groups carve out params that need
+    # a different LR: the neuromod decoder (fixed LR, docs/multi_agent/0002) and —
+    # LOOP-0007 cands 1/5 — the critic head (LR = main * critic_lr_scale) and the
+    # shared encoder (LR = main * encoder_lr_scale), both tracked so the Brain's
+    # proven LR lever still reaches them, damped. Groups are built only when their
+    # mechanism is active, so a plain run stays a single-group optimizer
+    # byte-identical to the previous behaviour.
+    decouple_decoder = trainable_neuromod and neuromod_decoder_lr is not None
+    # O1 also needs the critic in its own group (at scale 1.0 outside damp windows).
+    decouple_critic = critic_lr_scale != 1.0 or critic_lr_oracle_scale > 0.0
+    decouple_encoder = encoder_lr_scale != 1.0
+    if decouple_decoder or decouple_critic or decouple_encoder:
+        reserved_ids: set[int] = set()
+        param_groups = []
+        if decouple_decoder:
+            decoder_params = list(model.neuromodulator.decoder.parameters())
+            reserved_ids |= {id(p) for p in decoder_params}
+        if decouple_critic:
+            critic_params = list(model.critic_head.parameters())
+            reserved_ids |= {id(p) for p in critic_params}
+        if decouple_encoder:
+            encoder_params = list(model.encoder.parameters())
+            reserved_ids |= {id(p) for p in encoder_params}
+        main_params = [p for p in model.parameters() if id(p) not in reserved_ids]
+        param_groups.append({"params": main_params, "lr": cfg.lr, "name": "main"})
+        if decouple_decoder:
+            param_groups.append(
+                {"params": decoder_params, "lr": neuromod_decoder_lr, "name": "decoder"}
+            )
+        if decouple_critic:
+            param_groups.append(
+                {"params": critic_params, "lr": cfg.lr * critic_lr_scale, "name": "critic"}
+            )
+        if decouple_encoder:
+            param_groups.append(
+                {"params": encoder_params, "lr": cfg.lr * encoder_lr_scale, "name": "encoder"}
+            )
+        optimizer = torch.optim.Adam(param_groups, eps=1e-5)
     else:
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr, eps=1e-5)
 
@@ -243,6 +486,10 @@ def init_inner_training(
         trainable_neuromod=trainable_neuromod,
         actor_only_neuromod=actor_only_neuromod,
         neuromod_gain_alpha=neuromod_gain_alpha,
+        grad_gate_neuromod=grad_gate_neuromod,
+        critic_code_neuromod=critic_code_neuromod,
+        aux_code_head=aux_code_coef > 0.0,
+        plasticity_norm=plasticity_norm,
     ).to(device)
     anchor_model.load_state_dict(model.state_dict())
     anchor_model.eval()
@@ -344,6 +591,9 @@ def init_inner_training(
         episodic_memory_capacity=episodic_memory_capacity,
         regime_step_counter=regime_step_counter,
         current_mode_regime=start_regime,
+        surprise_spike_threshold=surprise_spike_threshold,
+        redo_interval=redo_interval,
+        policy_swap_topline=policy_swap_topline,
     )
 
 
@@ -374,14 +624,44 @@ def run_inner_update(state: InnerTrainState) -> dict:
         return {"done": True, "global_step": s.global_step}
 
     # -----------------------------------------------------------------
+    # LOOP-0007 cand 4: surprise-triggered exploration spike (transient).
+    # If a prior update's TD-error jump armed the spike, boost ent_coef +
+    # intrinsic_coef for THIS update only (base values are restored after the
+    # update, below, so the Brain's own settings are never overwritten). No-op
+    # unless the mechanism is armed (threshold > 0 and a switch was detected).
+    # -----------------------------------------------------------------
+    spike_active = s.surprise_spike_remaining > 0
+    base_ent_coef = s.cfg.ent_coef
+    base_intrinsic_coef = s.intrinsic_coef
+    if spike_active:
+        s.cfg.ent_coef = base_ent_coef * SURPRISE_SPIKE_FACTOR
+        s.intrinsic_coef = base_intrinsic_coef * SURPRISE_SPIKE_FACTOR
+        s.surprise_spike_remaining -= 1
+
+    # -----------------------------------------------------------------
     # Learning rate annealing
     # -----------------------------------------------------------------
     if s.anneal_lr:
         frac = 1.0 - (update - 1.0) / s.num_updates
         lrnow = frac * s.cfg.lr
-        s.optimizer.param_groups[0]["lr"] = lrnow
+        apply_inner_lr(s.optimizer, lrnow, s.cfg)
     else:
         lrnow = s.optimizer.param_groups[0]["lr"]
+
+    # -----------------------------------------------------------------
+    # O1 oracle-timed critic damp (research note 0005): keep the critic group
+    # damped while the window armed by a detected switch is live (explicit
+    # resync covers the no-anneal path), consume one window update, and log
+    # the probe. The arm itself happens in the Phase-A switch handler below,
+    # which also resyncs immediately so the damp covers the detection update's
+    # own PPO phases.
+    # -----------------------------------------------------------------
+    if s.cfg.critic_lr_oracle_scale > 0.0:
+        apply_inner_lr(s.optimizer, lrnow, s.cfg)
+        oracle_live = s.cfg.critic_oracle_remaining > 0
+        s.logger.scalar("brain_neuromod/critic_oracle_active", float(oracle_live), s.global_step)
+        if oracle_live:
+            s.cfg.critic_oracle_remaining -= 1
 
     s.buffer.reset()
 
@@ -423,7 +703,28 @@ def run_inner_update(state: InnerTrainState) -> dict:
         # Handle regime switch
         if current_env_regime != s.current_mode_regime:
             print(f"[{s.global_step}] Regime switch detected! {s.current_mode_regime} -> {current_env_regime}. Snapshotting anchor model.")
+            prev_regime = s.current_mode_regime
             s.current_mode_regime = current_env_regime
+            # O2 policy-swap topline (research note 0005): bank the outgoing regime's
+            # learner; restore the incoming regime's if we've seen it before. The restore
+            # lands mid-rollout, so this update's PPO phase mixes two policies — an
+            # accepted, conservative imprecision for a ceiling estimate. Restore precedes
+            # the anchor snapshot so the anchor tracks the restored policy.
+            if s.policy_swap_topline:
+                s.policy_swap_snapshots[prev_regime] = _snapshot_learner(s)
+                snap = s.policy_swap_snapshots.get(current_env_regime)
+                if snap is not None:
+                    _restore_learner(s, snap)
+                s.logger.scalar(
+                    "brain_neuromod/policy_swap_restored",
+                    float(snap is not None),
+                    s.global_step,
+                )
+            # O1 oracle-timed critic damp (research note 0005): arm the ground-truth-timed
+            # damp window and resync now so the damp already covers this update's PPO phases.
+            if s.cfg.critic_lr_oracle_scale > 0.0:
+                s.cfg.critic_oracle_remaining = CRITIC_ORACLE_UPDATES
+                apply_inner_lr(s.optimizer, s.optimizer.param_groups[0]["lr"], s.cfg)
             if s.anchor_model is not None:
                 s.anchor_model.load_state_dict(s.model.state_dict())
 
@@ -694,6 +995,21 @@ def run_inner_update(state: InnerTrainState) -> dict:
 
     avg_stats = {k: np.mean([st[k] for st in update_stats]) for k in update_stats[0]} if update_stats else {}
     avg_wm_stats = {k: np.mean([st[k] for st in wm_stats]) for k in wm_stats[0]} if wm_stats else {}
+
+    # LOOP-0007 cand 4: restore the Brain's base coefs (undo this update's transient spike),
+    # then run the change-point detector on this update's TD-error surprise (value_loss) to
+    # arm the spike for upcoming updates if a regime switch is inferred.
+    s.cfg.ent_coef = base_ent_coef
+    s.intrinsic_coef = base_intrinsic_coef
+    if s.surprise_spike_threshold > 0.0:
+        _update_surprise_spike(s, float(avg_stats.get("loss/value", 0.0)))
+        s.logger.scalar("brain_neuromod/surprise_spike_active", float(spike_active), s.global_step)
+
+    # LOOP-0007 cand 2: periodic ReDo reset of dormant head units; log the dormant-fraction probe.
+    if s.redo_interval > 0 and update % s.redo_interval == 0:
+        redo_fractions = redo_reset_heads(s.model, s.optimizer, s.obs_t)
+        for head, frac in redo_fractions.items():
+            s.logger.scalar(f"brain_neuromod/redo_dormant_fraction_{head}", frac, s.global_step)
 
     for k, v in avg_stats.items():
         s.logger.scalar(k, v, s.global_step)
