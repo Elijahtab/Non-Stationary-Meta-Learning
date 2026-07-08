@@ -178,6 +178,15 @@ PRESETS: dict[str, dict] = {
     },
 }
 
+# LOOP-0009 replication config: paper8x8 at the paper's FULL 130-episode horizon (the March
+# run's brain_episodes; paper8x8's base uses 50 as the cheaper multi-seed default). Derived from
+# paper8x8 so it is provably identical except brain_episodes -> the config note 0007 requires for
+# the fresh replication Brains (seeds 1-4). See docs/research-notes/0007 + LOOP-0009.
+PRESETS["paper8x8_130"] = {
+    **PRESETS["paper8x8"],
+    "base": {**PRESETS["paper8x8"]["base"], "brain_episodes": 130},
+}
+
 # scoutv2: mirrors the frozen fast_switch_scout_v2 benchmark EXACTLY (copied
 # programmatically so preset and spec cannot drift) for multi-seed confirmation sweeps of
 # signals found by the autoresearch loop at n=1 — see docs/plans/2026-07-05. The seeds vary
