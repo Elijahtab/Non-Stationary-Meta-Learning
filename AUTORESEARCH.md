@@ -25,7 +25,7 @@ commit** (this is how the register stays alive; the archived v1 doc rotted by re
 | Interpreter rule | manifests use `{python}` (resolved to `sys.executable`) — never hardcode venv paths | [log 0006](docs/research-log/0006-2026-07-05-amortized-multiseed-baseline.md) commit trail |
 | Kill safety | `autoresearch/STOP` sentinel (graceful, trial-boundary) + write-ahead journal with startup recovery — the supervisor is safe to kill any time | [autoresearch.py](src/lifelong_learning/research/autoresearch.py) |
 | Verdict semantics | benchmark-scoped; science verdicts (`accepted`/`primary_score_did_not_improve`/`holdout_regressed`) retire a hypothesis on that benchmark, infra failures are retryable; science verdicts never age out of injected history | [trial_prompt.py](src/lifelong_learning/research/trial_prompt.py) |
-| Hypothesis queue | [config/hypothesis_queue.md](config/hypothesis_queue.md) — human-curated, agent-read-only. **Currently: EXHAUSTED** (all 5 LOOP-0005 entries science-rejected; LOOP-0007/0008 run as master-implemented conditions, not queue entries) | queue file + [LOOP-0005](docs/autoresearch-loops/LOOP-0005-brainstorm.md) |
+| Hypothesis queue | [config/hypothesis_queue.md](config/hypothesis_queue.md) — human-curated, agent-read-only. **Currently: EXHAUSTED** (all 5 LOOP-0005 entries science-rejected; LOOP-0007/0008/0009 run as master-implemented conditions, not queue entries) | queue file + [LOOP-0005](docs/autoresearch-loops/LOOP-0005-brainstorm.md) |
 | Dual-box orchestration | `/autoresearch-run` skill (home = n=1 screening; box = n=8 confirmation + idle exploration; gates via living doc) | [.claude/skills/autoresearch-run/SKILL.md](.claude/skills/autoresearch-run/SKILL.md) |
 | Linux async runs | require `context="spawn"` (in code); Pascal boxes require the cu126 torch downgrade | [cloud-setup.md](docs/plans/cloud-setup.md) |
 
@@ -66,6 +66,7 @@ Index with one-liners: [docs/autoresearch-loops/README.md](docs/autoresearch-loo
 - [LOOP-0006 — learning-dynamics campaign](docs/autoresearch-loops/LOOP-0006-learning-dynamics-campaign.md): closed NULL at n=8 (two n=3 "reliability leads" were sampling artifacts)
 - [LOOP-0007 — code-free plasticity/stability](docs/autoresearch-loops/LOOP-0007-brainstorm.md): closed NULL 0/5; A1 (plasticity loss) FALSE by registered probe
 - [LOOP-0008 — bottom-rung & oracle controls](docs/autoresearch-loops/LOOP-0008-controls-campaign.md): closed — Brain adds ≤0 (D0); A2 + code pathway dead (O1/oracle_code); ceiling +0.249 (O2); trained-Brain +0.029 p<0.01 ([note 0006](docs/research-notes/0006-controls-axis-thesis-relocated.md))
+- [LOOP-0009 — trained-Brain replication](docs/autoresearch-loops/LOOP-0009-trained-brain-replication.md): OPEN — ≥4 fresh Brain training seeds vs matched inits at eval protocol, pre-registered in [note 0007](docs/research-notes/0007-trained-brain-replication.md); strategic fork decided at its gate (box destroyed 2026-07-08; new box to provision)
 
 ## Deeper references
 

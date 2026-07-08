@@ -26,6 +26,7 @@ from lifelong_learning.agents.brain.meta_agent import (
 )
 from lifelong_learning.agents.brain.neuromod import BRAIN_ACTION_DIM, compose_brain_action
 from lifelong_learning.utils.logger import DataLogger
+from lifelong_learning.utils.seeding import seed_everything
 
 
 def should_run_periodic(episode: int, every: int, *, final_episode: int | None = None) -> bool:
@@ -419,8 +420,36 @@ def train_brain(args):
         device=args.device,
     )
 
+    # Seed the OUTER Brain (weight init + action sampling), which lives in this process.
+    # The inner PPO seeds itself per worker (ppo/train.py); the Brain was previously left to
+    # process entropy, so --seed did not fully determine a run. LOOP-0009 needs distinct,
+    # reproducible fresh Brains across training seeds 1-4 (note 0007). No-op on resume paths
+    # that restore RNG state below. Cheap for an MLP Brain (cuDNN determinism is negligible).
+    if checkpoint is None:
+        seed_everything(args.seed)
+
     brain_model = MLPActorCritic().to(device)
     brain_optimizer = torch.optim.Adam(brain_model.parameters(), lr=brain_cfg.lr, eps=1e-5)
+
+    if checkpoint is None:
+        # LOOP-0009: persist the freshly-initialized Brain as the matched per-seed init
+        # control (the init < ep91 < ep130 dose arm; note 0007 P-R1b). Inits are drawn here,
+        # before any training, and are otherwise unrecoverable — the March run's init had to
+        # be reconstructed post-hoc. Saved only for fresh runs, never on resume.
+        init_path = os.path.join(logger.full_dir, "brain_init.pt")
+        torch.save(
+            build_brain_checkpoint_payload(
+                brain_model,
+                brain_optimizer,
+                meta_env,
+                episodes_trained=0,
+                episode=0,
+                avg_reward_10=None,
+                args=args,
+            ),
+            init_path,
+        )
+        print(f"Saved fresh Brain init checkpoint to: {init_path}")
 
     if checkpoint:
         print("Restoring Brain model and optimizer weights...")
