@@ -65,7 +65,7 @@ Index with one-liners: [docs/autoresearch-loops/README.md](docs/autoresearch-loo
 - [LOOP-0005 — brainstorm](docs/autoresearch-loops/LOOP-0005-brainstorm.md): 5 learning-dynamics candidates ([note 0003](docs/research-notes/0003-code-directed-plasticity-gating.md)); all queued 2026-07-06
 - [LOOP-0006 — learning-dynamics campaign](docs/autoresearch-loops/LOOP-0006-learning-dynamics-campaign.md): closed NULL at n=8 (two n=3 "reliability leads" were sampling artifacts)
 - [LOOP-0007 — code-free plasticity/stability](docs/autoresearch-loops/LOOP-0007-brainstorm.md): closed NULL 0/5; A1 (plasticity loss) FALSE by registered probe
-- [LOOP-0008 — bottom-rung & oracle controls](docs/autoresearch-loops/LOOP-0008-controls-campaign.md): **OPEN** — D0/O1/O2 (+oracle_code) adjudicate the strategic fork ([note 0005](docs/research-notes/0005-untested-controller-bottom-rung-oracle.md))
+- [LOOP-0008 — bottom-rung & oracle controls](docs/autoresearch-loops/LOOP-0008-controls-campaign.md): closed — Brain adds ≤0 (D0); A2 + code pathway dead (O1/oracle_code); ceiling +0.249 (O2); trained-Brain +0.029 p<0.01 ([note 0006](docs/research-notes/0006-controls-axis-thesis-relocated.md))
 
 ## Deeper references
 

@@ -1,4 +1,4 @@
-# LOOP-0008 — bottom-rung & oracle controls campaign (2026-07-07–OPEN)
+# LOOP-0008 — bottom-rung & oracle controls campaign (2026-07-07–08, CLOSED)
 
 **Goal:** After three mechanism families closed null, screen the pre-registered CONTROL
 conditions that adjudicate the strategic fork (write up the null vs pivot the instrument):
@@ -6,7 +6,15 @@ D0 `brain_constant_action` (does the Brain add anything over tuned static HPs?),
 `brain_critic_lr_oracle` (upper bound on any Brain-learned critic damp), O2
 `brain_oracle_policy_swap` (the instrument's zero-forgetting ceiling), and optionally
 `brain_oracle_code` (decouples "code was noise" from "pathway is dead").
-**Verdict:** _(open)_
+**Verdict:** **CLOSED 2026-07-08 — every pre-registered question answered in one night.**
+D0 0.5608/0.7857 (Brain adds ≤0 composite; its jitter bought ~4 pts hit80); O1 0.5451/0.8058
+REJECT (A2 dead — even perfectly-timed critic damping hurts); oracle_code 0.5481/0.8259 NULL
+(modulation pathway dead with ground-truth information — forward-mod family null reinstated);
+O2 ceiling **0.8022 n=8, sd 0.009 (+0.249 headroom)**; plus the user-initiated T-series:
+trained ep130 Brain vs init at matched eval protocol **+0.0292 composite, t≈3.0, p<0.01,
+n=32/arm, converged across n** — the program's first significant positive result. Paper's
+Table-2 static baseline contradicted (weak-baseline artifact); its trained-Brain direction
+confirmed at honest magnitude. Consolidated: [note 0006](../research-notes/0006-controls-axis-thesis-relocated.md).
 
 ## Hardware
 Box: Vast.ai `76.67.137.57:26061`, 4× RTX 3060 12 GB — 1 cell/GPU, 4 cells/wave, ~85 min/wave.
@@ -36,12 +44,14 @@ diagnostic ceiling (report topline − control gap; no fork). Decision matrix in
 Brain is effectively untrained — motivates this whole campaign).
 
 ## Pickup state
-Read note 0005 (predictions + decision matrix) and the living doc's newest Master Decisions
-entries. If this session's watcher is dead: check `sweeps/confirm_d0_*` / `confirm_o1_*` /
-`confirm_o2_*` summaries on the box (or `origin/results`), gate per note 0005, launch the
-next wave in the sequence above, re-arm ONE watcher. Never idle the box; box destroy is
-human-only. After all gates: assemble the note-0005 decision matrix and surface the fork
-(write-up vs instrument pivot) to the user — do NOT auto-start a new mechanism family.
+**Campaign complete; box IDLE and awaiting a human strategy call** (surfaced 2026-07-08
+morning; never-idle directive deliberately paused at queue exhaustion — the marginal
+experiment now costs more than it informs). The fork on the table: **(a) write the paper**
+from note 0006's skeleton (positive claim + ceiling bound + mechanisms + methods), or
+**(b) chase the +0.249** with a memory-restoration strategy (the paper's MoWM lineage), or
+both. Box destroy remains human-only. All results on `origin/results`; T-series evals in
+`evals/t1_*` (home); scoring adapter `score_t1.py` should be promoted to
+`scripts/score_eval_dir.py` if the eval protocol becomes a standing instrument.
 
 ## Links
 Note 0005 · session plan `docs/plans/2026-07-07-session-plan-redo-endgame-oracle-rung.md` ·
