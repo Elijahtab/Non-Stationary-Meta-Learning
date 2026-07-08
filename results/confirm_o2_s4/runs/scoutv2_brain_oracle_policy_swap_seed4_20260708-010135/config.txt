@@ -51,8 +51,8 @@ resume_path: None
 reward_alpha: 0.1
 reward_beta: 0.5
 reward_mode: recovery
-run_name: scoutv2_brain_oracle_policy_swap_seed1
+run_name: scoutv2_brain_oracle_policy_swap_seed4
 save_every_episodes: 5
-seed: 1
+seed: 4
 start_regime: 0
 trainable_neuromod: False
