@@ -1,0 +1,9 @@
+[sweep] preset=scoutv2 conditions=['brain_oracle_policy_swap'] seeds=[7]
+[sweep] 1 cells, max_parallel=1 -> sweeps/confirm_o2_s7
+[sweep] (1/1) brain_oracle_policy_swap seed=7 -> scored composite=0.7968865488783635
+
+[sweep] done. per-run -> sweeps/confirm_o2_s7/runs.csv | summary -> sweeps/confirm_o2_s7/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_oracle_policy_swap 0.7969 [0.7969, 0.7969]  (n=1)
+[run_sweep] sweep exited ec=0
