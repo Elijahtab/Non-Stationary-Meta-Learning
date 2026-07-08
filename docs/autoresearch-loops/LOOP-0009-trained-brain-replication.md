@@ -39,8 +39,9 @@ tests pass post-merge).
   1, inner 16 envs / 800k / 100k, reward_mode recovery, pretrain_episodes 1) — config was
   consistent across episodes 1–130. **Fresh Brains use exactly these params.**
 
-Remaining (box-gated): cut a fresh run branch off `742ba8c` before box bootstrap (checklist
-step 2); provision box; launch.
+Remaining (box-gated): cut a fresh run branch off **`70f2dd5`** (the tip carrying the seed/init
+fix — launching from the pre-fix `742ba8c` would train without `brain_init.pt` + outer seeding and
+break the matched-init-control design) before box bootstrap; provision box; launch.
 
 ## Runs
 
@@ -79,7 +80,7 @@ commit (pre-registration + scorer + fix), pushed to `Auto-Research`.
 1. **⏸ Provision the box** (spec above) — the old box was destroyed; a new 4-GPU rental is
    ~2 box-days of billing. **This is the outward-facing spend that must not be launched
    autonomously — awaiting the user's go / hold / spec call.** Bootstrap from a fresh run branch
-   cut off `Auto-Research` @ `742ba8c`.
+   cut off `Auto-Research` @ **`70f2dd5`** (must include the seed/init fix — not `742ba8c`).
 2. **Launch** 4 training runs (1/GPU) with thread caps + watcher per cloud-setup;
    sanity-check one training-reward curve against the March shape early (~ep 10–15) before
    committing the full 2 days (note 0007 A1).
