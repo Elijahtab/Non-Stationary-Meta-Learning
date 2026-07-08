@@ -38,3 +38,4 @@ Rough division of labor:
 - [0003 — Code-Directed Plasticity Gating (gradient-side mask)](./0003-code-directed-plasticity-gating.md)
 - [0004 — Code-free Plasticity & Stability Maintenance (LOOP-0007 family)](./0004-code-free-plasticity-stability.md)
 - [0005 — The Untested Controller: adaptivity probe, bottom-rung control, and the oracle rung](./0005-untested-controller-bottom-rung-oracle.md)
+- [0006 — The Controls Axis: thesis confirmed small, bottleneck relocated](./0006-controls-axis-thesis-relocated.md)

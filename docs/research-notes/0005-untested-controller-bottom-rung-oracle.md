@@ -155,3 +155,11 @@ the box inner logs via the new `probes/` pipeline; all 10 seeds, 240 checks each
 - Caveat: the trace comes from redo-ON runs (the probe only logs when the mechanism is
   on), so the trajectory includes reset effects; but resets can only *lower* subsequent
   dormancy readings, so the absence of any rising trend is conservative.
+
+## Outcome addendum (2026-07-08) — all pre-registered predictions resolved
+
+D0: between P-D0a/P-D0b (composite 0.5608 ≥ control — Brain adds ≤0; jitter bought ~4 pts
+hit80). O1: P-O1 confirmed (0.5451/0.8058, REJECT — A2 dead). O2: P-O2 confirmed at scale
+(0.8022 n=8 — +0.249 headroom; "no headroom" branch dead). The decision-matrix outcome and
+the full axis, plus the T1-series matched trained-Brain contrast (+0.0292, p<0.01, n=32/arm),
+are consolidated in [note 0006](./0006-controls-axis-thesis-relocated.md).
