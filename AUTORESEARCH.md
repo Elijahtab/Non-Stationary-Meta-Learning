@@ -66,7 +66,8 @@ Index with one-liners: [docs/autoresearch-loops/README.md](docs/autoresearch-loo
 - [LOOP-0006 — learning-dynamics campaign](docs/autoresearch-loops/LOOP-0006-learning-dynamics-campaign.md): closed NULL at n=8 (two n=3 "reliability leads" were sampling artifacts)
 - [LOOP-0007 — code-free plasticity/stability](docs/autoresearch-loops/LOOP-0007-brainstorm.md): closed NULL 0/5; A1 (plasticity loss) FALSE by registered probe
 - [LOOP-0008 — bottom-rung & oracle controls](docs/autoresearch-loops/LOOP-0008-controls-campaign.md): closed — Brain adds ≤0 (D0); A2 + code pathway dead (O1/oracle_code); ceiling +0.249 (O2); trained-Brain +0.029 p<0.01 ([note 0006](docs/research-notes/0006-controls-axis-thesis-relocated.md))
-- [LOOP-0009 — trained-Brain replication](docs/autoresearch-loops/LOOP-0009-trained-brain-replication.md): OPEN — ≥4 fresh Brain training seeds vs matched inits at eval protocol, pre-registered in [note 0007](docs/research-notes/0007-trained-brain-replication.md); strategic fork decided at its gate (box destroyed 2026-07-08; new box to provision)
+- [LOOP-0009 — trained-Brain replication](docs/autoresearch-loops/LOOP-0009-trained-brain-replication.md): OPEN — ≥4 fresh Brain training seeds vs matched inits at eval protocol, pre-registered in [note 0007](docs/research-notes/0007-trained-brain-replication.md); pre-launch verified (A3 adapter reproduces note 0006, A5 config, seed/init fix); strategic fork decided at its gate (box destroyed 2026-07-08; new box to provision)
+- [LOOP-0010 — memory-facing meta-control](docs/autoresearch-loops/LOOP-0010-memory-levers.md): BRAINSTORM/pre-open — memory levers (restore trigger / snapshot gating / replay selection) vs the +0.249 O2 ceiling; pre-registration drafted ([note 0009](docs/research-notes/0009-memory-levers-preregistration.md)), awaiting curation
 
 ## Deeper references
 
