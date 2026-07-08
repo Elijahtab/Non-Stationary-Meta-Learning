@@ -1,0 +1,9 @@
+[sweep] preset=scoutv2 conditions=['brain_oracle_code'] seeds=[5]
+[sweep] 1 cells, max_parallel=1 -> sweeps/confirm_oc_s5
+[sweep] (1/1) brain_oracle_code seed=5 -> scored composite=0.5440685181893897
+
+[sweep] done. per-run -> sweeps/confirm_oc_s5/runs.csv | summary -> sweeps/confirm_oc_s5/summary.csv
+
+[sweep] composite_score (mean [95% CI], n):
+  brain_oracle_code    0.5441 [0.5441, 0.5441]  (n=1)
+[run_sweep] sweep exited ec=0
