@@ -3,16 +3,22 @@
 **Goal:** Replicate note 0006's +0.0292 trained-vs-init contrast across ≥4 fresh Brain
 training seeds — the mandatory fix for any above-workshop write-up, doubling as the baseline
 arm for a future memory-lever phase.
-**Verdict:** OPEN — pre-registered (note 0007), nothing launched yet.
+**Verdict:** RUNNING — 4 fresh Brains training on the box (launched 2026-07-08); awaiting the
+ep10–15 sanity gate, then completion + the eval ladder.
 
 ## Hardware
 
-Previous box (Vast 4× RTX 3060, `76.67.137.57:26061`) **DESTROYED 2026-07-08 by the user**
-(archive-safe — everything was off-disk). New box to provision per
-[cloud-setup.md](../plans/cloud-setup.md): 4× GPU ≥12 GB, **non-Pascal** (or apply the cu126
-downgrade), ≥32 vCPU, ~2 days rental; 1 Brain-training run per GPU (async runs are
-compute-bound at ~100% util — pack by utilization, not VRAM). Home 5070 available for the
-eval arms (T-series precedent: 16 evals ≈ 2.2 h).
+**LAUNCHED 2026-07-08 on Vast `63.142.193.28:31406` — 4× RTX 4060 Ti 16 GB (Ada sm_89), 32
+vCPU, 125 GB RAM, 130 GB disk, torch 2.12+cu130 (`/venv/main`).** All 4 seeds run in parallel,
+1/GPU, ~3 GB VRAM + ~21 GB RAM each; ~48 h to completion (SPS ~600/stream, ~22 min/episode ×
+130). Home 5070 reserved for the eval arms (T-series precedent: 16 evals ≈ 2.2 h).
+
+**Provisioning history (the RAM lesson):** two earlier boxes were destroyed. The Vast 4× RTX
+3060 box has **62 GB RAM**, which OOM-killed 3 of 4 runs during pretraining — each
+`brain_num_envs=8` async run needs ~21 GB, so 4 × 21 ≈ 84 GB > 62 GB. `brain_num_envs` is fixed
+by config fidelity, so the fix was a higher-RAM box (125 GB fits all 4). **Also: launch
+staggered (~40 s apart)** to avoid a simultaneous 32-worker CUDA-init race. This workload is
+**RAM-bound, not GPU-bound** — size boxes by RAM-per-GPU (≥~24 GB/GPU), not GPU class.
 
 ## Code state
 
@@ -45,10 +51,23 @@ break the matched-init-control design) before box bootstrap; provision box; laun
 
 ## Runs
 
-Planned (none launched): 4 Brain training runs — seeds 1–4, March config
-(`runs/brain_2_regimes_8x8_neuromod_20260315-180839/config.txt`), 130 episodes, per-episode
-checkpoints, 1/GPU — then the eval ladder n=8→16→(32) per arm per Brain against matched
-per-seed init controls, at the eval protocol (16 inner envs, `decision_interval=1`).
+**RUNNING (launched 2026-07-08 19:57–19:59Z):** 4 Brain training runs, seeds 1–4, one per GPU,
+via the `paper8x8_130` preset + `brain_neuromod` condition (= March config exactly, brain_episodes
+130 — verified only-diff vs `paper8x8` is the episode count). Run dirs
+`runs/paper8x8_130_brain_neuromod_seed{1..4}_*`; each has its `brain_init.pt` saved. Sweep out:
+`sweeps/loop9_s{1..4}/`. Launch shape (documented for resume/repro):
+
+```
+CUDA_VISIBLE_DEVICES=$G MAX_PARALLEL=1 AUTO_PUSH=0 RESUME=1 \
+  OMP_NUM_THREADS=8 MKL_NUM_THREADS=8 OPENBLAS_NUM_THREADS=8 NUMEXPR_NUM_THREADS=8 \
+  bash scripts/cloud/run_sweep.sh paper8x8_130 "brain_neuromod" "$S" loop9_s$S    # staggered ~40s
+```
+
+RESUME=1 (spot-safe: `save_every_episodes=5`, re-run the same command to continue a killed cell).
+AUTO_PUSH=0 (no GH_TOKEN on box) → **pull Brain checkpoints to home manually** (they are tiny —
+MLP; only `brain_init.pt` + selected `brain_ep*.pt` + `brain_model.pt` are needed, NOT the inner
+logs). Then the eval ladder n=8→16→(32) per arm per Brain vs matched per-seed inits, at the eval
+protocol (16 inner envs, `decision_interval=1`), scored by `scripts/score_eval_dir.py`.
 
 ## Statistics & verdicts
 
@@ -76,19 +95,23 @@ A5: **verified** consistent across ep1–130; (iii) `scripts/score_eval_dir.py`:
 self-test reproduces note 0006 exactly**. See Code state above. Committed as the pre-launch
 commit (pre-registration + scorer + fix), pushed to `Auto-Research`.
 
-**Remaining — the box directive is the open decision (needs the user):**
-1. **⏸ Provision the box** (spec above) — the old box was destroyed; a new 4-GPU rental is
-   ~2 box-days of billing. **This is the outward-facing spend that must not be launched
-   autonomously — awaiting the user's go / hold / spec call.** Bootstrap from a fresh run branch
-   cut off `Auto-Research` @ **`70f2dd5`** (must include the seed/init fix — not `742ba8c`).
-2. **Launch** 4 training runs (1/GPU) with thread caps + watcher per cloud-setup;
-   sanity-check one training-reward curve against the March shape early (~ep 10–15) before
-   committing the full 2 days (note 0007 A1).
-3. **While training (desk work, can start before the box):** draft the paper skeleton (note
-   0006 §Paper skeleton) and the LOOP-0010 memory-levers pre-registration draft (user curates
-   before anything is implemented).
-4. **Gate per note 0007.** The strategic fork (write up vs memory phase) is decided AT that
-   gate — user decision 2026-07-08 ("replicate + draft both").
+**Box provisioned + launched 2026-07-08** (`63.142.193.28:31406`, see Hardware). Bootstrapped
+from run branch `autoresearch-run-20260708` @ `0e2f874` (carries the seed/init fix +
+`paper8x8_130`). All 4 seeds training in parallel.
+
+**Remaining:**
+1. **⏳ ep10–15 sanity gate (note 0007 A1)** — compare one Brain's early training-reward curve
+   against the March shape *before* trusting the full ~48 h. Data source: the
+   `Episode N/130 | reward=...` lines in `sweeps/loop9_s*/logs/*.log`. ~3.5–4 h after launch.
+2. **Monitor** liveness (4 `train_brain.py` alive, GPUs busy, RAM < 125 GB, disk < 130 GB);
+   re-run the same `run_sweep.sh` command for any spot-killed cell (RESUME=1 continues it).
+3. **On completion (~48 h):** pull each run's `brain_init.pt` + selected `brain_ep*.pt`
+   (avg10-reward selector) + `brain_model.pt` to home; run the eval ladder (n=8→16→(32)/arm) on
+   the 5070; score with `scripts/score_eval_dir.py`.
+4. **Gate per note 0007** (P-R1a: pooled Δ>0 p<0.01 AND ≥3/4 Brains positive). The strategic
+   fork (write up vs memory phase) is decided AT that gate — user decision 2026-07-08
+   ("replicate + draft both"); the paper skeleton (note 0008) + LOOP-0010 draft (note 0009) are
+   already drafted.
 
 ## Links
 
