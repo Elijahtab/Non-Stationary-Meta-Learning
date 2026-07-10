@@ -3,8 +3,24 @@
 **Goal:** Replicate note 0006's +0.0292 trained-vs-init contrast across ≥4 fresh Brain
 training seeds — the mandatory fix for any above-workshop write-up, doubling as the baseline
 arm for a future memory-lever phase.
-**Verdict:** RUNNING — 4 fresh Brains training on the box (launched 2026-07-08); awaiting the
-ep10–15 sanity gate, then completion + the eval ladder.
+**Verdict:** RUNNING — sanity gate PASSED (ep10, all 4 track March); reached ep124/130 then the
+box **stopped on credit exhaustion 2026-07-10**. Recovered: ep120 checkpoints backed up locally
+(`runs/loop9_backup/`), a torch-2.12 resume-RNG crash fixed (`fd51633`), all 4 **re-resumed from
+ep120** and finishing ep121–130 (~3.8 h). Then completion + the eval ladder.
+
+## Incident log
+
+- **2026-07-10 — credit lapse at ep124/130.** Vast box stopped when credit ran out (host
+  reachable again after top-up; disk persisted, training procs killed). Runs had reached ep124,
+  last 5-ep checkpoint ep120. **Actions:** (1) backed up all 4 seeds' `brain_init.pt` +
+  `brain_ep*.pt` + trends to `runs/loop9_backup/` (24 MB, off-box safety). (2) First resume
+  crashed at startup on **every** seed: `torch.random.set_rng_state → TypeError: RNG state must
+  be a torch.ByteTensor` — a torch 2.12+cu130 quirk where the checkpointed CPU RNG state
+  round-trips as a non-ByteTensor. Fixed in `restore_brain_rng_state` (coerce to uint8 CPU
+  tensor; best-effort with fresh-RNG fallback) — commit `fd51633`. (3) Pulled the fix on the box,
+  re-resumed from ep120; all 4 healthy. **Durability gap noted:** `AUTO_PUSH=0` (no GH_TOKEN) +
+  no periodic pull meant the near-final Brains were briefly single-copy on the box — mitigated by
+  the manual backup; for future long runs, set a GH_TOKEN launch env var or periodic checkpoint pull.
 
 ## Hardware
 
