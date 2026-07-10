@@ -106,19 +106,33 @@ def capture_brain_rng_state() -> dict:
 
 
 def restore_brain_rng_state(state: dict | None) -> bool:
-    """Restore RNG state captured alongside a Brain checkpoint."""
+    """Restore RNG state captured alongside a Brain checkpoint.
+
+    Best-effort: on some torch builds (observed on 2.12+cu130) a checkpointed CPU RNG state
+    round-trips through ``torch.load`` as a non-``ByteTensor``, so ``set_rng_state`` raises
+    ``TypeError: RNG state must be a torch.ByteTensor``. Coerce it back to a uint8 CPU tensor,
+    and on any failure fall through to a fresh RNG stream (the caller already handles a
+    ``False`` return that way). RNG-exact resume is not load-bearing for continuing training.
+    """
     if not state:
         return False
 
-    if "python" in state:
-        random.setstate(state["python"])
-    if "numpy" in state:
-        np.random.set_state(state["numpy"])
-    if "torch_cpu" in state:
-        torch.random.set_rng_state(state["torch_cpu"])
-    if torch.cuda.is_available() and "torch_cuda" in state:
-        torch.cuda.set_rng_state_all(state["torch_cuda"])
-    return True
+    try:
+        if "python" in state:
+            random.setstate(state["python"])
+        if "numpy" in state:
+            np.random.set_state(state["numpy"])
+        if "torch_cpu" in state:
+            cpu_state = state["torch_cpu"]
+            if isinstance(cpu_state, torch.Tensor):
+                cpu_state = cpu_state.to(dtype=torch.uint8, device="cpu")
+            torch.random.set_rng_state(cpu_state)
+        if torch.cuda.is_available() and "torch_cuda" in state:
+            torch.cuda.set_rng_state_all(state["torch_cuda"])
+        return True
+    except Exception as exc:  # noqa: BLE001 — RNG restore is best-effort, never fatal
+        print(f"Warning: could not restore Brain RNG state ({exc}); continuing with a fresh RNG stream.")
+        return False
 
 
 def capture_meta_env_resume_state(meta_env) -> list[dict] | None:
