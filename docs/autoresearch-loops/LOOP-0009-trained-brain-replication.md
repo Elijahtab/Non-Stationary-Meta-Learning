@@ -3,10 +3,12 @@
 **Goal:** Replicate note 0006's +0.0292 trained-vs-init contrast across ≥4 fresh Brain
 training seeds — the mandatory fix for any above-workshop write-up, doubling as the baseline
 arm for a future memory-lever phase.
-**Verdict:** RUNNING — sanity gate PASSED (ep10, all 4 track March); reached ep124/130 then the
-box **stopped on credit exhaustion 2026-07-10**. Recovered: ep120 checkpoints backed up locally
-(`runs/loop9_backup/`), a torch-2.12 resume-RNG crash fixed (`fd51633`), all 4 **re-resumed from
-ep120** and finishing ep121–130 (~3.8 h). Then completion + the eval ladder.
+**Verdict:** ✅ CONFIRMED — **P-R1a PASSED, the effect replicates across training seeds.** 4 fresh
+Brains trained to ep130 (survived a credit-lapse + resume, incident log below); eval ladder on the
+box gave pooled **Δ +0.0455 composite, p=1.3e-6, n=16/arm, 3/4 Brains positive**, converged
+(n=8 +0.054 → n=16 +0.046). Larger than March's single-seed +0.029. Full result: [note 0007 §Results](../research-notes/0007-trained-brain-replication.md).
+Remaining: pull eval evidence home + archive; box safe to destroy; C1 upgrade flows into the paper
+skeleton (note 0008).
 
 ## Incident log
 

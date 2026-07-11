@@ -1,6 +1,9 @@
 # 0007 — Multi-training-seed replication of the trained-Brain effect
 
-**Status:** 📋 PRE-REGISTERED 2026-07-08 — committed before any fresh Brain exists; no results yet.
+**Status:** ✅ RESOLVED 2026-07-11 — **P-R1a PASSED, replicates.** 4 fresh Brains (seeds 1–4)
+trained to ep130; pooled trained-vs-init **Δ +0.0455 composite, p=1.3e-6, n=16/arm**, 3/4 Brains
+directionally positive, estimate converged (n=8 +0.054 → n=16 +0.046). See §Results.
+Pre-registered 2026-07-08 (predictions below untouched).
 **Owner:** Elijah · **Relates to:** [note 0006](./0006-controls-axis-thesis-relocated.md) (the
 single-training-seed contrast being replicated), [note 0005](./0005-untested-controller-bottom-rung-oracle.md)
 (the untrained-controller finding), [LOOP-0009](../autoresearch-loops/LOOP-0009-trained-brain-replication.md)
@@ -121,6 +124,38 @@ untouched.
   training — verified reproducible-per-seed and distinct-across-seeds, smoke-tested end-to-end,
   148 tests green. So each fresh Brain's init is its *own* saved episode-0 snapshot, not a
   reconstruction.
+
+## Results (2026-07-11)
+
+4 fresh Brains trained on the box (seeds 1–4, `paper8x8_130` = March config exactly, ep130,
+2026-07-08→11; survived a mid-run credit lapse + resume, incident in the LOOP-0009 note). The
+avg10-reward selector picked **ep130 for all 4** (each Brain's training reward climbed to the end,
+as the March Brain did). Each selected ep130 vs its **own saved `brain_init.pt`** (matched control),
+evaluated frozen at the eval protocol (16 envs, `decision_interval=1`, 2×100k/800k), scored by the
+validated `scripts/score_eval_dir.py`.
+
+**Pooled contrast (trained ep130 vs matched init):**
+
+| rung | trained | init | Δ | t | p |
+| --- | --- | --- | --- | --- | --- |
+| n=8/arm | 0.5799 | 0.5262 | **+0.0537** | 4.25 | 1.4e-4 |
+| **n=16/arm** | **0.5678** (sd .066) | **0.5223** (sd .020) | **+0.0455** | 5.27 | **1.3e-6** |
+
+**Convergence-vs-decay: PASSES** — the estimate is stable (+0.054 → +0.046), not decaying toward 0
+(the signature that killed critic_code / auxcode_hi / redo). Not marginal → no n=32 needed.
+
+**Per-seed Δ (n=16), reported verbatim per §Statistical honesty:** seed1 **+0.088** (p=2e-5),
+seed2 **+0.045** (p=1.5e-3), seed4 **+0.076** (p=4e-6), seed3 **−0.027** (p=0.046). **3/4 positive.**
+The init arm is consistent across all Brains (~0.522, matching the T-series control 0.5285). hit80
+~0.97 both arms. seed3 is a genuinely below-init training draw — the honest cross-seed spread.
+
+**Verdict — P-R1a met** (pooled Δ>0 at p≪0.01 **AND** ≥3/4 directionally positive, converged): the
+trained-Brain effect is a property of *Brains trained this way*, not the single March seed. The
+claim upgrades to **"trained HP meta-control improves post-switch recovery across training seeds."**
+Notably the pooled +0.046 **exceeds** note 0006's March single-seed +0.029 — the March Brain was a
+slightly *below*-median draw, not a favorable one. Per §Decision matrix (Replicates): CoLLAs-viable;
+the write-up-vs-memory-phase fork is now a scheduling choice, not a scientific one (paper skeleton
+[note 0008](./0008-paper-skeleton.md) C1 upgrades from existential to across-seed).
 
 ## Links
 
