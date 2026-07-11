@@ -1,8 +1,9 @@
 # 0008 — Paper skeleton: "Trained hyperparameter meta-control helps a little; memory is the bottleneck"
 
-**Status:** ✍️ DRAFT 2026-07-08 — the consolidated outline the notes 0001–0007 accrete into.
-Not a hypothesis note; this is the write-up scaffold. Update as the replication (note 0007 /
-LOOP-0009) and any memory phase (note 0009 / LOOP-0010) resolve.
+**Status:** ✅ REALIZED 2026-07-11 — the full LaTeX draft now lives at [`paper/main.tex`](../../paper/main.tex)
+(v1: all sections written, Tables 1–2 + Figs 1–2 from real data, 63 citations from note 0010).
+C1 upgraded to across-training-seeds per the LOOP-0009 replication (note 0007 §Results). This
+note remains the claim→evidence map; the draft is the source of truth for prose.
 **Owner:** Elijah · **Depends on:** LOOP-0009 replication for the *positive* claim's strength
 (see §Venue & the one dependency).
 

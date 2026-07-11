@@ -42,3 +42,4 @@ Rough division of labor:
 - [0007 — Multi-training-seed Replication of the Trained-Brain Effect](./0007-trained-brain-replication.md)
 - [0008 — Paper Skeleton: meta-control helps a little, memory is the bottleneck](./0008-paper-skeleton.md)
 - [0009 — Memory-facing Meta-control: can a learned trigger recover the O2 ceiling? (DRAFT for curation)](./0009-memory-levers-preregistration.md)
+- [0010 — Related-work literature map: 62 verified papers vs. claims C1–C6](./0010-related-work-literature-map.md)
