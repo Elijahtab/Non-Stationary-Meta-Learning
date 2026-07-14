@@ -1,4 +1,4 @@
-# LOOP-0009 — trained-Brain replication campaign (2026-07-08–OPEN)
+# LOOP-0009 — trained-Brain replication campaign (2026-07-08–2026-07-11, closed)
 
 **Goal:** Replicate note 0006's +0.0292 trained-vs-init contrast across ≥4 fresh Brain
 training seeds — the mandatory fix for any above-workshop write-up, doubling as the baseline
@@ -7,8 +7,11 @@ arm for a future memory-lever phase.
 Brains trained to ep130 (survived a credit-lapse + resume, incident log below); eval ladder on the
 box gave pooled **Δ +0.0455 composite, p=1.3e-6, n=16/arm, 3/4 Brains positive**, converged
 (n=8 +0.054 → n=16 +0.046). Larger than March's single-seed +0.029. Full result: [note 0007 §Results](../research-notes/0007-trained-brain-replication.md).
-Remaining: pull eval evidence home + archive; box safe to destroy; C1 upgrade flows into the paper
-skeleton (note 0008).
+**Close-out 2026-07-14:** all evidence is home — 128 eval dirs (`evals/loop9_s{1..4}_{model,init}_e{1..16}`,
+~860 MB, local-only), finals + configs + raw-eval tarball (`runs/loop9_final/`: per-seed `brain_init.pt`,
+`brain_model.pt`=ep130, full ep5–130 series, trends), the ep124 credit-lapse backup (`runs/loop9_backup/`).
+Final Brains + configs archived off-machine on the results branch (`results/loop9_final/`). C1 upgrade
+landed in note 0008 + `paper/main.tex` v1. Box: see Hardware — unreachable 2026-07-14, destroy unconfirmed.
 
 ## Incident log
 
@@ -30,6 +33,10 @@ skeleton (note 0008).
 vCPU, 125 GB RAM, 130 GB disk, torch 2.12+cu130 (`/venv/main`).** All 4 seeds run in parallel,
 1/GPU, ~3 GB VRAM + ~21 GB RAM each; ~48 h to completion (SPS ~600/stream, ~22 min/episode ×
 130). Home 5070 reserved for the eval arms (T-series precedent: 16 evals ≈ 2.2 h).
+
+**Fate:** eval ladder ran on the box 2026-07-10/11 (home 5070 stayed free); evidence pulled home
+2026-07-11. Box unreachable from home as of 2026-07-14 (ssh timeout) — **destroy not yet confirmed
+in the Vast console** (a *stopped* instance still bills storage; user to verify/destroy).
 
 **Provisioning history (the RAM lesson):** two earlier boxes were destroyed. The Vast 4× RTX
 3060 box has **62 GB RAM**, which OOM-killed 3 of 4 runs during pretraining — each
@@ -117,19 +124,21 @@ commit (pre-registration + scorer + fix), pushed to `Auto-Research`.
 from run branch `autoresearch-run-20260708` @ `0e2f874` (carries the seed/init fix +
 `paper8x8_130`). All 4 seeds training in parallel.
 
-**Remaining:**
-1. **⏳ ep10–15 sanity gate (note 0007 A1)** — compare one Brain's early training-reward curve
-   against the March shape *before* trusting the full ~48 h. Data source: the
-   `Episode N/130 | reward=...` lines in `sweeps/loop9_s*/logs/*.log`. ~3.5–4 h after launch.
-2. **Monitor** liveness (4 `train_brain.py` alive, GPUs busy, RAM < 125 GB, disk < 130 GB);
-   re-run the same `run_sweep.sh` command for any spot-killed cell (RESUME=1 continues it).
-3. **On completion (~48 h):** pull each run's `brain_init.pt` + selected `brain_ep*.pt`
-   (avg10-reward selector) + `brain_model.pt` to home; run the eval ladder (n=8→16→(32)/arm) on
-   the 5070; score with `scripts/score_eval_dir.py`.
-4. **Gate per note 0007** (P-R1a: pooled Δ>0 p<0.01 AND ≥3/4 Brains positive). The strategic
-   fork (write up vs memory phase) is decided AT that gate — user decision 2026-07-08
-   ("replicate + draft both"); the paper skeleton (note 0008) + LOOP-0010 draft (note 0009) are
-   already drafted.
+**CLOSED 2026-07-14.** The ladder ran on the box (steps 1–3 done 07-10/11), P-R1a passed
+(note 0007 §Results), and the fork resolved per the user's 2026-07-08 call ("replicate + draft
+both"): paper v1 written (`paper/main.tex`, note 0008 REALIZED) **and** the memory phase mapped
+([2026-07-09 action tree](../plans/2026-07-09-research-action-tree.md)).
+
+**Where things live:** trained Brains + inits + ep-series → `runs/loop9_final/runs/` (home) and
+`results/loop9_final/` (results branch, off-machine). Raw eval dirs → `evals/loop9_*` +
+`runs/loop9_final/loop9_evals_data.tgz` (home-only, ~860 MB/287 MB — reproducible from checkpoints
+via `scripts/run_loop9_evals.py` + scored by `scripts/score_eval_dir.py`).
+
+**Next loop starts here:** the action tree's Wave 0 ($0 desk probes: power analysis, dead-dim
+log_std, IQM/bootstrap retrospective, encoder-dormancy probe build, eval_brain.py flag plumbing)
+then Wave-1 oracle rungs (★G-DECOMP swap-scope ladder first — free home ladders once eval_brain.py
+is plumbed). The 4 fresh Brains are the trained-controller baseline arm for every memory-lever
+experiment (LOOP-0010 / note 0009, as refined by the tree).
 
 ## Links
 
