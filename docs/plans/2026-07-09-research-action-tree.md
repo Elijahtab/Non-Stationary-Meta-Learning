@@ -30,6 +30,11 @@ end-to-end (banked at first switch, restored on revisits, flags in eval config.t
 G-DECOMP ladder is now launch-ready as free home evals.** Remaining before Wave 1: W0c
 (encoder-dormancy probe build) — and a human go for the ladder itself (never-idle pause).
 
+**WAVE 1 LAUNCHED 2026-07-14** (user go: home ladders approved, box at Wave 2 on request):
+[LOOP-0011](../autoresearch-loops/LOOP-0011-wave1-oracle-rungs.md), gates pre-registered in
+[research-log 0008](../research-log/0008-2026-07-14-wave1-oracle-rungs-preregistration.md)
+(P-W1a re-anchor · P-W1b routing · P-W1c difficulty scaling).
+
 **Standing constraints:** LOOP-0009 owns the box until ~2026-07-10; never-idle-box is PAUSED —
 nothing launches without a human call. n≥8 + convergence-vs-decay discipline everywhere.
 Controller-touching screens must use a **trained** Brain (March ep130 now; LOOP-0009's four
