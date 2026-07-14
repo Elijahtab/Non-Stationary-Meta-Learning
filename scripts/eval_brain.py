@@ -186,6 +186,8 @@ def eval_brain(args):
         wm_lr=args.wm_lr,
         log_dir=logger.full_dir,
         episodic_memory_capacity=args.episodic_memory_capacity,
+        policy_swap_topline=getattr(args, "policy_swap_topline", False),
+        policy_swap_scope=getattr(args, "swap_scope", "full"),
     )
 
     sig = SignalExtractor(
@@ -357,6 +359,13 @@ def main():
     p.add_argument("--save_every_updates", type=int, default=9999)
     p.add_argument("--disable_neuromodulation", action="store_true",
                    help="Disable neuromodulation gating (context code ignored, mask stays all-ones)")
+    p.add_argument("--policy_swap_topline", action="store_true",
+                   help="O2 oracle swap (research note 0005): bank/restore the learner per regime "
+                        "at ground-truth switches. Diagnostic ceiling, never a method.")
+    p.add_argument("--swap_scope", type=str, default="full",
+                   choices=["heads", "heads+encoder", "world_model", "full"],
+                   help="G-DECOMP swap-scope ladder (action tree 2026-07-09): what the O2 swap "
+                        "banks/restores. Only read when --policy_swap_topline is set.")
 
     args = p.parse_args()
     eval_brain(args)

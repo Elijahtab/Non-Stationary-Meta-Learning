@@ -16,6 +16,7 @@ optimizer layout, forward pass, and Brain loop are byte-identical to baseline.
 import sys
 from types import SimpleNamespace
 
+import pytest
 import torch
 
 import scripts.train_brain as train_brain_script
@@ -200,6 +201,66 @@ def test_policy_swap_default_off_logs_nothing():
         assert state.policy_swap_snapshots == {}
     finally:
         state.envs.close()
+
+
+# --------------------------------------------------------------------------- #
+# G-DECOMP — scoped snapshot/restore (swap-scope ladder, action tree 2026-07-09)
+# --------------------------------------------------------------------------- #
+
+def test_scoped_snapshot_filters_keys():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, policy_swap_topline=True,
+                                policy_swap_scope="heads")
+    try:
+        snap = _snapshot_learner(state, "heads")
+        assert set(snap) == {"model_partial"}
+        assert snap["model_partial"], "heads scope banked nothing"
+        assert all(k.startswith(("actor_head.", "critic_head."))
+                   for k in snap["model_partial"])
+
+        he = _snapshot_learner(state, "heads+encoder")["model_partial"]
+        assert any(k.startswith("encoder.") for k in he)
+
+        wm = _snapshot_learner(state, "world_model")
+        assert set(wm) == {"world_model"}
+
+        full = _snapshot_learner(state, "full")
+        assert set(full) == {"model", "world_model", "optimizer", "wm_optimizer"}
+    finally:
+        state.envs.close()
+
+
+def test_scoped_restore_touches_only_scope():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, policy_swap_topline=True,
+                                policy_swap_scope="heads")
+    try:
+        snap = _snapshot_learner(state, "heads")
+        ref_heads = {k: v.clone() for k, v in snap["model_partial"].items()}
+        live_lr = state.optimizer.param_groups[0]["lr"]
+
+        with torch.no_grad():
+            for p in state.model.parameters():
+                p.add_(1.0)
+        mutated = {k: v.clone() for k, v in state.model.state_dict().items()}
+
+        _restore_learner(state, snap)
+        for k, v in state.model.state_dict().items():
+            if k.startswith(("actor_head.", "critic_head.")):
+                assert torch.allclose(v, ref_heads[k]), f"{k} not restored"
+            else:
+                assert torch.allclose(v, mutated[k]), f"{k} clobbered outside scope"
+        # Partial scopes carry no optimizer state; the live LR must be untouched.
+        assert state.optimizer.param_groups[0]["lr"] == live_lr
+    finally:
+        state.envs.close()
+
+
+def test_swap_scope_validated_at_init():
+    cfg = _tiny_cfg()
+    with pytest.raises(ValueError, match="policy_swap_scope"):
+        init_inner_training(ENV_ID, cfg, policy_swap_topline=True,
+                            policy_swap_scope="nonsense")
 
 
 # --------------------------------------------------------------------------- #

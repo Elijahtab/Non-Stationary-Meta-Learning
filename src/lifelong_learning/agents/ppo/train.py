@@ -204,6 +204,9 @@ class InnerTrainState:
     # this instrument. False == off (baseline-identical).
     policy_swap_topline: bool = False
     policy_swap_snapshots: dict = field(default_factory=dict, repr=False)
+    # G-DECOMP swap-scope ladder (action tree 2026-07-09 ★): narrows what the O2 swap
+    # banks/restores so the +0.249 ceiling can be attributed. "full" == the original O2.
+    policy_swap_scope: str = "full"
 
 
 # Cand-4 spike shape (fixed; only the trigger threshold is exposed as a lever).
@@ -311,29 +314,63 @@ def redo_reset_heads(model, optimizer, obs, tau: float = REDO_TAU) -> dict:
 CRITIC_ORACLE_UPDATES = 15
 
 
-def _snapshot_learner(state) -> dict:
+# G-DECOMP (action tree 2026-07-09 ★): key-prefix filters for scoped snapshots.
+# "heads+encoder" is the policy net's trainable trunk; feature_norm (plasticity_norm,
+# off in the paper preset) and the aux code head (aux_code_coef=0 there) sit outside it.
+SWAP_SCOPE_PREFIXES = {
+    "heads": ("actor_head.", "critic_head."),
+    "heads+encoder": ("actor_head.", "critic_head.", "encoder."),
+}
+SWAP_SCOPES = ("heads", "heads+encoder", "world_model", "full")
+
+
+def _snapshot_learner(state, scope: str = "full") -> dict:
     """O2 policy-swap topline (research note 0005): deep-copy everything the learner
-    would 'forget' across a regime switch — model, world model, and both Adam states."""
+    would 'forget' across a regime switch — model, world model, and both Adam states.
+
+    G-DECOMP: `scope` narrows the bank so the ceiling decomposes — "heads" /
+    "heads+encoder" (policy-net weights only), "world_model" (WM weights only), or
+    "full" (the original O2). Partial scopes carry NO optimizer state, so full-vs-
+    partial gaps also bound the optimizer-curvature share of the ceiling."""
     s = state
+    if scope == "full":
+        return {
+            "model": copy.deepcopy(s.model.state_dict()),
+            "world_model": copy.deepcopy(s.world_model.state_dict()),
+            "optimizer": copy.deepcopy(s.optimizer.state_dict()),
+            "wm_optimizer": copy.deepcopy(s.wm_optimizer.state_dict()),
+        }
+    if scope == "world_model":
+        return {"world_model": copy.deepcopy(s.world_model.state_dict())}
+    prefixes = SWAP_SCOPE_PREFIXES[scope]
     return {
-        "model": copy.deepcopy(s.model.state_dict()),
-        "world_model": copy.deepcopy(s.world_model.state_dict()),
-        "optimizer": copy.deepcopy(s.optimizer.state_dict()),
-        "wm_optimizer": copy.deepcopy(s.wm_optimizer.state_dict()),
+        "model_partial": {
+            k: copy.deepcopy(v)
+            for k, v in s.model.state_dict().items()
+            if k.startswith(prefixes)
+        }
     }
 
 
 def _restore_learner(state, snap: dict) -> None:
-    """O2: restore a banked per-regime learner. Optimizer state_dicts carry the LRs from
-    snapshot time, so the current main LR (anneal / Brain lever) is re-applied after the
-    load — the swap must never clobber the live LR schedule."""
+    """O2: restore a banked per-regime learner — only the pieces the snapshot carries.
+    Optimizer state_dicts carry the LRs from snapshot time, so the current main LR
+    (anneal / Brain lever) is re-applied after the load — the swap must never clobber
+    the live LR schedule."""
     s = state
-    main_lr = s.optimizer.param_groups[0]["lr"]
-    s.model.load_state_dict(snap["model"])
-    s.world_model.load_state_dict(snap["world_model"])
-    s.optimizer.load_state_dict(copy.deepcopy(snap["optimizer"]))
-    s.wm_optimizer.load_state_dict(copy.deepcopy(snap["wm_optimizer"]))
-    apply_inner_lr(s.optimizer, main_lr, s.cfg)
+    if "model_partial" in snap:
+        merged = s.model.state_dict()
+        merged.update(snap["model_partial"])
+        s.model.load_state_dict(merged)
+    if "model" in snap:
+        s.model.load_state_dict(snap["model"])
+    if "world_model" in snap:
+        s.world_model.load_state_dict(snap["world_model"])
+    if "optimizer" in snap:
+        main_lr = s.optimizer.param_groups[0]["lr"]
+        s.optimizer.load_state_dict(copy.deepcopy(snap["optimizer"]))
+        s.wm_optimizer.load_state_dict(copy.deepcopy(snap["wm_optimizer"]))
+        apply_inner_lr(s.optimizer, main_lr, s.cfg)
 
 
 def init_inner_training(
@@ -372,6 +409,7 @@ def init_inner_training(
     redo_interval: int = 0,
     critic_lr_oracle_scale: float = 0.0,
     policy_swap_topline: bool = False,
+    policy_swap_scope: str = "full",
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -392,6 +430,12 @@ def init_inner_training(
     # regime switch — ground truth from the env, not the Brain code). 0.0 == off.
     cfg.critic_lr_oracle_scale = critic_lr_oracle_scale
     cfg.critic_oracle_remaining = 0
+    # G-DECOMP: validate up front — a typo'd scope must fail at init, not at the
+    # first regime switch hours into a ladder run.
+    if policy_swap_scope not in SWAP_SCOPES:
+        raise ValueError(
+            f"policy_swap_scope must be one of {SWAP_SCOPES}, got {policy_swap_scope!r}"
+        )
 
     seed_everything(cfg.seed)
     configure_runtime_threads(cpu_threads)
@@ -594,6 +638,7 @@ def init_inner_training(
         surprise_spike_threshold=surprise_spike_threshold,
         redo_interval=redo_interval,
         policy_swap_topline=policy_swap_topline,
+        policy_swap_scope=policy_swap_scope,
     )
 
 
@@ -711,7 +756,7 @@ def run_inner_update(state: InnerTrainState) -> dict:
             # accepted, conservative imprecision for a ceiling estimate. Restore precedes
             # the anchor snapshot so the anchor tracks the restored policy.
             if s.policy_swap_topline:
-                s.policy_swap_snapshots[prev_regime] = _snapshot_learner(s)
+                s.policy_swap_snapshots[prev_regime] = _snapshot_learner(s, s.policy_swap_scope)
                 snap = s.policy_swap_snapshots.get(current_env_regime)
                 if snap is not None:
                     _restore_learner(s, snap)

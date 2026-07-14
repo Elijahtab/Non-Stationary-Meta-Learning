@@ -23,8 +23,12 @@ kill FIRED (power 0.24@n8 / 0.49@n16 for +0.029 — screening returns only via a
 with MDE ≥ +0.05, human call); B-R0 confirms the B1 dead-dim-noise premise (trained σ on code
 dims 0.605 ≈ init 0.607, all 5 Brains); IQM/stratified-CI clean (pooled ΔIQM +0.0527, CI
 [+0.033,+0.058]); exploratory hit95 facet moves with training (+0.143 t1 / +0.071 pooled).
-**Remaining before Wave 1:** W0c (encoder-dormancy probe) + W0e (eval_brain.py flag plumbing —
-the G-DECOMP unlock).
+**W0e DONE 2026-07-14:** `swap_scope` ({heads | heads+encoder | world_model | full}) plumbed
+through `_snapshot_learner`/`_restore_learner` + `init_inner_training` + `eval_brain.py`
+(`--policy_swap_topline --swap_scope`), flag-guarded default-off, unit-tested + smoke-verified
+end-to-end (banked at first switch, restored on revisits, flags in eval config.txt) — **the
+G-DECOMP ladder is now launch-ready as free home evals.** Remaining before Wave 1: W0c
+(encoder-dormancy probe build) — and a human go for the ladder itself (never-idle pause).
 
 **Standing constraints:** LOOP-0009 owns the box until ~2026-07-10; never-idle-box is PAUSED —
 nothing launches without a human call. n≥8 + convergence-vs-decay discipline everywhere.
