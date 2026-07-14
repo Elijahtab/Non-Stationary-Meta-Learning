@@ -4,7 +4,11 @@
 heads, encoder, world model, optimizer state — carries the headroom?) and screen whether the
 memory premium grows with regime count. These two answers route which memory subtree
 (weight-space / MoWM / mem-Brain) gets the first Wave-2 spend.
-**Verdict:** OPEN.
+**Verdict:** OPEN — **Batch 1 (ladder) RESOLVED 2026-07-14: P-W1a PASS (H=+0.2434 at eval
+protocol, p=2.8e-8); P-W1b routes to W2A weight-space memory** — share(heads)=+89.6%,
+share(heads+encoder)=+96.3%, share(world_model)=−8.2% (null) → **G3 opens, MoWM subtree
+closed at its oracle rung**; no extension needed (all margins ≥50 pp). Full numbers:
+[note 0012](../research-notes/0012-ceiling-decomposition.md). Batch 2 (k3) in flight.
 
 ## Hardware
 
