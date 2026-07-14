@@ -15,6 +15,17 @@ plus an 8-agent source-verification pass (2026-07-09).
 | **box-night** | 12 h × 4 GPUs @ ~$1–1.5/hr | ~$12–18 (box is RAM-bound: ≥24 GB RAM/GPU) |
 | **home ladder** | eval-only n=32×2 arms on the 5070 | ~9 h, **$0** |
 
+**Status (2026-07-14):** LOOP-0009 gate → **P-R1a PASSED** (pooled Δ+0.0455, 3/4 seeds; C1 is
+across-training-seeds; paper v1 in `paper/`). Box gone (unreachable; destroy pending human
+confirmation in the Vast console) — re-provision at Wave 2 per standing decision 2. **Wave 0:
+W0a/W0b/W0d DONE** ([note 0011](../research-notes/0011-wave0-desk-probes.md)): H4's registered
+kill FIRED (power 0.24@n8 / 0.49@n16 for +0.029 — screening returns only via a re-registration
+with MDE ≥ +0.05, human call); B-R0 confirms the B1 dead-dim-noise premise (trained σ on code
+dims 0.605 ≈ init 0.607, all 5 Brains); IQM/stratified-CI clean (pooled ΔIQM +0.0527, CI
+[+0.033,+0.058]); exploratory hit95 facet moves with training (+0.143 t1 / +0.071 pooled).
+**Remaining before Wave 1:** W0c (encoder-dormancy probe) + W0e (eval_brain.py flag plumbing —
+the G-DECOMP unlock).
+
 **Standing constraints:** LOOP-0009 owns the box until ~2026-07-10; never-idle-box is PAUSED —
 nothing launches without a human call. n≥8 + convergence-vs-decay discipline everywhere.
 Controller-touching screens must use a **trained** Brain (March ep130 now; LOOP-0009's four
@@ -361,6 +372,10 @@ IQM + stratified bootstrap + the pre-authorized 0.95 facet, retrospectively on a
 **Kill (zero-compute, runs FIRST):** bootstrap-subsample the archived n=32 arms to n=8 cells;
 if power to detect the known +0.029 is <60% at n=8 and <80% at n=16, autoresearch screening
 can't discriminate G-sized effects at affordable n — H4 dies before spending anything.
+**→ FIRED 2026-07-14: power 0.24 @ n=8, 0.49 @ n=16 — H4 dead as registered
+([note 0011](../research-notes/0011-wave0-desk-probes.md) F1; screens are, however, well-powered
+for ≥+0.05 effects — reviving screening for ceiling-slice-sized effects is a new registration,
+human call).**
 
 ---
 

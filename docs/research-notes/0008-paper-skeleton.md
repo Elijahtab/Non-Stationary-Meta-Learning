@@ -6,6 +6,12 @@ C1 upgraded to across-training-seeds per the LOOP-0009 replication (note 0007 §
 note remains the claim→evidence map; the draft is the source of truth for prose.
 **Owner:** Elijah · **Depends on:** LOOP-0009 replication for the *positive* claim's strength
 (see §Venue & the one dependency).
+**Addendum 2026-07-14 ([note 0011](./0011-wave0-desk-probes.md)):** H1/H2 methods items are
+computed — IQM tracks the mean (pooled ΔIQM +0.0527), seed-stratified bootstrap CI for the
+pooled replication Δ is [+0.033, +0.058]; and the pre-authorized **hit-0.95 facet moves with
+training** (t1 +0.143, pooled LOOP-0009 +0.071, 3/4 seeds positive) where hit80 was saturated —
+include in C1 results as **exploratory** (not pre-registered), and soften the "composite is one
+facet" limitation accordingly.
 
 ## One-line thesis
 

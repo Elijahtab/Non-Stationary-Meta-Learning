@@ -43,3 +43,4 @@ Rough division of labor:
 - [0008 — Paper Skeleton: meta-control helps a little, memory is the bottleneck](./0008-paper-skeleton.md)
 - [0009 — Memory-facing Meta-control: can a learned trigger recover the O2 ceiling? (DRAFT for curation)](./0009-memory-levers-preregistration.md)
 - [0010 — Related-work literature map: 62 verified papers vs. claims C1–C6](./0010-related-work-literature-map.md)
+- [0011 — Wave-0 desk probes: screening power (H4 dies), dead-dim noise (B1 premise real), the 0.95 facet](./0011-wave0-desk-probes.md)
