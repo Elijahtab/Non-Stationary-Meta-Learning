@@ -60,6 +60,11 @@ G3RE_ARMS = {  # LOOP-0013 (log 0010): selection rung with spawn-until-full allo
     "g3_ar1re": "evals/g3_ar1re_e*",
     "g3_ar1ve2": "evals/g3_ar1ve2_e*",
 }
+T15_ARMS = {  # LOOP-0013 addendum (log 0011): trigger hardening at threshold 1.5
+    "control": "evals/loop9_s1_model_e*",
+    "g3_ar1": "evals/g3_ar1_e*",
+    "g3_ar1t15": "evals/g3_ar1t15_e*",
+}
 # Ground-truth switch schedule of the eval protocol, for trigger precision/recall.
 G3_SWITCHES = list(range(100000, 800000, 100000))
 G3_WINDOW_STEPS = 4 * 2048
@@ -246,9 +251,28 @@ def adjudicate_g3re(a: dict[str, dict]) -> dict:
     return res
 
 
+def adjudicate_t15(a: dict[str, dict]) -> dict:
+    """LOOP-0013 addendum gates (log 0011): P-T15a precision transfer, P-T15b gain lift."""
+    c = a["control"]["composites"]
+    ar1 = welch(a["g3_ar1"]["composites"], c)
+    t15 = welch(a["g3_ar1t15"]["composites"], c)
+    trig = _g3_trigger_stats(T15_ARMS["g3_ar1t15"])
+    p_a = trig["precision"] >= 0.80
+    p_b = t15["delta"] >= ar1["delta"] + 0.02
+    res = {"ar1_ref": ar1, "t15": t15, "trigger": trig,
+           "P_T15a": {"pass": bool(p_a)}, "P_T15b": {"pass": bool(p_b)}}
+    print(f"\nar1@1.0 (n={a['g3_ar1']['n']}): gain {ar1['delta']:+.4f} | "
+          f"t15@1.5 (n={a['g3_ar1t15']['n']}): gain {t15['delta']:+.4f} (p={t15['p']:.3g})")
+    print(f"t15 trigger: precision {trig['precision']:.2f} recall {trig['recall']:.2f} "
+          f"fires/run {trig['fires_per_run']:.1f}")
+    print(f"P-T15a (precision >= 0.80): {'PASS' if p_a else 'FAIL'}")
+    print(f"P-T15b (gain >= ar1 + 0.02 = {ar1['delta'] + 0.02:+.4f}): {'PASS' if p_b else 'FAIL'}")
+    return res
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "t15"])
     p.add_argument("--h2", type=float, default=None, help="K=2 headroom H from the ladder (k3 only)")
     p.add_argument("--json-out", default="evals/wave1_scores.json")
     args = p.parse_args(argv)
@@ -268,6 +292,9 @@ def main(argv: list[str] | None = None) -> int:
     elif args.batch == "g3re":
         arms = summarize(G3RE_ARMS)
         res = adjudicate_g3re(arms)
+    elif args.batch == "t15":
+        arms = summarize(T15_ARMS)
+        res = adjudicate_t15(arms)
     else:
         if args.h2 is None:
             p.error("k3 needs --h2 (the ladder's H)")

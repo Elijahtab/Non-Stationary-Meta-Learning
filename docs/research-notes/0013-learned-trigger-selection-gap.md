@@ -70,6 +70,35 @@ itself continually trained (drift between banking and scoring).
 - LOOP-0010's restore-gate lever premise survives P-G3b; its *selection* lever design must
   not assume value-error addressing (this note's negative).
 
+## LOOP-0013 re-run results (2026-07-15, allocation fixed — the honest adjudication)
+
+| arm | n | gain vs control | p | trigger prec/rec | restore rate |
+| --- | --- | --- | --- | --- | --- |
+| ar1 (K=2 flip) | **16** | **+0.1188** | 4.7e-7 | 0.69 / 0.73 | 1.00 (forced) |
+| ar1re (reward fingerprint) | 8 | −0.0092 | 0.71 | 0.82 / 0.80 | **0.02** (1/55 fires) |
+| ar1ve2 (value fit) | 8 | +0.0074 | 0.64 | 0.82 / 0.80 | 0.16 (9/55) |
+
+- **P-G3e PASS:** the learned-trigger headline converges — n=8 +0.1180 → n=16 **+0.1188**
+  (52% of the +0.228 slice at n=16 references). This is now the program's method number.
+- **P-G3d and P-G3d-ve both FAIL — real nulls this time,** and the mechanism is identified:
+  with working triggers (0.82 precision), both selectors restored almost never. Banked heads
+  are scored through the **live, continually-trained trunk** (WM trunk for reward
+  fingerprints, model encoder for value fit); by the first revisit the feature space has
+  drifted for ~49 updates, so the stale banked head loses the error comparison to the
+  always-fresh live head — selection collapses to "stay" and the arm behaves like control.
+  The registered trunk-drift risk (log 0010) is the binding one; the reward-vs-value
+  hypothesis remains untested *between* the selectors because drift dominates both.
+- **Consequence — the selection frontier is now precisely "drift":** the candidate fixes are
+  (i) drift-robust fingerprints: bank the *scoring path* per slot (the full ~1–2 MB WM, or
+  frozen feature hooks) so fingerprints are evaluated in their own feature space; or
+  (ii) hand selection to the mem-Brain lever (LOOP-0010, needs Brain fine-tunes = box).
+  At K=2 the flip needs no selection, so the *method* stands at +0.119 regardless; selection
+  matters for K>2 and for false-fire robustness.
+- **Trigger decomposition:** oracle/oracle = 101% of slice vs learned trigger = 52% — the
+  entire gap is trigger cost (false fires load the wrong head; misses delay restore).
+  Trigger hardening at threshold 1.5 (desk: precision 0.95, recall 0.81) is registered as
+  the next $0 arm ([log 0011](../research-log/0011-2026-07-15-trigger-hardening-preregistration.md)).
+
 ## Links
 
 Raw: `evals/g3_*`, `evals/wave1_scores.json` (local) · adjudicator `scripts/score_wave1.py g3` ·

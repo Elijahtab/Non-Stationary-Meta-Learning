@@ -4,7 +4,14 @@
 invalidated (missing slot allocation): does content-addressable slot selection work, and is
 the regime's identity signal in the reward function (WM reward head) rather than value fit?
 Plus the A-R1 headline's n=16 extension.
-**Verdict:** OPEN — launched 2026-07-14 night.
+**Verdict:** Selection rung RESOLVED 2026-07-15 (24/24 clean) — **P-G3e PASS: the K=2-flip
+method converges at n=16, +0.1188 (p=4.7e-7, 52% of the slice) — the program's method
+number. P-G3d and P-G3d-ve both FAIL as real nulls:** with working triggers (precision
+0.82), both content selectors restored almost never (fingerprint 1/55 fires, value-fit
+9/55) — banked heads scored through the live drifting trunk always lose to the fresh head.
+The selection frontier is *drift*, not signal choice ([note 0013 §LOOP-0013 results](../research-notes/0013-learned-trigger-selection-gap.md)).
+**Addendum batch in flight:** trigger hardening @ threshold 1.5
+([log 0011](../research-log/0011-2026-07-15-trigger-hardening-preregistration.md)).
 
 ## Hardware
 
