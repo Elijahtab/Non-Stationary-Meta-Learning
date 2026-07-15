@@ -1,4 +1,4 @@
-# LOOP-0013 — Selection rung: reward fingerprint vs value fit, done right (2026-07-14–OPEN)
+# LOOP-0013 — Selection rung: reward fingerprint vs value fit, done right (2026-07-14–15, closed)
 
 **Goal:** Adjudicate the learned-WHICH properly after LOOP-0012's selection arm was
 invalidated (missing slot allocation): does content-addressable slot selection work, and is
@@ -10,8 +10,11 @@ number. P-G3d and P-G3d-ve both FAIL as real nulls:** with working triggers (pre
 0.82), both content selectors restored almost never (fingerprint 1/55 fires, value-fit
 9/55) — banked heads scored through the live drifting trunk always lose to the fresh head.
 The selection frontier is *drift*, not signal choice ([note 0013 §LOOP-0013 results](../research-notes/0013-learned-trigger-selection-gap.md)).
-**Addendum batch in flight:** trigger hardening @ threshold 1.5
-([log 0011](../research-log/0011-2026-07-15-trigger-hardening-preregistration.md)).
+**Addendum RESOLVED 2026-07-15: P-T15a PASS / P-T15b FAIL** — precision 0.69→0.94 moved the
+composite by nothing (+0.1195 vs +0.1188): the gap to oracle is detection **lag**, structural
+to any per-update detector (including a Brain gate at the same cadence — the mem-Brain
+restore-lever premise is materially weakened). **LOOP CLOSED**; the sharpened fork is in
+[note 0013 §Trigger-hardening addendum](../research-notes/0013-learned-trigger-selection-gap.md).
 
 ## Hardware
 

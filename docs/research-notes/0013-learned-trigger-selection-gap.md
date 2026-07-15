@@ -99,6 +99,29 @@ itself continually trained (drift between banking and scoring).
   Trigger hardening at threshold 1.5 (desk: precision 0.95, recall 0.81) is registered as
   the next $0 arm ([log 0011](../research-log/0011-2026-07-15-trigger-hardening-preregistration.md)).
 
+## Trigger-hardening addendum (2026-07-15, log 0011 gates)
+
+Threshold 1.5: in-run precision **0.94** (desk 0.95 — calibration transferred), recall 0.80,
+gain **+0.1195** vs +0.1188 at threshold 1.0 — **P-T15a PASS, P-T15b FAIL.** Raising
+precision 0.69 → 0.94 moved the composite by nothing.
+
+**Reading (as registered):** false fires were never the binding cost — the K=2 flip is
+self-repairing (a wrong flip is undone at the next true switch). The oracle-vs-learned gap
+(+0.228 vs +0.119) is **detection lag + late detections**: a per-update value-loss detector
+cannot fire before one update of post-switch data exists, so every switch pays ≥2,048 steps
+of wrong-head experience; ~20–25% of switches are detected late. This is structural to any
+per-update detector — including a Brain-driven gate at the same `decision_interval=1`
+cadence, which materially weakens the mem-Brain restore-lever premise (it sees the same
+per-update signals and shares the same lag floor; and the one thing it could add — learned
+false-fire suppression — is now measured to be worth ~nothing).
+
+**The remaining $0 routes, sharpened:** (i) a **per-step trigger** — the WM surprise signal
+exists per-step inside the inner loop (`SignalExtractor` computes and discards a z-score;
+the intrinsic-reward spike is per-transition), so a detector that flips heads mid-rollout
+could cut the lag from ~2,048 steps to ~tens; (ii) **drift-robust fingerprints** (bank the
+scoring path) — not for K=2 score, but for K>2 generality. The mem-Brain (box) drops to
+third: its measurable edge over the static detector is now bounded small at this cadence.
+
 ## Links
 
 Raw: `evals/g3_*`, `evals/wave1_scores.json` (local) · adjudicator `scripts/score_wave1.py g3` ·
