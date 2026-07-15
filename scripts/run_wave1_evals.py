@@ -95,6 +95,26 @@ def build_jobs(batch: str, eval_seeds: list[int]) -> list[dict]:
                     "extra": extra,
                     "num_regimes": 3,
                 })
+    elif batch == "g3":
+        # LOOP-0012 de-oracling screen (pre-reg: research-log 0009). References are archived:
+        # control = loop9_s1_model_e1..8, ceiling slice = wave1_decomp_heads_e1..8.
+        model = _brain_ckpt("brain_model.pt")
+        arms = [
+            ("oracle", ["--head_bank_slots", "2"]),  # equivalence rung (oracle/oracle)
+            ("ar1", ["--head_bank_slots", "2", "--head_bank_trigger", "surprise",
+                     "--head_bank_select", "other"]),  # learned WHEN (A-R1)
+            ("ar1ve", ["--head_bank_slots", "2", "--head_bank_trigger", "surprise",
+                       "--head_bank_select", "value_error"]),  # learned WHEN + WHICH
+        ]
+        for arm, extra in arms:
+            for e in eval_seeds:
+                jobs.append({
+                    "run_name": f"g3_{arm}_e{e}",
+                    "ckpt": model,
+                    "eval_seed": e,
+                    "extra": extra,
+                    "num_regimes": 2,
+                })
     else:
         raise ValueError(batch)
     return jobs
@@ -146,7 +166,7 @@ def run_eval(job: dict, gpu: int, out_root: Path, log_dir: Path, threads: int) -
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3"])
     p.add_argument("--eval-seeds", type=int, nargs="+", default=[1, 2, 3, 4, 5, 6, 7, 8])
     p.add_argument("--gpus", type=int, nargs="+", default=[0])
     p.add_argument("--concurrency", type=int, default=1,

@@ -264,6 +264,104 @@ def test_swap_scope_validated_at_init():
 
 
 # --------------------------------------------------------------------------- #
+# G3 head-bank memory (LOOP-0012) — trigger/selection rungs
+# --------------------------------------------------------------------------- #
+
+def test_head_bank_oracle_banks_and_restores_across_switches():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, steps_per_regime=32, num_regimes=2,
+                                head_bank_slots=2)
+    try:
+        for _ in range(6):
+            run_inner_update(state)
+        assert set(state.head_bank) == {0, 1}
+        restored = [v for _, v in state.logger.data.get(
+            "brain_neuromod/head_bank_restored", [])]
+        assert restored, "head bank never fired on oracle switches"
+        assert restored[0] == 0.0            # first switch: warm start, nothing banked
+        assert 1.0 in restored               # a revisit restored a banked slot
+    finally:
+        state.envs.close()
+
+
+def test_head_bank_surprise_trigger_flips_slot():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, head_bank_slots=2,
+                                head_bank_trigger="surprise", head_bank_select="other",
+                                head_bank_surprise_threshold=1.0)
+    try:
+        from lifelong_learning.agents.ppo.train import _head_bank_surprise_check
+        run_inner_update(state)              # buffer + logger populated
+        _head_bank_surprise_check(state, 1.0)     # seeds the EMA baseline
+        assert state.head_bank_active == 0
+        _head_bank_surprise_check(state, 10.0)    # >2x baseline -> fires
+        assert state.head_bank_active == 1
+        assert 0 in state.head_bank               # outgoing slot banked
+        assert state.head_bank_cooldown > 0
+        _head_bank_surprise_check(state, 100.0)   # inside cooldown -> must NOT fire
+        assert state.head_bank_active == 1
+    finally:
+        state.envs.close()
+
+
+def test_head_bank_value_error_selects_best_critic():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, head_bank_slots=3,
+                                head_bank_trigger="surprise", head_bank_select="value_error")
+    try:
+        from lifelong_learning.agents.ppo.train import (
+            _head_bank_select_value_error,
+            _head_bank_snapshot,
+        )
+        run_inner_update(state)
+        # Craft slot 1: same heads but the critic's final bias shifted far positive.
+        shifted = _head_bank_snapshot(state)
+        bias_key = next(k for k in shifted if k.startswith("critic_head")
+                        and k.endswith("bias") and shifted[k].numel() == 1)
+        shifted[bias_key] = shifted[bias_key] + 50.0
+        state.head_bank[1] = shifted
+        live_heads = {k: v.clone() for k, v in _head_bank_snapshot(state).items()}
+
+        # Returns near the live critic's range -> live (active) slot wins.
+        state.buffer.returns = torch.zeros_like(state.buffer.returns)
+        assert _head_bank_select_value_error(state) == 0
+        # Returns near +50 -> the shifted slot wins.
+        state.buffer.returns = torch.full_like(state.buffer.returns, 50.0)
+        assert _head_bank_select_value_error(state) == 1
+        # Selection must not mutate the live weights.
+        for k, v in _head_bank_snapshot(state).items():
+            assert torch.allclose(v, live_heads[k]), f"{k} mutated by selection"
+    finally:
+        state.envs.close()
+
+
+def test_head_bank_combo_validation():
+    cfg = _tiny_cfg()
+    with pytest.raises(ValueError, match="oracle trigger"):
+        init_inner_training(ENV_ID, cfg, head_bank_slots=2, head_bank_select="other")
+    with pytest.raises(ValueError, match="regime id"):
+        init_inner_training(ENV_ID, cfg, head_bank_slots=2,
+                            head_bank_trigger="surprise", head_bank_select="oracle")
+    with pytest.raises(ValueError, match="K=2|head_bank_slots=2"):
+        init_inner_training(ENV_ID, cfg, head_bank_slots=3,
+                            head_bank_trigger="surprise", head_bank_select="other")
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        init_inner_training(ENV_ID, cfg, head_bank_slots=2, policy_swap_topline=True)
+
+
+def test_head_bank_default_off_logs_nothing():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, steps_per_regime=32)
+    try:
+        for _ in range(3):
+            run_inner_update(state)
+        assert "brain_neuromod/head_bank_restored" not in state.logger.data
+        assert state.head_bank == {}
+    finally:
+        state.envs.close()
+
+
+# --------------------------------------------------------------------------- #
 # D0 — constant Brain action (CLI + semantics)
 # --------------------------------------------------------------------------- #
 

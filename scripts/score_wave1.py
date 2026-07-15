@@ -46,6 +46,16 @@ K3_ARMS = {
     "model": "evals/wave1_k3_model_e*",
     "o2": "evals/wave1_k3_o2_e*",
 }
+G3_ARMS = {
+    "control": "evals/loop9_s1_model_e[1-8]_*",       # archived, no swap
+    "heads_swap": "evals/wave1_decomp_heads_e*",       # archived ceiling slice (oracle O2-heads)
+    "g3_oracle": "evals/g3_oracle_e*",
+    "g3_ar1": "evals/g3_ar1_e*",
+    "g3_ar1ve": "evals/g3_ar1ve_e*",
+}
+# Ground-truth switch schedule of the eval protocol, for trigger precision/recall.
+G3_SWITCHES = list(range(100000, 800000, 100000))
+G3_WINDOW_STEPS = 4 * 2048
 
 
 def score_arm_full(pattern: str, staging: Path) -> list[dict]:
@@ -135,9 +145,72 @@ def adjudicate_k3(a: dict[str, dict], h2: float) -> dict:
             "trained_vs_init_k3": ti}
 
 
+def _g3_trigger_stats(pattern: str) -> dict:
+    """Precision/recall of the in-run surprise trigger vs the ground-truth schedule,
+    from the logged head_bank_trigger_fired steps in each eval's data json."""
+    import json as _json
+
+    tps = fps = dets = 0
+    for d in sorted(glob.glob(str(REPO_ROOT / pattern))):
+        js = glob.glob(str(Path(d) / "**" / "*_data.json"), recursive=True)
+        if not js:
+            continue
+        data = _json.load(open(js[0]))
+        fired = [int(step) for step, _ in data.get("brain_neuromod/head_bank_trigger_fired", [])]
+        hit_switches = set()
+        for f in fired:
+            match = next((sw for sw in G3_SWITCHES if 0 <= f - sw <= G3_WINDOW_STEPS), None)
+            if match is not None:
+                tps += 1
+                hit_switches.add(match)
+            else:
+                fps += 1
+        dets += len(hit_switches)
+    n_runs = len(glob.glob(str(REPO_ROOT / pattern)))
+    return {
+        "precision": tps / max(1, tps + fps),
+        "recall": dets / max(1, len(G3_SWITCHES) * n_runs),
+        "fires_per_run": (tps + fps) / max(1, n_runs),
+    }
+
+
+def adjudicate_g3(a: dict[str, dict]) -> dict:
+    c = a["control"]["composites"]
+    heads_gain = float(np.mean(a["heads_swap"]["composites"]) - np.mean(c))
+    res = {"heads_gain_ref": heads_gain, "arms": {}, "triggers": {}}
+    print(f"\nreference: oracle heads-swap gain = {heads_gain:+.4f}")
+    for arm in ("g3_oracle", "g3_ar1", "g3_ar1ve"):
+        w = welch(a[arm]["composites"], c)
+        share = w["delta"] / heads_gain if heads_gain else float("nan")
+        res["arms"][arm] = {**w, "share_of_heads_gain": float(share)}
+        print(f"  {arm:<10} gain {w['delta']:+.4f} (p={w['p']:.3g})  = {share:+.1%} of heads gain")
+    for arm in ("g3_ar1", "g3_ar1ve"):
+        t = _g3_trigger_stats(G3_ARMS[arm])
+        res["triggers"][arm] = t
+        print(f"  {arm:<10} trigger precision {t['precision']:.2f}  recall {t['recall']:.2f}  "
+              f"fires/run {t['fires_per_run']:.1f}")
+
+    equiv = welch(a["g3_oracle"]["composites"], a["heads_swap"]["composites"])
+    p_g3a = (equiv["p"] > 0.05) and (res["arms"]["g3_oracle"]["delta"] >= 0.8 * heads_gain)
+    ar1 = res["arms"]["g3_ar1"]
+    p_g3b = (ar1["delta"] >= 0.05) and (res["triggers"]["g3_ar1"]["precision"] >= 0.60)
+    ve = res["arms"]["g3_ar1ve"]
+    p_g3c = ve["delta"] >= ar1["delta"] - 0.02
+    res.update({
+        "P_G3a_equivalence": {"pass": bool(p_g3a), "vs_heads_p": equiv["p"], "vs_heads_delta": equiv["delta"]},
+        "P_G3b_ar1": {"pass": bool(p_g3b)},
+        "P_G3c_selection": {"pass": bool(p_g3c)},
+    })
+    print(f"\nP-G3a equivalence (bank == heads swap): {'PASS' if p_g3a else 'FAIL'} "
+          f"(vs heads: d={equiv['delta']:+.4f}, p={equiv['p']:.2g})")
+    print(f"P-G3b A-R1 (gain>=+0.05 AND precision>=0.60): {'PASS' if p_g3b else 'FAIL -> trigger premise dead'}")
+    print(f"P-G3c selection (value_error >= other - 0.02): {'PASS' if p_g3c else 'FAIL'}")
+    return res
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3"])
     p.add_argument("--h2", type=float, default=None, help="K=2 headroom H from the ladder (k3 only)")
     p.add_argument("--json-out", default="evals/wave1_scores.json")
     args = p.parse_args(argv)
@@ -151,6 +224,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.batch == "ladder":
         arms = summarize(LADDER_ARMS)
         res = adjudicate_ladder(arms)
+    elif args.batch == "g3":
+        arms = summarize(G3_ARMS)
+        res = adjudicate_g3(arms)
     else:
         if args.h2 is None:
             p.error("k3 needs --h2 (the ladder's H)")

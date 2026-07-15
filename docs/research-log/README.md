@@ -54,4 +54,5 @@ Concrete next actions or open questions.
 | [0005](./0005-2026-07-05-confirmation-sweep-prediction.md) | 2026-07-05 | Registered prediction: actor-only & gain-α0.5 n=8 confirmation sweep | Accepted |
 | [0006](./0006-2026-07-05-amortized-multiseed-baseline.md) | 2026-07-05 | Amortized 3-seed scout baseline (`baseline_primary`) | Accepted |
 | [0007](./0007-2026-07-06-learning-dynamics-preregistration.md) | 2026-07-06 | Registered predictions + decision rules: LOOP-0006 learning-dynamics screening | Accepted |
-| [0008](./0008-2026-07-14-wave1-oracle-rungs-preregistration.md) | 2026-07-14 | Registered gates P-W1a/b/c: Wave-1 G-DECOMP swap-scope ladder + 3-regime screen (LOOP-0011) | Registered (pre-results) |
+| [0008](./0008-2026-07-14-wave1-oracle-rungs-preregistration.md) | 2026-07-14 | Registered gates P-W1a/b/c: Wave-1 G-DECOMP swap-scope ladder + 3-regime screen (LOOP-0011) | Resolved same-day (a PASS, b→W2A, c FAIL) |
+| [0009](./0009-2026-07-14-g3-head-bank-preregistration.md) | 2026-07-14 | Registered gates P-G3a/b/c: G3 head-bank de-oracling screen — equivalence, A-R1 learned trigger (thr 1.0), value-error selection (LOOP-0012) | Registered (pre-results) |

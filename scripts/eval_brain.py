@@ -188,6 +188,10 @@ def eval_brain(args):
         episodic_memory_capacity=args.episodic_memory_capacity,
         policy_swap_topline=getattr(args, "policy_swap_topline", False),
         policy_swap_scope=getattr(args, "swap_scope", "full"),
+        head_bank_slots=getattr(args, "head_bank_slots", 0),
+        head_bank_trigger=getattr(args, "head_bank_trigger", "oracle"),
+        head_bank_select=getattr(args, "head_bank_select", "oracle"),
+        head_bank_surprise_threshold=getattr(args, "head_bank_surprise_threshold", 1.0),
     )
 
     sig = SignalExtractor(
@@ -366,6 +370,20 @@ def main():
                    choices=["heads", "heads+encoder", "world_model", "full"],
                    help="G-DECOMP swap-scope ladder (action tree 2026-07-09): what the O2 swap "
                         "banks/restores. Only read when --policy_swap_topline is set.")
+    p.add_argument("--head_bank_slots", type=int, default=0,
+                   help="G3 head-bank memory (LOOP-0012): K weight slots for the actor/critic "
+                        "heads. 0 = off.")
+    p.add_argument("--head_bank_trigger", type=str, default="oracle",
+                   choices=["oracle", "surprise"],
+                   help="Head-bank trigger: ground-truth switch, or the value-loss change-point "
+                        "detector (A-R1, the learned WHEN).")
+    p.add_argument("--head_bank_select", type=str, default="oracle",
+                   choices=["oracle", "other", "value_error"],
+                   help="Head-bank slot selection: ground-truth regime id, K=2 flip, or "
+                        "banked-critic value error (the learned WHICH).")
+    p.add_argument("--head_bank_surprise_threshold", type=float, default=1.0,
+                   help="Surprise-trigger threshold (calibrated 1.0: precision .84 recall .85 "
+                        "on archived control traces; scripts/calibrate_surprise_trigger.py).")
 
     args = p.parse_args()
     eval_brain(args)

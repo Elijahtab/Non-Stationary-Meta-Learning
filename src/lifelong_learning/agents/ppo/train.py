@@ -208,6 +208,19 @@ class InnerTrainState:
     # banks/restores so the +0.249 ceiling can be attributed. "full" == the original O2.
     policy_swap_scope: str = "full"
 
+    # --- G3 head-bank memory (W2A; routed by note 0012, LOOP-0012) ---
+    # K weight slots for the actor/critic heads with pluggable trigger (oracle switch /
+    # value-loss surprise) and selection (oracle regime id / other-at-K=2 / banked-critic
+    # value error). The METHOD version of the heads-scope swap: 0 slots == off.
+    head_bank_slots: int = 0
+    head_bank_trigger: str = "oracle"
+    head_bank_select: str = "oracle"
+    head_bank_surprise_threshold: float = 1.0
+    head_bank: dict = field(default_factory=dict, repr=False)
+    head_bank_active: int = 0
+    head_bank_value_ema: float | None = None
+    head_bank_cooldown: int = 0
+
 
 # Cand-4 spike shape (fixed; only the trigger threshold is exposed as a lever).
 SURPRISE_SPIKE_FACTOR = 2.0     # transient multiplier on ent_coef + intrinsic_coef
@@ -373,6 +386,95 @@ def _restore_learner(state, snap: dict) -> None:
         apply_inner_lr(s.optimizer, main_lr, s.cfg)
 
 
+# --- G3 head-bank memory (W2A; note 0012, LOOP-0012) -------------------------------
+# The method form of the ladder's heads-scope swap: K persistent weight slots for the
+# actor/critic heads. Trigger and selection are pluggable so the oracle ingredients can
+# be replaced one at a time (the de-oracling ladder). Cooldown matches the calibrated
+# detector (scripts/calibrate_surprise_trigger.py: thr 1.0 -> precision .84, recall .85).
+HEAD_BANK_COOLDOWN_UPDATES = 8
+HEAD_BANK_PREFIXES = SWAP_SCOPE_PREFIXES["heads"]
+
+
+def _head_bank_snapshot(state) -> dict:
+    return {
+        k: copy.deepcopy(v)
+        for k, v in state.model.state_dict().items()
+        if k.startswith(HEAD_BANK_PREFIXES)
+    }
+
+
+def _head_bank_load(state, snap: dict) -> None:
+    merged = state.model.state_dict()
+    merged.update(snap)
+    state.model.load_state_dict(merged)
+
+
+def _head_bank_select_value_error(state) -> int:
+    """Content-addressable selection: pick the slot whose critic head best predicts the
+    just-computed returns of the freshest rollout (post-trigger data), evaluated through
+    the model's own deployed forward path. Falls back to the active slot when nothing
+    else is banked."""
+    s = state
+    candidates = sorted(set(s.head_bank) | {s.head_bank_active})
+    if len(candidates) == 1:
+        return s.head_bank_active
+    obs = s.buffer.obs.reshape((-1,) + s.obs_shape)
+    returns = s.buffer.returns.reshape(-1)
+    live = _head_bank_snapshot(s)
+    best_slot, best_err = s.head_bank_active, None
+    with torch.no_grad():
+        for slot in candidates:
+            snap = live if slot == s.head_bank_active else s.head_bank[slot]
+            _head_bank_load(s, snap)
+            _, value = s.model.forward(obs)
+            err = torch.mean((value.reshape(-1) - returns) ** 2).item()
+            if best_err is None or err < best_err:
+                best_slot, best_err = slot, err
+    _head_bank_load(s, live)
+    return best_slot
+
+
+def _head_bank_switch(state, target_slot: int) -> None:
+    """Bank the active slot's heads; load the target slot's if previously banked (else the
+    current heads keep running — a warm start for a never-seen slot)."""
+    s = state
+    s.head_bank[s.head_bank_active] = _head_bank_snapshot(s)
+    restored = False
+    if target_slot != s.head_bank_active:
+        snap = s.head_bank.get(target_slot)
+        if snap is not None:
+            _head_bank_load(s, snap)
+            restored = True
+        s.head_bank_active = target_slot
+    s.logger.scalar("brain_neuromod/head_bank_active", float(s.head_bank_active), s.global_step)
+    s.logger.scalar("brain_neuromod/head_bank_restored", float(restored), s.global_step)
+
+
+def _head_bank_surprise_check(state, value_loss_now: float) -> None:
+    """A-R1 learned trigger: an independent EMA change-point detector on the per-update
+    value loss (same math as cand-4's, own state — the exploration spike stays decoupled).
+    On a detected spike: 'other' selection flips the K=2 slot; 'value_error' selection is
+    content-addressable. First observation seeds the baseline; cooldown prevents thrash."""
+    s = state
+    if s.head_bank_value_ema is None:
+        s.head_bank_value_ema = value_loss_now
+        return
+    if s.head_bank_cooldown > 0:
+        s.head_bank_cooldown -= 1
+    elif value_loss_now > s.head_bank_value_ema * (1.0 + s.head_bank_surprise_threshold):
+        s.logger.scalar("brain_neuromod/head_bank_trigger_fired", 1.0, s.global_step)
+        if s.head_bank_select == "other":
+            target = 1 - s.head_bank_active
+        else:  # value_error
+            target = _head_bank_select_value_error(s)
+        _head_bank_switch(s, target)
+        s.head_bank_cooldown = HEAD_BANK_COOLDOWN_UPDATES
+    s.head_bank_value_ema = (
+        SURPRISE_EMA_DECAY * s.head_bank_value_ema
+        + (1.0 - SURPRISE_EMA_DECAY) * value_loss_now
+    )
+
+
 def init_inner_training(
     env_id: str,
     cfg: PPOConfig,
@@ -410,6 +512,10 @@ def init_inner_training(
     critic_lr_oracle_scale: float = 0.0,
     policy_swap_topline: bool = False,
     policy_swap_scope: str = "full",
+    head_bank_slots: int = 0,
+    head_bank_trigger: str = "oracle",
+    head_bank_select: str = "oracle",
+    head_bank_surprise_threshold: float = 1.0,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -436,6 +542,25 @@ def init_inner_training(
         raise ValueError(
             f"policy_swap_scope must be one of {SWAP_SCOPES}, got {policy_swap_scope!r}"
         )
+    # G3 head bank: validate the trigger×selection combo at init. Oracle selection needs
+    # the regime id (only the oracle trigger has it); 'other' is the K=2 degenerate mode;
+    # value-error selection needs post-trigger data, which only the surprise trigger
+    # guarantees (it fires after an update on new-regime rollouts).
+    if head_bank_slots:
+        if head_bank_slots < 2:
+            raise ValueError("head_bank_slots must be >= 2 (or 0 to disable)")
+        if head_bank_trigger not in ("oracle", "surprise"):
+            raise ValueError(f"head_bank_trigger must be oracle|surprise, got {head_bank_trigger!r}")
+        if head_bank_select not in ("oracle", "other", "value_error"):
+            raise ValueError(f"head_bank_select must be oracle|other|value_error, got {head_bank_select!r}")
+        if head_bank_trigger == "oracle" and head_bank_select != "oracle":
+            raise ValueError("the oracle trigger pairs only with oracle selection")
+        if head_bank_trigger == "surprise" and head_bank_select == "oracle":
+            raise ValueError("the surprise trigger has no regime id — use other|value_error selection")
+        if head_bank_select == "other" and head_bank_slots != 2:
+            raise ValueError("'other' selection is only defined at head_bank_slots=2")
+        if policy_swap_topline:
+            raise ValueError("head_bank and policy_swap_topline are mutually exclusive")
 
     seed_everything(cfg.seed)
     configure_runtime_threads(cpu_threads)
@@ -639,6 +764,10 @@ def init_inner_training(
         redo_interval=redo_interval,
         policy_swap_topline=policy_swap_topline,
         policy_swap_scope=policy_swap_scope,
+        head_bank_slots=head_bank_slots,
+        head_bank_trigger=head_bank_trigger,
+        head_bank_select=head_bank_select,
+        head_bank_surprise_threshold=head_bank_surprise_threshold,
     )
 
 
@@ -770,6 +899,10 @@ def run_inner_update(state: InnerTrainState) -> dict:
             if s.cfg.critic_lr_oracle_scale > 0.0:
                 s.cfg.critic_oracle_remaining = CRITIC_ORACLE_UPDATES
                 apply_inner_lr(s.optimizer, s.optimizer.param_groups[0]["lr"], s.cfg)
+            # G3 head bank, oracle trigger (LOOP-0012): bank the outgoing regime's heads,
+            # select the incoming regime's slot by ground-truth id.
+            if s.head_bank_slots > 0 and s.head_bank_trigger == "oracle":
+                _head_bank_switch(s, current_env_regime % s.head_bank_slots)
             if s.anchor_model is not None:
                 s.anchor_model.load_state_dict(s.model.state_dict())
 
@@ -1049,6 +1182,10 @@ def run_inner_update(state: InnerTrainState) -> dict:
     if s.surprise_spike_threshold > 0.0:
         _update_surprise_spike(s, float(avg_stats.get("loss/value", 0.0)))
         s.logger.scalar("brain_neuromod/surprise_spike_active", float(spike_active), s.global_step)
+    # G3 head bank, surprise trigger (A-R1, LOOP-0012): the learned WHEN — an independent
+    # value-loss change-point detector drives bank/restore instead of the ground-truth switch.
+    if s.head_bank_slots > 0 and s.head_bank_trigger == "surprise":
+        _head_bank_surprise_check(s, float(avg_stats.get("loss/value", 0.0)))
 
     # LOOP-0007 cand 2: periodic ReDo reset of dormant head units; log the dormant-fraction probe.
     if s.redo_interval > 0 and update % s.redo_interval == 0:
