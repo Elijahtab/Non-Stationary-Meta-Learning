@@ -378,9 +378,10 @@ def main():
                    help="Head-bank trigger: ground-truth switch, or the value-loss change-point "
                         "detector (A-R1, the learned WHEN).")
     p.add_argument("--head_bank_select", type=str, default="oracle",
-                   choices=["oracle", "other", "value_error"],
-                   help="Head-bank slot selection: ground-truth regime id, K=2 flip, or "
-                        "banked-critic value error (the learned WHICH).")
+                   choices=["oracle", "other", "value_error", "reward_error"],
+                   help="Head-bank slot selection: ground-truth regime id, K=2 flip, "
+                        "banked-critic value error, or banked-WM-reward-head error "
+                        "(the regime fingerprint; note 0013 / log 0010).")
     p.add_argument("--head_bank_surprise_threshold", type=float, default=1.0,
                    help="Surprise-trigger threshold (calibrated 1.0: precision .84 recall .85 "
                         "on archived control traces; scripts/calibrate_surprise_trigger.py).")

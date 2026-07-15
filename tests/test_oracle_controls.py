@@ -316,11 +316,11 @@ def test_head_bank_value_error_selects_best_critic():
         run_inner_update(state)
         # Craft slot 1: same heads but the critic's final bias shifted far positive.
         shifted = _head_bank_snapshot(state)
-        bias_key = next(k for k in shifted if k.startswith("critic_head")
-                        and k.endswith("bias") and shifted[k].numel() == 1)
-        shifted[bias_key] = shifted[bias_key] + 50.0
+        bias_key = next(k for k in shifted["policy"] if k.startswith("critic_head")
+                        and k.endswith("bias") and shifted["policy"][k].numel() == 1)
+        shifted["policy"][bias_key] = shifted["policy"][bias_key] + 50.0
         state.head_bank[1] = shifted
-        live_heads = {k: v.clone() for k, v in _head_bank_snapshot(state).items()}
+        live_heads = {k: v.clone() for k, v in _head_bank_snapshot(state)["policy"].items()}
 
         # Returns near the live critic's range -> live (active) slot wins.
         state.buffer.returns = torch.zeros_like(state.buffer.returns)
@@ -329,8 +329,60 @@ def test_head_bank_value_error_selects_best_critic():
         state.buffer.returns = torch.full_like(state.buffer.returns, 50.0)
         assert _head_bank_select_value_error(state) == 1
         # Selection must not mutate the live weights.
-        for k, v in _head_bank_snapshot(state).items():
+        for k, v in _head_bank_snapshot(state)["policy"].items():
             assert torch.allclose(v, live_heads[k]), f"{k} mutated by selection"
+    finally:
+        state.envs.close()
+
+
+def test_head_bank_reward_error_selects_matching_regime_head():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, head_bank_slots=2,
+                                head_bank_trigger="surprise", head_bank_select="reward_error")
+    try:
+        from lifelong_learning.agents.ppo.train import (
+            _head_bank_select_reward_error,
+            _head_bank_snapshot,
+        )
+        run_inner_update(state)
+        # Craft slot 1: same policy heads, but a WM reward head biased far positive.
+        other = _head_bank_snapshot(state)
+        assert "wm_reward" in other, "reward_error slots must bank the WM reward head"
+        bias_key = next(k for k in other["wm_reward"] if k.endswith("bias"))
+        other["wm_reward"][bias_key] = other["wm_reward"][bias_key] + 50.0
+        state.head_bank[1] = other
+        live_wm = {k: v.clone() for k, v in state.world_model.state_dict().items()}
+
+        # Observed rewards near zero -> the live (active) head fits better.
+        state.buffer.extrinsic_rewards = torch.zeros_like(state.buffer.extrinsic_rewards)
+        assert _head_bank_select_reward_error(state) == 0
+        # Observed rewards near +50 -> the shifted head fits better.
+        state.buffer.extrinsic_rewards = torch.full_like(state.buffer.extrinsic_rewards, 50.0)
+        assert _head_bank_select_reward_error(state) == 1
+        # Selection must leave the live world model untouched.
+        for k, v in state.world_model.state_dict().items():
+            assert torch.allclose(v, live_wm[k]), f"WM {k} mutated by selection"
+    finally:
+        state.envs.close()
+
+
+def test_head_bank_content_addressing_spawns_then_selects():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, head_bank_slots=2,
+                                head_bank_trigger="surprise", head_bank_select="reward_error")
+    try:
+        from lifelong_learning.agents.ppo.train import _head_bank_surprise_check
+        run_inner_update(state)
+        _head_bank_surprise_check(state, 1.0)      # seed EMA
+        # First fire: no banked fingerprints -> must SPAWN slot 1, not stay on 0.
+        _head_bank_surprise_check(state, 10.0)
+        assert state.head_bank_active == 1
+        assert 0 in state.head_bank
+        # Second fire (cooldown expired): all slots live -> content addressing runs.
+        state.head_bank_cooldown = 0
+        state.buffer.extrinsic_rewards = torch.zeros_like(state.buffer.extrinsic_rewards)
+        _head_bank_surprise_check(state, 100.0)
+        assert set(state.head_bank) == {0, 1}      # both fingerprints banked
     finally:
         state.envs.close()
 

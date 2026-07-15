@@ -5,10 +5,11 @@ into a *method*: a K-slot head bank whose trigger (WHEN) and selection (WHICH) a
 instead of oracle — the candidate learned-O2 result.
 **Verdict:** CLOSED 2026-07-14 (24/24 clean) — **P-G3a PASS** (bank ≡ heads swap, p=0.84);
 **P-G3b PASS — the A-R1 learned trigger recovers +0.1180 = 54% of the ceiling slice**
-(p=1.6e-4, in-run precision 0.70/recall 0.75, hit80 1.000); **P-G3c FAIL** — value-error
-selection collapses to control (+0.0016): critic value fit carries no regime identity on a
-benchmark whose regimes differ only in reward. Full analysis + the three-way next-rung fork:
-[note 0013](../research-notes/0013-learned-trigger-selection-gap.md).
+(p=1.6e-4, in-run precision 0.70/recall 0.75, hit80 1.000); **P-G3c FAIL — corrected same day
+(implementation artifact):** the value-error arm ran without slot allocation, so its selector
+was never exercised (bank-without-restore; composite == control). Science claim withdrawn;
+re-run with the spawn-until-full fix in [LOOP-0013](./LOOP-0013-selection-rung.md). Full
+analysis + correction: [note 0013](../research-notes/0013-learned-trigger-selection-gap.md).
 
 ## Hardware
 

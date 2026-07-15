@@ -393,27 +393,45 @@ def _restore_learner(state, snap: dict) -> None:
 # detector (scripts/calibrate_surprise_trigger.py: thr 1.0 -> precision .84, recall .85).
 HEAD_BANK_COOLDOWN_UPDATES = 8
 HEAD_BANK_PREFIXES = SWAP_SCOPE_PREFIXES["heads"]
+WM_REWARD_HEAD_PREFIX = ("reward_head.",)
 
 
 def _head_bank_snapshot(state) -> dict:
-    return {
-        k: copy.deepcopy(v)
-        for k, v in state.model.state_dict().items()
-        if k.startswith(HEAD_BANK_PREFIXES)
+    """A slot: the policy heads, plus — in reward_error mode only — the WM reward head
+    (257 params) banked as the slot's regime fingerprint (note 0013: the regimes differ
+    only in reward, so the reward head is the identity signal value fit lacked)."""
+    s = state
+    snap = {
+        "policy": {
+            k: copy.deepcopy(v)
+            for k, v in s.model.state_dict().items()
+            if k.startswith(HEAD_BANK_PREFIXES)
+        }
     }
+    if s.head_bank_select == "reward_error":
+        snap["wm_reward"] = {
+            k: copy.deepcopy(v)
+            for k, v in s.world_model.state_dict().items()
+            if k.startswith(WM_REWARD_HEAD_PREFIX)
+        }
+    return snap
 
 
 def _head_bank_load(state, snap: dict) -> None:
-    merged = state.model.state_dict()
-    merged.update(snap)
-    state.model.load_state_dict(merged)
+    s = state
+    merged = s.model.state_dict()
+    merged.update(snap["policy"])
+    s.model.load_state_dict(merged)
+    if "wm_reward" in snap:
+        wm = s.world_model.state_dict()
+        wm.update(snap["wm_reward"])
+        s.world_model.load_state_dict(wm)
 
 
 def _head_bank_select_value_error(state) -> int:
-    """Content-addressable selection: pick the slot whose critic head best predicts the
-    just-computed returns of the freshest rollout (post-trigger data), evaluated through
-    the model's own deployed forward path. Falls back to the active slot when nothing
-    else is banked."""
+    """Content-addressable selection via critic value fit on the freshest rollout.
+    (LOOP-0012's P-G3c arm ran WITHOUT the spawn-until-full allocation below, so this
+    selector was never actually exercised there — re-run properly in LOOP-0013.)"""
     s = state
     candidates = sorted(set(s.head_bank) | {s.head_bank_active})
     if len(candidates) == 1:
@@ -431,6 +449,45 @@ def _head_bank_select_value_error(state) -> int:
             if best_err is None or err < best_err:
                 best_slot, best_err = slot, err
     _head_bank_load(s, live)
+    return best_slot
+
+
+def _head_bank_select_reward_error(state) -> int:
+    """Content-addressable selection via the regime fingerprint (pre-reg log 0010):
+    score each slot's banked WM reward head on the freshest (obs, action) -> reward
+    transitions and pick the argmin. Scored through the live WM trunk — trunk drift
+    between banking and scoring is a registered risk. Falls back to the active slot
+    when nothing else is banked."""
+    s = state
+    candidates = sorted(set(s.head_bank) | {s.head_bank_active})
+    if len(candidates) == 1:
+        return s.head_bank_active
+    obs = s.buffer.obs.reshape((-1,) + s.obs_shape)
+    actions = s.buffer.actions.reshape(-1).long()
+    rewards = s.buffer.extrinsic_rewards.reshape(-1)
+    live = {
+        k: copy.deepcopy(v)
+        for k, v in s.world_model.state_dict().items()
+        if k.startswith(WM_REWARD_HEAD_PREFIX)
+    }
+
+    def _load_wm_head(head: dict) -> None:
+        wm = s.world_model.state_dict()
+        wm.update(head)
+        s.world_model.load_state_dict(wm)
+
+    best_slot, best_err = s.head_bank_active, None
+    with torch.no_grad():
+        for slot in candidates:
+            head = live if slot == s.head_bank_active else s.head_bank[slot].get("wm_reward")
+            if head is None:
+                continue
+            _load_wm_head(head)
+            _, pred_reward = s.world_model.forward(obs, actions)
+            err = torch.mean((pred_reward - rewards) ** 2).item()
+            if best_err is None or err < best_err:
+                best_slot, best_err = slot, err
+    _load_wm_head(live)
     return best_slot
 
 
@@ -465,8 +522,20 @@ def _head_bank_surprise_check(state, value_loss_now: float) -> None:
         s.logger.scalar("brain_neuromod/head_bank_trigger_fired", 1.0, s.global_step)
         if s.head_bank_select == "other":
             target = 1 - s.head_bank_active
-        else:  # value_error
-            target = _head_bank_select_value_error(s)
+        else:
+            # Spawn-until-full allocation (registered, log 0010): content addressing can
+            # only choose among banked fingerprints — without this, K=2 never populates
+            # slot 1 and the selector degenerates to bank-without-restore (the LOOP-0012
+            # P-G3c artifact). First fires allocate fresh slots; addressing starts once
+            # every slot is live.
+            unused = [k for k in range(s.head_bank_slots)
+                      if k != s.head_bank_active and k not in s.head_bank]
+            if unused:
+                target = unused[0]
+            elif s.head_bank_select == "reward_error":
+                target = _head_bank_select_reward_error(s)
+            else:  # value_error
+                target = _head_bank_select_value_error(s)
         _head_bank_switch(s, target)
         s.head_bank_cooldown = HEAD_BANK_COOLDOWN_UPDATES
     s.head_bank_value_ema = (
@@ -551,8 +620,10 @@ def init_inner_training(
             raise ValueError("head_bank_slots must be >= 2 (or 0 to disable)")
         if head_bank_trigger not in ("oracle", "surprise"):
             raise ValueError(f"head_bank_trigger must be oracle|surprise, got {head_bank_trigger!r}")
-        if head_bank_select not in ("oracle", "other", "value_error"):
-            raise ValueError(f"head_bank_select must be oracle|other|value_error, got {head_bank_select!r}")
+        if head_bank_select not in ("oracle", "other", "value_error", "reward_error"):
+            raise ValueError(
+                f"head_bank_select must be oracle|other|value_error|reward_error, got {head_bank_select!r}"
+            )
         if head_bank_trigger == "oracle" and head_bank_select != "oracle":
             raise ValueError("the oracle trigger pairs only with oracle selection")
         if head_bank_trigger == "surprise" and head_bank_select == "oracle":

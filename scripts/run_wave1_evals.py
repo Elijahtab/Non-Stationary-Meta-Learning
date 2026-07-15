@@ -95,6 +95,39 @@ def build_jobs(batch: str, eval_seeds: list[int]) -> list[dict]:
                     "extra": extra,
                     "num_regimes": 3,
                 })
+    elif batch == "g3re":
+        # LOOP-0013 selection rung (pre-reg: research-log 0010): learned trigger + content
+        # addressing, WITH the spawn-until-full allocation fix. ar1re = the WM-reward-head
+        # regime fingerprint (note 0013's recommendation); ar1ve2 = the value-error re-run
+        # (LOOP-0012's P-G3c arm never exercised its selector — allocation was missing).
+        model = _brain_ckpt("brain_model.pt")
+        arms = [
+            ("ar1re", "reward_error"),
+            ("ar1ve2", "value_error"),
+        ]
+        for arm, select in arms:
+            for e in eval_seeds:
+                jobs.append({
+                    "run_name": f"g3_{arm}_e{e}",
+                    "ckpt": model,
+                    "eval_seed": e,
+                    "extra": ["--head_bank_slots", "2", "--head_bank_trigger", "surprise",
+                              "--head_bank_select", select],
+                    "num_regimes": 2,
+                })
+    elif batch == "ar1x":
+        # n=16 extension of the LOOP-0012 A-R1 arm (paper-number precision; pass
+        # --eval-seeds 9..16 — existing e1..8 are skipped as already done).
+        model = _brain_ckpt("brain_model.pt")
+        for e in eval_seeds:
+            jobs.append({
+                "run_name": f"g3_ar1_e{e}",
+                "ckpt": model,
+                "eval_seed": e,
+                "extra": ["--head_bank_slots", "2", "--head_bank_trigger", "surprise",
+                          "--head_bank_select", "other"],
+                "num_regimes": 2,
+            })
     elif batch == "g3":
         # LOOP-0012 de-oracling screen (pre-reg: research-log 0009). References are archived:
         # control = loop9_s1_model_e1..8, ceiling slice = wave1_decomp_heads_e1..8.
@@ -166,7 +199,7 @@ def run_eval(job: dict, gpu: int, out_root: Path, log_dir: Path, threads: int) -
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3", "g3"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "ar1x"])
     p.add_argument("--eval-seeds", type=int, nargs="+", default=[1, 2, 3, 4, 5, 6, 7, 8])
     p.add_argument("--gpus", type=int, nargs="+", default=[0])
     p.add_argument("--concurrency", type=int, default=1,

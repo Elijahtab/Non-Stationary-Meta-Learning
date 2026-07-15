@@ -1,7 +1,15 @@
 # 0013 — Learned WHEN works, learned WHICH doesn't (yet): the G3 de-oracling result
 
-**Status:** ✅ RESOLVED 2026-07-14 (LOOP-0012 screen; gates pre-registered in
-[research-log 0009](../research-log/0009-2026-07-14-g3-head-bank-preregistration.md) before results).
+**Status:** ✅ RESOLVED 2026-07-14 — **with a same-day correction: the P-G3c "selection null"
+was an implementation artifact, not a science result.** The value-error arm ran without a
+slot-allocation rule, so the bank never contained a second slot and the selector was never
+exercised (its exactly-at-control composite, +0.0016, is the fingerprint of
+bank-without-restore). The gate verdict FAIL stands as recorded, but §Interpretation's claim
+that "value fit carries no regime identity" is **withdrawn as untested**. Both
+content-addressable selectors re-run properly (spawn-until-full allocation) in
+[LOOP-0013](../autoresearch-loops/LOOP-0013-selection-rung.md) /
+[log 0010](../research-log/0010-2026-07-14-selection-rung-preregistration.md).
+The A-R1 trigger result (P-G3b) is unaffected — its "other" selection needs no bank lookup.
 **Owner:** Elijah · **Relates to:** [note 0012](./0012-ceiling-decomposition.md) (the heads
 verdict this builds on) · [LOOP-0012](../autoresearch-loops/LOOP-0012-g3-head-bank.md) (ops) ·
 [note 0009](./0009-memory-levers-preregistration.md) (the mem-Brain draft this informs).
@@ -29,12 +37,13 @@ ar1ve precision 0.84 / recall 0.88. ar1's hit80 = 1.000 (every switch recovered 
   information recovers **54% of the ceiling slice**. The trigger cost (~0.10 composite vs
   oracle timing) traces to in-run precision dropping to 0.70 — the bank's own flips perturb
   the value-loss stream, and each false fire at K=2 loads the *wrong* head mid-regime.
-- **P-G3c FAIL (registered kill for this selector):** content-addressable selection by
-  **critic value fit** carries ~no regime information here. Interpretation: the regimes are
-  visually identical (no cue in obs) and differ only in *which goal pays*; immediately
-  post-switch the rollout is failure-heavy under either head's value model, so value-error
-  is uninformative-to-misleading. This echoes the program's older finding that the Brain's
-  obs stream contains switch *timing* but not regime *identity*.
+- **P-G3c FAIL — ⚠ corrected same day: artifact, not science.** The arm's selector could
+  only choose among *banked* slots, and without an allocation rule the bank never grew past
+  the active slot — every fire re-selected slot 0 and the arm degenerated to
+  bank-without-restore (hence composite == control to 3 decimals). The original
+  interpretation ("value fit carries no regime identity") is withdrawn as untested; the
+  visual-identity/reward-only reasoning survives as a *hypothesis* the LOOP-0013 re-run
+  tests head-to-head against the reward-fingerprint selector.
 
 ## Where the identity signal actually is (assumption for the next rung, stated)
 

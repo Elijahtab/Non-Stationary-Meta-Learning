@@ -53,6 +53,13 @@ G3_ARMS = {
     "g3_ar1": "evals/g3_ar1_e*",
     "g3_ar1ve": "evals/g3_ar1ve_e*",
 }
+G3RE_ARMS = {  # LOOP-0013 (log 0010): selection rung with spawn-until-full allocation
+    "control": "evals/loop9_s1_model_e*",              # archived, n=16
+    "heads_swap": "evals/wave1_decomp_heads_e*",
+    "g3_ar1": "evals/g3_ar1_e*",                       # n=16 after the ar1x extension
+    "g3_ar1re": "evals/g3_ar1re_e*",
+    "g3_ar1ve2": "evals/g3_ar1ve2_e*",
+}
 # Ground-truth switch schedule of the eval protocol, for trigger precision/recall.
 G3_SWITCHES = list(range(100000, 800000, 100000))
 G3_WINDOW_STEPS = 4 * 2048
@@ -208,9 +215,40 @@ def adjudicate_g3(a: dict[str, dict]) -> dict:
     return res
 
 
+def adjudicate_g3re(a: dict[str, dict]) -> dict:
+    """LOOP-0013 gates (log 0010): P-G3d selection rung + P-G3e ar1 n=16 convergence."""
+    c = a["control"]["composites"]
+    heads_gain = float(np.mean(a["heads_swap"]["composites"]) - np.mean(c))
+    res = {"heads_gain_ref": heads_gain, "arms": {}, "triggers": {}}
+    print(f"\nreference: oracle heads-swap gain (n=8) = {heads_gain:+.4f}")
+    for arm in ("g3_ar1", "g3_ar1re", "g3_ar1ve2"):
+        w = welch(a[arm]["composites"], c)
+        res["arms"][arm] = {**w, "share_of_heads_gain": float(w["delta"] / heads_gain) if heads_gain else None}
+        t = _g3_trigger_stats(G3RE_ARMS[arm])
+        res["triggers"][arm] = t
+        print(f"  {arm:<10} n={a[arm]['n']:>2} gain {w['delta']:+.4f} (p={w['p']:.3g}) "
+              f"= {res['arms'][arm]['share_of_heads_gain']:+.1%} of slice | "
+              f"trig prec {t['precision']:.2f} rec {t['recall']:.2f}")
+
+    ar1, re_, ve2 = (res["arms"][k]["delta"] for k in ("g3_ar1", "g3_ar1re", "g3_ar1ve2"))
+    p_g3d = re_ >= ar1 - 0.02
+    p_g3d_ve = ve2 >= ar1 - 0.02
+    ar1_n16_converges = abs(ar1 - 0.1180) <= 0.03 and res["arms"]["g3_ar1"]["p"] < 0.01
+    res.update({
+        "P_G3d_reward_error": {"pass": bool(p_g3d)},
+        "P_G3d_value_error_rerun": {"pass": bool(p_g3d_ve)},
+        "P_G3e_ar1_convergence": {"pass": bool(ar1_n16_converges), "n8_ref": 0.1180},
+    })
+    print(f"\nP-G3d reward_error (>= ar1 - 0.02): {'PASS' if p_g3d else 'FAIL'}")
+    print(f"P-G3d value_error re-run (>= ar1 - 0.02): {'PASS' if p_g3d_ve else 'FAIL'}")
+    print(f"P-G3e ar1 n=16 convergence (within +/-0.03 of +0.118, p<0.01): "
+          f"{'PASS' if ar1_n16_converges else 'FAIL'}")
+    return res
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3", "g3"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re"])
     p.add_argument("--h2", type=float, default=None, help="K=2 headroom H from the ladder (k3 only)")
     p.add_argument("--json-out", default="evals/wave1_scores.json")
     args = p.parse_args(argv)
@@ -227,6 +265,9 @@ def main(argv: list[str] | None = None) -> int:
     elif args.batch == "g3":
         arms = summarize(G3_ARMS)
         res = adjudicate_g3(arms)
+    elif args.batch == "g3re":
+        arms = summarize(G3RE_ARMS)
+        res = adjudicate_g3re(arms)
     else:
         if args.h2 is None:
             p.error("k3 needs --h2 (the ladder's H)")
