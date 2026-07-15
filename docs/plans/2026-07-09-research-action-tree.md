@@ -30,10 +30,14 @@ end-to-end (banked at first switch, restored on revisits, flags in eval config.t
 G-DECOMP ladder is now launch-ready as free home evals.** Remaining before Wave 1: W0c
 (encoder-dormancy probe build) — and a human go for the ladder itself (never-idle pause).
 
-**WAVE 1 LAUNCHED 2026-07-14** (user go: home ladders approved, box at Wave 2 on request):
-[LOOP-0011](../autoresearch-loops/LOOP-0011-wave1-oracle-rungs.md), gates pre-registered in
-[research-log 0008](../research-log/0008-2026-07-14-wave1-oracle-rungs-preregistration.md)
-(P-W1a re-anchor · P-W1b routing · P-W1c difficulty scaling).
+**WAVE 1 RESOLVED 2026-07-14 same-day** ([LOOP-0011](../autoresearch-loops/LOOP-0011-wave1-oracle-rungs.md),
+[note 0012](../research-notes/0012-ceiling-decomposition.md), pre-reg [log 0008](../research-log/0008-2026-07-14-wave1-oracle-rungs-preregistration.md)):
+**GATE ANSWERED — the +0.249 lives in the heads.** share(heads) +89.6%, +encoder +96.3%,
+world_model −8.2% (null), optimizer ~4%; ceiling protocol-robust (H=+0.2434 at eval protocol).
+**→ W2A opens (G3 per-regime heads, then G3×A learned-O2). W2B/D closed at its oracle rung
+(D-R0/D-O/D-1/D-2/D-3 struck). C scaling axis dead** (K=3 premium +0.2351 ≤ K=2 +0.2434;
+C2/3b lose their rationale). Trained-vs-init attenuates at K=3 (+0.020, p=0.13, descriptive).
+Next: G3 build + A-R1 trigger (home, $0); box ping at the A-R3/B1 fine-tune stage.
 
 **Standing constraints:** LOOP-0009 owns the box until ~2026-07-10; never-idle-box is PAUSED —
 nothing launches without a human call. n≥8 + convergence-vs-decay discipline everywhere.

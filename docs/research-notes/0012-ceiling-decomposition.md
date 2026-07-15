@@ -1,8 +1,9 @@
 # 0012 — The ceiling decomposed: ~90% of the zero-forgetting headroom lives in the policy heads
 
-**Status:** ✅ Ladder half RESOLVED 2026-07-14 (batch 1 of LOOP-0011; gates pre-registered in
+**Status:** ✅ RESOLVED 2026-07-14, both halves (LOOP-0011; gates pre-registered in
 [research-log 0008](../research-log/0008-2026-07-14-wave1-oracle-rungs-preregistration.md) before results).
-3-regime half (P-W1c) pending — addendum will follow.
+Ladder: heads carry ~90% (below). **K=3 addendum: P-W1c FAIL — the memory premium does NOT
+grow with regime count** (see §K=3).
 **Owner:** Elijah · **Relates to:** [note 0006](./0006-controls-axis-thesis-relocated.md) (the O2
 ceiling being decomposed) · [note 0011](./0011-wave0-desk-probes.md) (Wave-0 groundwork) ·
 [LOOP-0011](../autoresearch-loops/LOOP-0011-wave1-oracle-rungs.md) (ops) ·
@@ -70,6 +71,29 @@ did not require n=16).
 - **B1/LOOP-0010 unchanged** (interface work rides G3's Brains later).
 - Paper: the decomposition table is a new headline result (C2 sharpens: "the bottleneck is
   memory, *specifically policy-head memory*"); prior-paper §4.2 audit gains the WM-null.
+
+## K=3 addendum (2026-07-14, batch 2, 24/24 clean)
+
+Same protocol at `num_regimes=3` (blocks A B C A B C A B, 5 revisit switches):
+
+| arm | n | composite | hit80 | hit95 |
+| --- | --- | --- | --- | --- |
+| init (no swap) | 8 | 0.3350 | 0.321 | 0.000 |
+| model (no swap) | 8 | 0.3550 | 0.429 | 0.036 |
+| o2 (full swap) | 8 | 0.5900 | 0.679 | 0.446 |
+
+- **P-W1c FAIL (as registered):** (o2 − model)@K3 = **+0.2351** (p=8.9e-8) ≤ H@K2 = +0.2434.
+  The restoration premium is *flat* in regime count, not growing — "the task is too easy for
+  memory to matter" is dead, and with it the cheap justification for the scaling axis
+  (3-regime Brain training and the 16×16 escalation lose their motivating hypothesis; 16×16
+  stays master-gated and now needs a *different* rationale to ever run).
+- **Secondary (descriptive, no gate):** trained-vs-init at K=3 = +0.0200 (p=0.129, n=8) —
+  directionally positive but attenuated/insignificant; the +0.05-class K=2 effect does not
+  obviously transfer to 3 regimes. K=3 is much harder overall (hit80 collapses to 0.32–0.68
+  from ~0.96+ at K=2); within-K contrasts only, per the registered caveat.
+- Reading: memory restoration's per-switch value is roughly constant as interference grows —
+  the ceiling doesn't widen, everything just gets lower. The paper's difficulty-vs-ceiling
+  figure candidate is replaced by a one-line negative result.
 
 ## Links
 

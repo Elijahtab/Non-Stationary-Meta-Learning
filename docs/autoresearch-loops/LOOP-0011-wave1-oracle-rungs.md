@@ -1,4 +1,4 @@
-# LOOP-0011 — Wave-1 oracle rungs: G-DECOMP ladder + 3-regime screen (2026-07-14–OPEN)
+# LOOP-0011 — Wave-1 oracle rungs: G-DECOMP ladder + 3-regime screen (2026-07-14, closed same-day)
 
 **Goal:** Decompose the zero-forgetting ceiling (which component of the O2 snapshot — policy
 heads, encoder, world model, optimizer state — carries the headroom?) and screen whether the
@@ -7,8 +7,11 @@ memory premium grows with regime count. These two answers route which memory sub
 **Verdict:** OPEN — **Batch 1 (ladder) RESOLVED 2026-07-14: P-W1a PASS (H=+0.2434 at eval
 protocol, p=2.8e-8); P-W1b routes to W2A weight-space memory** — share(heads)=+89.6%,
 share(heads+encoder)=+96.3%, share(world_model)=−8.2% (null) → **G3 opens, MoWM subtree
-closed at its oracle rung**; no extension needed (all margins ≥50 pp). Full numbers:
-[note 0012](../research-notes/0012-ceiling-decomposition.md). Batch 2 (k3) in flight.
+closed at its oracle rung**; no extension needed (all margins ≥50 pp). **Batch 2 (k3)
+RESOLVED same day: P-W1c FAIL** — (o2−model)@K3 = +0.2351 ≤ H@K2 = +0.2434, the memory
+premium is flat in regime count → the scaling axis dies its registered cheap death (16×16
+loses its rationale). Trained-vs-init at K=3: +0.020 (p=0.13, descriptive). Full numbers:
+[note 0012](../research-notes/0012-ceiling-decomposition.md). 56/56 evals clean, $0.
 
 ## Hardware
 
@@ -50,8 +53,19 @@ $0 (home evals only); ~8 h GPU wall-clock across both batches.
 
 ## Pickup state
 
-Batch 1 launched 2026-07-14 (background, home 5070). On completion: score arms
-(`score_eval_dir.py --arm "heads=evals/wave1_decomp_heads_e*" ...` vs
-`control=evals/loop9_s1_model_e[1-8]*`), adjudicate P-W1a/P-W1b, update this note + note 0011
-lineage, then launch Batch 2 (`k3`), adjudicate P-W1c, close the loop with the routing verdict
-and the Wave-2 box request (user ping).
+**CLOSED 2026-07-14 — both batches resolved same-day** (scores + adjudication:
+`scripts/score_wave1.py`, raw `evals/wave1_scores.json` + `evals/wave1_decomp_*`/`wave1_k3_*`,
+local). The routing verdict is in force:
+
+1. **Next build: G3 weight-space memory** (K per-regime actor/critic head pairs,
+   `nn.ModuleList` + `set_active_head` in `network.py`; inactive heads get no gradient so
+   Adam keeps per-head moments free). Selection ladder per the action tree: oracle one-hot →
+   self-inferred (value-error / SupSup entropy, no Brain retrain) → Brain code-argmax.
+   Then **A-R1** (surprise trigger, `_update_surprise_spike` at K=2 "restore the other one")
+   composes with G3 into the learned-O2 method rung. All eval-mode, home-runnable, $0.
+2. **Closed by this loop:** MoWM/D subtree (WM rung null at its upper bound); scaling axis
+   C (premium flat in K; 16×16 needs a new rationale). Struck from the queue: D-R0, D-O,
+   D-1/2/3, C-3reg Brains (C2), C-16×16 (3b) absent new justification.
+3. **Box:** NOT needed for G3's oracle/self-inferred rungs (home evals). The box ping goes
+   to the user when learned-O2 passes and Brain fine-tunes (A-R3/B1, ~4×BR50 ≈ 1.5
+   box-nights ≈ $20–35) are justified.
