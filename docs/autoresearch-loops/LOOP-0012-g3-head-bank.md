@@ -1,9 +1,14 @@
-# LOOP-0012 — G3 head-bank: the de-oracling screen (2026-07-14–OPEN)
+# LOOP-0012 — G3 head-bank: the de-oracling screen (2026-07-14, closed same-day)
 
 **Goal:** Turn the Wave-1 routing verdict (heads carry ~90% of the +0.243 ceiling, note 0012)
 into a *method*: a K-slot head bank whose trigger (WHEN) and selection (WHICH) are learned
 instead of oracle — the candidate learned-O2 result.
-**Verdict:** OPEN — screen launched 2026-07-14 evening.
+**Verdict:** CLOSED 2026-07-14 (24/24 clean) — **P-G3a PASS** (bank ≡ heads swap, p=0.84);
+**P-G3b PASS — the A-R1 learned trigger recovers +0.1180 = 54% of the ceiling slice**
+(p=1.6e-4, in-run precision 0.70/recall 0.75, hit80 1.000); **P-G3c FAIL** — value-error
+selection collapses to control (+0.0016): critic value fit carries no regime identity on a
+benchmark whose regimes differ only in reward. Full analysis + the three-way next-rung fork:
+[note 0013](../research-notes/0013-learned-trigger-selection-gap.md).
 
 ## Hardware
 
@@ -44,10 +49,17 @@ $0; ~3.2 h GPU wall-clock.
 
 ## Pickup state
 
-Screen in flight (launched 2026-07-14 ~17:45 local). On completion:
-`PYTHONPATH=src myenv/Scripts/python.exe scripts/score_wave1.py g3` → adjudicate
-P-G3a/b/c → update this note + a results research note → ping the user (gate resolution =
-"interesting"). If P-G3b+c pass: next is the LOOP-0010 mem-Brain interface (B1 prune +
-memory levers, Brain fine-tunes) — **that is the box ping** (~4×BR50 ≈ 1.5 box-nights,
-$20–35). If P-G3b fails: the learned-trigger family dies; W2A falls back to self-inferred
-selection at oracle timing + the paper documents the trigger negative.
+**CLOSED — verdict above; scores in `evals/wave1_scores.json` (g3 key).** The next rung is a
+**strategy fork** (note 0013 §Consequences), deliberately left for a fresh session/human read:
+
+- **(b) reward-head-classifier selection (recommended first, $0):** bank the WM reward head
+  (257 params) per slot as a regime classifier; select by banked reward-prediction error on
+  fresh transitions. New `head_bank_select="reward_error"` + pre-registration; unlocks K>2.
+- **(a) trigger hardening:** hysteresis / flip-back-on-no-improvement to push in-run
+  precision 0.70 → 0.85+; cheap but K=2-bound without (b).
+- **(c) mem-Brain levers (LOOP-0010):** Brain-driven gate/selection — needs Brain fine-tunes
+  = **the box ping** (~4×BR50 ≈ 1.5 box-nights, $20–35). Honest gate: run (b) first so the
+  Brain is only asked to do what content-addressing provably cannot.
+
+The A-R1 headline (+0.118, 54% of slice, fully learned WHEN) is paper-ready as-is; consider
+extending `g3_ar1` to n=16 for the publication number when the next batch runs anyway.
