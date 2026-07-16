@@ -1,10 +1,16 @@
-# LOOP-0015 — Drift-robust fingerprint selection (2026-07-16–OPEN)
+# LOOP-0015 — Drift-robust fingerprint selection (2026-07-16, closed same-day)
 
 **Goal:** Fix content-addressed slot selection by scoring each slot's fingerprint in its own
 frozen feature space (bank the full WM per slot, scoring-only), with the live WM scoring the
 active slot — one mechanism that both unlocks the learned WHICH (K>2) and verifies fires
 (the LOOP-0014 churn suppressor). User green-light 2026-07-16 ($0/home only).
-**Verdict:** OPEN — scored arm launching 2026-07-16.
+**Verdict:** CLOSED 2026-07-16 (8/8 clean) — **P-FP1 FAIL (flip-when-should 0.16 / stay
+0.64) + P-FP2 FAIL (+0.0367, p=0.27)**. The drift fix worked; a third, distinct mechanism
+surfaced: the live reward head adapts to the new regime within the trigger's one-update lag,
+so the live-scored "no switch" hypothesis wins even at true switches. **Selection family
+closed (3 probes / 3 identified mechanisms: drift, churn, live-side adaptation) — the blind
+K=2 flip (+0.1188, n=16) stands as the method.** Full anatomy:
+[note 0013 §Drift-robust fingerprint addendum](../research-notes/0013-learned-trigger-selection-gap.md).
 
 ## Hardware
 

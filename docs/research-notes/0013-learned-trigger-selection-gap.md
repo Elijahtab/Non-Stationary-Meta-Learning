@@ -147,6 +147,35 @@ that attacks BOTH residuals at once is drift-robust fingerprint selection (stay 
 incoming data matches the active head's fingerprint → false fires become no-ops; restore the
 matching slot when it doesn't → selection for K>2) — a future rung, after the paper.
 
+## Drift-robust fingerprint addendum (2026-07-16, LOOP-0015 — the selection family closes)
+
+The drift fix itself worked as designed (each slot's fingerprint = its **entire banked WM**,
+scored in its own frozen feature space; live WM never touched; verified by unit test and by
+off-window behavior — stays, not the drift-null's paralysis). The gates still failed:
+
+| | gain | flip-when-should | stay-when-should |
+| --- | --- | --- | --- |
+| g3_fp (n=8) | **+0.0367** (p=0.27) | **0.16** (43 window fires) | 0.64 (14 off-window) |
+| references | ar1 blind flip +0.1188 · drift-bound fp −0.0092 | | |
+
+**P-FP1 FAIL / P-FP2 FAIL — third distinct mechanism, identified:** by the time the
+per-update trigger fires (~1 update after a switch), the live WM has already taken one
+training pass on post-switch data — its 257-param reward head fits the new regime's sparse
+rewards fast enough that the "no switch happened" hypothesis (the live WM, scoring the
+active slot) wins the comparison even when a switch DID happen. The banked fingerprint is
+honest now; the *comparison target* is a moving goalpost that has already moved.
+
+**Selection family verdict (3 probes, 3 mechanisms, one conclusion):** critic value fit —
+trunk drift; per-step verification — self-generated churn; frozen-feature fingerprints —
+live-side adaptation. On this instrument, a 2,048-step post-switch window against a
+fast-adapting reward function leaves no stationary signal for content addressing. **The
+learned WHICH is closed here; the blind K=2 flip (+0.1188) stands as the method.** K>2
+content addressing on this family would need either oracle identity or an instrument whose
+regime signal outlives the learner's own adaptation (e.g., dynamics-differing regimes) — a
+future-instrument note, not a rung. (A conceivable fourth design — periodically re-banking
+the active fingerprint and comparing two FROZEN fingerprints — would fight the same
+adaptation race at the re-bank cadence; we record it as unexplored rather than promising.)
+
 ## Links
 
 Raw: `evals/g3_*`, `evals/wave1_scores.json` (local) · adjudicator `scripts/score_wave1.py g3` ·

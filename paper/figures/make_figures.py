@@ -168,6 +168,7 @@ def fig3_memory() -> None:
         ("oracle when + which\n(bank, equivalence rung)", 0.8409, BAR_GRAY),
         ("learned when, K=2 flip\n(value-loss trigger, n=16)", 0.7295, BLUE),
         ("faster learned when\n(per-step, churn-bound)", 0.7023, VERMILLION),
+        ("learned which, drift-robust\n(fingerprints, adaptation-bound)", 0.6473, VERMILLION),
         ("learned which\n(content selection, drift-bound)", 0.6218, VERMILLION),
         ("none (control, n=16)", 0.6107, BAR_GRAY),
     ]

@@ -612,8 +612,9 @@ whole benchmark just gets harder.
   \textbf{(b)}~De-oracling the heads bank: with oracle timing and identity the
   bank reproduces the oracle; a self-supervised value-loss trigger with
   $K{=}2$ flip selection retains 52\% of the slice (blue); faster triggering
-  and content-addressed selection (vermillion) are adjudicated negatives ---
-  churn-bound and drift-bound respectively (\S\ref{sec:gap-anatomy}).}
+  and both content-selection designs (vermillion) are adjudicated negatives
+  --- churn-bound, adaptation-bound, and drift-bound respectively
+  (\S\ref{sec:gap-anatomy}).}
   \label{fig:memory}
 \end{figure}
 
@@ -658,29 +659,36 @@ identified mechanism:
   fails, the detector correctly fires again), so each false fire costs two
   cooldowns of churn; live precision fell to $0.65$ at $15$ fires/run.
   Precision-is-free is cadence-bounded.
-  \item \textbf{Content-addressed selection fails for a representational
-  reason, not an informational one.} Selecting slots by banked-critic value
-  fit, or by a banked world-model reward head used as a regime fingerprint,
-  both collapse to the control: banked heads are scored through a trunk that
-  has \emph{kept training} since banking, so the always-fresh live head wins
-  the error comparison and the selector almost never restores (restore rates
-  $2\%$ and $16\%$ of fires, with well-calibrated triggers). Drift between
-  banking and scoring, not absence of identity signal, is the obstruction ---
-  and it is the same obstruction a per-event world-model trigger meets (its
-  reward head is chronically underconfident at goal events; per-event
-  prediction error carried precision $0.02$--$0.04$ in shadow calibration).
+  \item \textbf{Content-addressed selection fails three ways, each
+  identified.} Selecting slots by banked-critic value fit, or by a banked
+  world-model reward head used as a regime fingerprint, collapses to the
+  control: banked heads are scored through a trunk that has \emph{kept
+  training} since banking, so the always-fresh live head wins the error
+  comparison and the selector almost never restores (restore rates $2\%$ and
+  $16\%$ of fires, with well-calibrated triggers). Fixing that drift ---
+  banking each slot's \emph{entire} world model so fingerprints are scored in
+  their own frozen feature space --- exposes a third obstruction: by the time
+  the trigger fires ($\sim$1 update post-switch), the live reward head has
+  already adapted to the new regime's sparse rewards, so the ``no switch
+  happened'' hypothesis wins the comparison even at true switches
+  ($+0.037$, $p{=}0.27$; flip rate on true-switch fires $0.16$). Three
+  selectors, three mechanisms --- trunk drift, verification churn, live-side
+  adaptation --- one conclusion: a $2{,}048$-step window measured against a
+  fast-adapting reward function leaves no stationary signal for content
+  addressing on this instrument.
   \item \textbf{Difficulty does not rescue the program} (\S\ref{sec:decomp}):
   the restoration premium is flat in regime count.
 \end{enumerate}
 
 The residual $\sim$0.10 is therefore structural to \{$K{=}2$ flip $+$
-self-supervised trigger\}: first-exposure spawn dynamics plus detection
-economics, with no single knob left. The one mechanism-level idea that
-attacks both at once --- \emph{drift-robust fingerprints}, banking the
-scoring path alongside each slot so matching data keeps the current head
-(false-fire suppression) and mismatching data addresses the right one
-($K{>}2$ selection) --- is the natural next rung, and we release the bank,
-triggers, and probes to make it a one-afternoon experiment.
+self-supervised trigger\} on this instrument: first-exposure spawn dynamics
+plus detection economics, with no knob left --- threshold, precision, lag,
+and all three content-selection designs are adjudicated. The learned
+\emph{which} would need either oracle identity or an instrument whose regime
+signal outlives the learner's own adaptation (regimes that differ in
+dynamics, not only reward, are the obvious candidate). We release the bank,
+the triggers, the selectors, and every probe so that porting this ladder to
+such an instrument is a one-afternoon experiment.
 
 \section{Three Mirages and a Criterion}
 \label{sec:mirages}
@@ -768,9 +776,11 @@ self-supervised trigger then collected 52\% of the routed slice with zero
 oracle bits. The anticipated difficulty inverted: buffer-selection results
 suggested selection is where difficulty
 concentrates~\citep{isele2018selectivereplay,kessler2023continualdreamer},
-and our selection probes do fail --- but for a drift reason that also caps
-every faster-trigger design, while the \emph{when} half proved learnable at
-half the ceiling on the first attempt. Notably, these results also bound
+and our selection probes do fail --- three designs, three identified
+mechanical reasons (representation drift, verification churn, live-side
+adaptation), the last of which also caps every faster-trigger design ---
+while the \emph{when} half proved learnable at half the ceiling on the first
+attempt. Notably, these results also bound
 what a \emph{Brain-in-the-loop} restore gate could add: it would act at the
 same per-update cadence (same lag floor), and the one thing it could learn
 beyond the static detector --- fire suppression --- is measured to be worth
