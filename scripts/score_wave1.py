@@ -65,9 +65,17 @@ T15_ARMS = {  # LOOP-0013 addendum (log 0011): trigger hardening at threshold 1.
     "g3_ar1": "evals/g3_ar1_e*",
     "g3_ar1t15": "evals/g3_ar1t15_e*",
 }
+STP_ARMS = {  # LOOP-0014 (log 0012): per-step success-collapse trigger
+    "control": "evals/loop9_s1_model_e*",
+    "heads_swap": "evals/wave1_decomp_heads_e*",
+    "g3_ar1": "evals/g3_ar1_e*",
+    "g3_stp": "evals/g3_stp_e*",
+}
 # Ground-truth switch schedule of the eval protocol, for trigger precision/recall.
 G3_SWITCHES = list(range(100000, 800000, 100000))
 G3_WINDOW_STEPS = 4 * 2048
+STP_WINDOW_STEPS = 4096                     # per-step trigger: much tighter TP window
+STP_RECALL_SWITCHES = G3_SWITCHES[1:]       # first switch structurally exempt (log 0012)
 
 
 def score_arm_full(pattern: str, staging: Path) -> list[dict]:
@@ -270,9 +278,66 @@ def adjudicate_t15(a: dict[str, dict]) -> dict:
     return res
 
 
+def _stp_trigger_stats(pattern: str) -> dict:
+    """Live precision/recall/lag of the per-step trigger vs the ground-truth schedule,
+    from the logged head_bank_step_fire steps (log 0012: TP window 4,096 steps; recall
+    over switches 2-7 — the first switch is structurally exempt, nothing banked yet)."""
+    import json as _json
+    import statistics as _st
+
+    tps = fps = dets = 0
+    lags: list[int] = []
+    dirs = sorted(glob.glob(str(REPO_ROOT / pattern)))
+    for d in dirs:
+        js = glob.glob(str(Path(d) / "**" / "*_data.json"), recursive=True)
+        if not js:
+            continue
+        data = _json.load(open(js[0]))
+        fired = [int(step) for step, _ in data.get("brain_neuromod/head_bank_step_fire", [])]
+        hit = set()
+        for f in fired:
+            match = next((sw for sw in G3_SWITCHES if 0 <= f - sw <= STP_WINDOW_STEPS), None)
+            if match is not None:
+                tps += 1
+                if match not in hit and match in STP_RECALL_SWITCHES:
+                    lags.append(f - match)
+                hit.add(match)
+            else:
+                fps += 1
+        dets += len(hit & set(STP_RECALL_SWITCHES))
+    n_runs = max(1, len(dirs))
+    return {
+        "precision": tps / max(1, tps + fps),
+        "recall": dets / max(1, len(STP_RECALL_SWITCHES) * n_runs),
+        "fires_per_run": (tps + fps) / n_runs,
+        "median_lag_steps": _st.median(lags) if lags else None,
+    }
+
+
+def adjudicate_stp(a: dict[str, dict]) -> dict:
+    """LOOP-0014 gates (log 0012): P-S1a trigger quality live, P-S1b the lag payoff."""
+    c = a["control"]["composites"]
+    heads_gain = float(np.mean(a["heads_swap"]["composites"]) - np.mean(c))
+    ar1 = welch(a["g3_ar1"]["composites"], c)
+    stp = welch(a["g3_stp"]["composites"], c)
+    trig = _stp_trigger_stats(STP_ARMS["g3_stp"])
+    p_a = trig["precision"] >= 0.75 and trig["recall"] >= 5 / 6
+    p_b = stp["delta"] >= 0.139
+    res = {"heads_gain_ref": heads_gain, "ar1_ref": ar1, "stp": stp, "trigger": trig,
+           "P_S1a": {"pass": bool(p_a)}, "P_S1b": {"pass": bool(p_b)}}
+    print(f"\noracle heads slice = {heads_gain:+.4f} | ar1 (n={a['g3_ar1']['n']}) gain {ar1['delta']:+.4f}")
+    print(f"g3_stp (n={a['g3_stp']['n']}): gain {stp['delta']:+.4f} (p={stp['p']:.3g}) "
+          f"= {stp['delta'] / heads_gain:+.1%} of slice")
+    print(f"stp trigger: precision {trig['precision']:.2f} recall {trig['recall']:.2f} "
+          f"fires/run {trig['fires_per_run']:.1f} median lag {trig['median_lag_steps']} steps")
+    print(f"P-S1a (precision >= 0.75 AND recall >= 5/6): {'PASS' if p_a else 'FAIL'}")
+    print(f"P-S1b (gain >= +0.139): {'PASS' if p_b else 'FAIL'}")
+    return res
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "t15"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "t15", "stp"])
     p.add_argument("--h2", type=float, default=None, help="K=2 headroom H from the ladder (k3 only)")
     p.add_argument("--json-out", default="evals/wave1_scores.json")
     args = p.parse_args(argv)
@@ -295,6 +360,9 @@ def main(argv: list[str] | None = None) -> int:
     elif args.batch == "t15":
         arms = summarize(T15_ARMS)
         res = adjudicate_t15(arms)
+    elif args.batch == "stp":
+        arms = summarize(STP_ARMS)
+        res = adjudicate_stp(arms)
     else:
         if args.h2 is None:
             p.error("k3 needs --h2 (the ladder's H)")

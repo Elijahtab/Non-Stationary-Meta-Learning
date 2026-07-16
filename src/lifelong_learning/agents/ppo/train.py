@@ -220,7 +220,33 @@ class InnerTrainState:
     head_bank_active: int = 0
     head_bank_value_ema: float | None = None
     head_bank_cooldown: int = 0
+    # --- per-step trigger (LOOP-0014, log 0012): success-collapse detector on episode
+    # terminations, model-free. At a goal swap the per-episode success rate falls
+    # ~0.9 -> ~0 within a handful of terminal events (16 envs terminate every ~3 steps),
+    # while WM reward-prediction errors proved too noisy per event (calibration
+    # 2026-07-15: abs bar precision 0.04; relative bar 0.03 with recall loss — the live
+    # reward head is chronically underconfident at goal events). Fires mid-rollout when
+    # the fast success EMA collapses below threshold x slow EMA (oracle-swap precedent
+    # for mid-rollout weight loads); the slow EMA follows sustained change, so a
+    # first-exposure regime (nothing good banked) stops re-firing on its own.
+    head_bank_step_threshold: float = 0.25   # fire when ema_fast < thr * ema_slow
+    # Half the first regime: every learning-phase wobble fire in calibration sat below
+    # ~45k steps (shadow runs 2026-07-16); a switch can't be *restored* before anything
+    # was banked anyway, so the warmup costs nothing.
+    head_bank_step_warmup: int = 50000
+    head_bank_step_cooldown: int = 2048      # min steps between fires
+    head_bank_step_shadow: bool = False      # log fires, never switch (calibration mode)
+    head_bank_step_ema_fast: float | None = None
+    head_bank_step_ema_slow: float | None = None
+    head_bank_step_events: int = 0           # terminal events since last fire/reset
+    head_bank_step_cooldown_until: int = 0
 
+
+# Step-trigger shape (fixed; only the collapse threshold is exposed as a lever).
+STEP_FAST_DECAY = 0.8           # fast success EMA (per terminal event)
+STEP_SLOW_DECAY = 0.995         # slow success EMA (the regime baseline)
+STEP_MIN_SLOW = 0.5             # only fire out of a *learned* regime
+STEP_MIN_EVENTS = 8             # terminal events needed since last fire/reset
 
 # Cand-4 spike shape (fixed; only the trigger threshold is exposed as a lever).
 SURPRISE_SPIKE_FACTOR = 2.0     # transient multiplier on ent_coef + intrinsic_coef
@@ -544,6 +570,48 @@ def _head_bank_surprise_check(state, value_loss_now: float) -> None:
     )
 
 
+def _head_bank_step_check(state, reward, done) -> None:
+    """Per-step trigger (LOOP-0014, log 0012): model-free success-collapse detector.
+    Consumes episode terminations from the vector env (outcome = terminal reward > 0.05)
+    and maintains fast/slow success EMAs; fires mid-rollout when the fast EMA collapses
+    below head_bank_step_threshold x the slow EMA — the signature of a goal swap under a
+    competent policy (~0.9 -> ~0 within a handful of terminal events). Gates: the slow
+    EMA must show a learned regime (>= 0.5), >= 8 events since the last fire/reset,
+    warmup, and a step cooldown. On fire the fast EMA resets optimistically to the slow
+    EMA: a correct restore recovers success and stays quiet; a wrong flip re-collapses
+    and self-corrects after the cooldown. The slow EMA keeps following sustained change,
+    so a first-exposure regime (nothing good banked yet) stops re-firing on its own.
+    Shadow mode logs would-be fires without switching (calibration)."""
+    s = state
+    if s.head_bank_slots <= 0 or s.head_bank_trigger != "step_surprise":
+        return
+    for i in np.flatnonzero(done):
+        outcome = 1.0 if float(reward[i]) > 0.05 else 0.0
+        if s.head_bank_step_ema_slow is None:
+            s.head_bank_step_ema_slow = outcome
+            s.head_bank_step_ema_fast = outcome
+            continue
+        s.head_bank_step_ema_slow = (
+            STEP_SLOW_DECAY * s.head_bank_step_ema_slow + (1.0 - STEP_SLOW_DECAY) * outcome
+        )
+        s.head_bank_step_ema_fast = (
+            STEP_FAST_DECAY * s.head_bank_step_ema_fast + (1.0 - STEP_FAST_DECAY) * outcome
+        )
+        s.head_bank_step_events += 1
+        if (s.head_bank_step_ema_slow >= STEP_MIN_SLOW
+                and s.head_bank_step_events >= STEP_MIN_EVENTS
+                and s.head_bank_step_ema_fast < s.head_bank_step_threshold * s.head_bank_step_ema_slow
+                and s.global_step >= s.head_bank_step_warmup
+                and s.global_step >= s.head_bank_step_cooldown_until):
+            s.logger.scalar("brain_neuromod/head_bank_step_fire", 1.0, s.global_step)
+            s.head_bank_step_cooldown_until = s.global_step + s.head_bank_step_cooldown
+            s.head_bank_step_events = 0
+            s.head_bank_step_ema_fast = s.head_bank_step_ema_slow
+            if not s.head_bank_step_shadow:
+                _head_bank_switch(s, (s.head_bank_active + 1) % 2)
+            return
+
+
 def init_inner_training(
     env_id: str,
     cfg: PPOConfig,
@@ -585,6 +653,8 @@ def init_inner_training(
     head_bank_trigger: str = "oracle",
     head_bank_select: str = "oracle",
     head_bank_surprise_threshold: float = 1.0,
+    head_bank_step_threshold: float = 0.25,
+    head_bank_step_shadow: bool = False,
 ) -> InnerTrainState:
     """
     Initialize all components of the Dyna-PPO inner training loop.
@@ -618,8 +688,10 @@ def init_inner_training(
     if head_bank_slots:
         if head_bank_slots < 2:
             raise ValueError("head_bank_slots must be >= 2 (or 0 to disable)")
-        if head_bank_trigger not in ("oracle", "surprise"):
-            raise ValueError(f"head_bank_trigger must be oracle|surprise, got {head_bank_trigger!r}")
+        if head_bank_trigger not in ("oracle", "surprise", "step_surprise"):
+            raise ValueError(
+                f"head_bank_trigger must be oracle|surprise|step_surprise, got {head_bank_trigger!r}"
+            )
         if head_bank_select not in ("oracle", "other", "value_error", "reward_error"):
             raise ValueError(
                 f"head_bank_select must be oracle|other|value_error|reward_error, got {head_bank_select!r}"
@@ -628,6 +700,11 @@ def init_inner_training(
             raise ValueError("the oracle trigger pairs only with oracle selection")
         if head_bank_trigger == "surprise" and head_bank_select == "oracle":
             raise ValueError("the surprise trigger has no regime id — use other|value_error selection")
+        if head_bank_trigger == "step_surprise" and head_bank_select != "other":
+            raise ValueError(
+                "step_surprise v1 pairs only with 'other' selection (content addressing is "
+                "drift-broken pending banked scoring paths — note 0013)"
+            )
         if head_bank_select == "other" and head_bank_slots != 2:
             raise ValueError("'other' selection is only defined at head_bank_slots=2")
         if policy_swap_topline:
@@ -839,6 +916,8 @@ def init_inner_training(
         head_bank_trigger=head_bank_trigger,
         head_bank_select=head_bank_select,
         head_bank_surprise_threshold=head_bank_surprise_threshold,
+        head_bank_step_threshold=head_bank_step_threshold,
+        head_bank_step_shadow=head_bank_step_shadow,
     )
 
 
@@ -930,6 +1009,10 @@ def run_inner_update(state: InnerTrainState) -> dict:
 
         next_obs, reward, terminated, truncated, infos = s.envs.step(action.cpu().numpy())
         done = np.logical_or(terminated, truncated)
+
+        # Per-step head-bank trigger (LOOP-0014): model-free success-collapse detector
+        # on this step's episode terminations.
+        _head_bank_step_check(s, reward, done)
 
         # Increment shared regime step counter by the number of parallel env steps taken
         if hasattr(s, 'regime_step_counter'):

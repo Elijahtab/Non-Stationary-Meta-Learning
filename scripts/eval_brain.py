@@ -192,6 +192,8 @@ def eval_brain(args):
         head_bank_trigger=getattr(args, "head_bank_trigger", "oracle"),
         head_bank_select=getattr(args, "head_bank_select", "oracle"),
         head_bank_surprise_threshold=getattr(args, "head_bank_surprise_threshold", 1.0),
+        head_bank_step_threshold=getattr(args, "head_bank_step_threshold", 0.25),
+        head_bank_step_shadow=getattr(args, "head_bank_step_shadow", False),
     )
 
     sig = SignalExtractor(
@@ -374,9 +376,10 @@ def main():
                    help="G3 head-bank memory (LOOP-0012): K weight slots for the actor/critic "
                         "heads. 0 = off.")
     p.add_argument("--head_bank_trigger", type=str, default="oracle",
-                   choices=["oracle", "surprise"],
-                   help="Head-bank trigger: ground-truth switch, or the value-loss change-point "
-                        "detector (A-R1, the learned WHEN).")
+                   choices=["oracle", "surprise", "step_surprise"],
+                   help="Head-bank trigger: ground-truth switch, the per-update value-loss "
+                        "change-point detector (A-R1), or the per-step reward-violation "
+                        "streak detector (LOOP-0014 — attacks the lag wall).")
     p.add_argument("--head_bank_select", type=str, default="oracle",
                    choices=["oracle", "other", "value_error", "reward_error"],
                    help="Head-bank slot selection: ground-truth regime id, K=2 flip, "
@@ -385,6 +388,12 @@ def main():
     p.add_argument("--head_bank_surprise_threshold", type=float, default=1.0,
                    help="Surprise-trigger threshold (calibrated 1.0: precision .84 recall .85 "
                         "on archived control traces; scripts/calibrate_surprise_trigger.py).")
+    p.add_argument("--head_bank_step_threshold", type=float, default=0.25,
+                   help="step_surprise: success-collapse ratio — fire when the fast success "
+                        "EMA drops below this fraction of the slow EMA at episode "
+                        "terminations (model-free; LOOP-0014).")
+    p.add_argument("--head_bank_step_shadow", action="store_true",
+                   help="step_surprise calibration mode: log would-be fires, never switch.")
 
     args = p.parse_args()
     eval_brain(args)

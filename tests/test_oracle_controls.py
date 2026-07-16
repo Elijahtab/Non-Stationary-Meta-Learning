@@ -387,6 +387,60 @@ def test_head_bank_content_addressing_spawns_then_selects():
         state.envs.close()
 
 
+def test_head_bank_step_trigger_fires_on_success_collapse():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, head_bank_slots=2,
+                                head_bank_trigger="step_surprise", head_bank_select="other")
+    try:
+        import numpy as np
+        from lifelong_learning.agents.ppo.train import _head_bank_step_check
+        state.global_step = 60000                       # past warmup
+        one_done = np.array([True, False])
+        r_success = np.array([0.9, 0.0])
+        for _ in range(50):                             # a learned regime: slow EMA ~1.0
+            _head_bank_step_check(state, r_success, one_done)
+        assert state.head_bank_active == 0
+
+        r_fail = np.array([0.0, 0.0])                   # goal swap: successes stop
+        fired_at = None
+        for k in range(30):
+            _head_bank_step_check(state, r_fail, one_done)
+            if state.head_bank_active == 1:
+                fired_at = k
+                break
+        assert fired_at is not None, "collapse never fired"
+        assert fired_at >= 5                            # several failures, not one blip
+        assert 0 in state.head_bank                     # outgoing heads banked
+
+        # Step cooldown blocks an immediate re-fire under continued failure.
+        for _ in range(10):
+            _head_bank_step_check(state, r_fail, one_done)
+        assert state.head_bank_active == 1
+    finally:
+        state.envs.close()
+
+
+def test_head_bank_step_shadow_logs_but_never_switches():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, head_bank_slots=2,
+                                head_bank_trigger="step_surprise", head_bank_select="other",
+                                head_bank_step_shadow=True)
+    try:
+        import numpy as np
+        from lifelong_learning.agents.ppo.train import _head_bank_step_check
+        state.global_step = 60000
+        one_done = np.array([True, False])
+        for _ in range(50):
+            _head_bank_step_check(state, np.array([0.9, 0.0]), one_done)
+        for _ in range(20):
+            _head_bank_step_check(state, np.array([0.0, 0.0]), one_done)
+        assert "brain_neuromod/head_bank_step_fire" in state.logger.data
+        assert state.head_bank_active == 0              # never switched
+        assert state.head_bank == {}                    # nothing banked
+    finally:
+        state.envs.close()
+
+
 def test_head_bank_combo_validation():
     cfg = _tiny_cfg()
     with pytest.raises(ValueError, match="oracle trigger"):
