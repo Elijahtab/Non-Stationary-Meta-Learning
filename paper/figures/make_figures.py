@@ -136,7 +136,62 @@ def fig2_replication() -> None:
     plt.close(fig)
 
 
+def fig3_memory() -> None:
+    """(a) swap-scope decomposition of the ceiling; (b) the de-oracling ladder.
+    Sources: docs/research-notes/0012 (decomposition) and 0013 (method + probes),
+    eval protocol, control = archived loop9_s1_model arm."""
+    fig, (ax_a, ax_b) = plt.subplots(1, 2, figsize=(6.6, 2.5), width_ratios=[1.0, 1.0])
+
+    # --- (a) decomposition (n=8/arm vs matched control 0.6202)
+    scopes = [
+        ("full snapshot\n(original O2)", 0.8636, BLUE),
+        ("heads + encoder", 0.8546, BLUE),
+        ("heads only", 0.8383, BLUE),
+        ("world model only", 0.6003, BAR_GRAY),
+        ("none (control)", 0.6202, BAR_GRAY),
+    ]
+    y = range(len(scopes))
+    ax_a.barh(y, [s[1] for s in scopes], height=0.62,
+              color=[s[2] for s in scopes], zorder=3)
+    ax_a.set_yticks(list(y), [s[0] for s in scopes])
+    ax_a.axvline(0.6202, color=MUTED, lw=0.8, ls=":")
+    ax_a.set_xlim(0.5, 0.95)
+    ax_a.set_xlabel("composite (eval protocol)")
+    ax_a.xaxis.grid(True, color="#e6e6e6", linewidth=0.6, zorder=0)
+    ax_a.set_axisbelow(True)
+    for yi, (_, v, _c) in zip(y, scopes):
+        ax_a.text(v + 0.006, yi, f"{v:.3f}", va="center", fontsize=7.5, color=INK)
+    ax_a.set_title("(a) the ceiling is policy-head memory", loc="left", fontsize=8.5)
+
+    # --- (b) de-oracling: what a learned trigger collects (share of heads slice)
+    arms = [
+        ("oracle when + which\n(bank, equivalence rung)", 0.8409, BAR_GRAY),
+        ("learned when, K=2 flip\n(value-loss trigger, n=16)", 0.7295, BLUE),
+        ("faster learned when\n(per-step, churn-bound)", 0.7023, VERMILLION),
+        ("learned which\n(content selection, drift-bound)", 0.6218, VERMILLION),
+        ("none (control, n=16)", 0.6107, BAR_GRAY),
+    ]
+    y = range(len(arms))
+    ax_b.barh(y, [a[1] for a in arms], height=0.62,
+              color=[a[2] for a in arms], zorder=3)
+    ax_b.set_yticks(list(y), [a[0] for a in arms])
+    ax_b.axvline(0.6107, color=MUTED, lw=0.8, ls=":")
+    ax_b.set_xlim(0.5, 0.95)
+    ax_b.set_xlabel("composite (eval protocol)")
+    ax_b.xaxis.grid(True, color="#e6e6e6", linewidth=0.6, zorder=0)
+    ax_b.set_axisbelow(True)
+    for yi, (_, v, _c) in zip(y, arms):
+        ax_b.text(v + 0.006, yi, f"{v:.3f}", va="center", fontsize=7.5, color=INK)
+    ax_b.set_title("(b) a learned trigger collects 52% of it", loc="left", fontsize=8.5)
+
+    fig.tight_layout(w_pad=2.2)
+    fig.savefig(OUT / "fig3_memory.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "fig3_memory.png", dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     fig1_ladder()
     fig2_replication()
+    fig3_memory()
     print(f"wrote figures to {OUT}")

@@ -6,6 +6,7 @@ C1 upgraded to across-training-seeds per the LOOP-0009 replication (note 0007 §
 note remains the claim→evidence map; the draft is the source of truth for prose.
 **Owner:** Elijah · **Depends on:** LOOP-0009 replication for the *positive* claim's strength
 (see §Venue & the one dependency).
+**Addendum 2026-07-16 — draft v2:** the Wave-1/G3 campaign (notes [0012](./0012-ceiling-decomposition.md)/[0013](./0013-learned-trigger-selection-gap.md), LOOP-0011→0014) is folded into `paper/main.tex`: new §6 "Decomposing and Collecting the Restoration Headroom" (Table 3 = swap-scope decomposition, Fig 3 = decomposition + de-oracling ladder), abstract result (4), a new contribution item, the discussion's "next instrument" paragraph replaced with results (incl. the measured bound on Brain-in-the-loop restore gates), and the "O2 is an aggregate bound" limitation replaced by memory-arm scope caveats. Method headline: **+0.1188 (n=16, 52% of the heads slice, zero oracle bits)**.
 **Addendum 2026-07-14 ([note 0011](./0011-wave0-desk-probes.md)):** H1/H2 methods items are
 computed — IQM tracks the mean (pooled ΔIQM +0.0527), seed-stratified bootstrap CI for the
 pooled replication Δ is [+0.033, +0.058]; and the pre-authorized **hit-0.95 facet moves with

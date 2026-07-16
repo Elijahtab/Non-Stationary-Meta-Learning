@@ -1,6 +1,6 @@
 # Paper draft — "Meta-Control Helps a Little, Memory Decides"
 
-Full working draft (v1, 2026-07-11). No LaTeX toolchain on this machine — build on
+Full working draft (v2, 2026-07-16: adds the memory decomposition + learned-trigger method, \S6 + Fig 3 + Table 3). No LaTeX toolchain on this machine — build on
 Overleaf (upload this folder) or locally:
 
 ```
@@ -15,6 +15,8 @@ pdflatex main && bibtex main && pdflatex main && pdflatex main
 | March matched contrast | `docs/research-notes/0006` (T-series, n=32/arm) |
 | Multi-seed replication (Table 2, Fig 2) | `docs/research-notes/0007` §Results (LOOP-0009, n=16/arm) |
 | Related work + citation hygiene | `docs/research-notes/0010` (62 verified papers) |
+| Decomposition + K=3 screen (Table 3, Fig 3a) | `docs/research-notes/0012` (LOOP-0011) |
+| Head-bank method + gap anatomy (Fig 3b, \S6) | `docs/research-notes/0013` (LOOP-0012/13/14) |
 | Structure / claim map | `docs/research-notes/0008` (skeleton) |
 | Instrument details (levers, bounds, signals, reward) | `src/.../brain/{neuromod,meta_env,signals}.py` (verified against source 2026-07-11) |
 

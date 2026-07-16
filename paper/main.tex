@@ -12,6 +12,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
+\usepackage{enumitem}
 \usepackage{graphicx}
 \usepackage{microtype}
 \usepackage[numbers,sort&compress]{natbib}
@@ -28,7 +29,7 @@ Locating the Catastrophic-Forgetting Bottleneck with a Control Ladder}
 \author{Elijah Tabachnik\\
 \todo{affiliation / email}}
 
-\date{Draft v1 --- July 2026}
+\date{Draft v2 --- July 2026}
 
 \begin{document}
 \maketitle
@@ -56,12 +57,21 @@ learned gating channel does nothing; perfectly timed critic damping
 the run. \textbf{(3)~The bottleneck is knowledge restoration, not learning
 dynamics:} a zero-forgetting oracle that restores the learner's stored state at
 each regime switch gains $+0.249$ composite on the same instrument---roughly
-$5\times$ the trained-controller effect. Along the way, three
-small-sample effects that passed initial screens died under replication; we
-describe the convergence-vs-decay criterion and protocol-matching discipline
-that separated them from the one effect that survived. We argue that the next
-lever for task-free continual RL is explicit memory---learning \emph{when} to
-snapshot and restore---rather than better hyperparameter meta-control.
+$5\times$ the trained-controller effect. \textbf{(4)~The ceiling decomposes,
+and a learned mechanism collects half of its principal share:} restoring only
+the actor/critic heads captures $\sim$90\% of the oracle's gain while the
+world-model share is null; a two-slot bank of policy heads driven by a
+self-supervised change-point trigger on the learner's own value loss recovers
+$+0.119$ composite ($n{=}16$, $p=4.7\times10^{-7}$)---52\% of the oracle heads
+slice with zero oracle information---and pre-registered probes eliminate
+trigger precision, detection lag, and content-addressed selection as routes to
+the remainder. Along the way, three small-sample effects that passed initial
+screens died under replication; we describe the convergence-vs-decay criterion
+and protocol-matching discipline that separated them from the effects that
+survived. We argue that the operative lever for task-free continual RL is
+explicit memory---and supply its first learned rung, a trigger that learns
+\emph{when} to restore, together with the measured anatomy of what it still
+cannot do.
 \end{abstract}
 
 \section{Introduction}
@@ -138,16 +148,25 @@ own stored state at each switch.
   this benchmark, contradicting a weak-baseline artifact in an earlier report
   on this system; the honest trained-controller increment is an order of
   magnitude smaller than initially reported.
+  \item \textbf{A decomposition of the ceiling and a learned mechanism that
+  collects half of it} (\S\ref{sec:memory}): scope-filtered restoration
+  attributes the $+0.249$ almost entirely to the policy heads ($\sim$90\%;
+  world model null, optimizer state $\sim$4\%); a two-slot head bank with a
+  self-supervised value-loss trigger recovers $+0.119$ ($n{=}16$, 52\% of the
+  heads slice) with zero oracle bits; and pre-registered probes adjudicate the
+  remaining gap as structural --- trigger precision is free, faster detection
+  trades lag for churn, and content-addressed selection fails for an
+  identified reason (representation drift between banking and scoring).
 \end{enumerate}
 
 Our headline is deliberately two-sided. Trained meta-control \emph{does} help
 --- the effect is real, replicable, and survives every control we could build
 --- but it is small, and the ceiling experiment says why: hyperparameter
 schedules cannot restore knowledge, only modulate how fast it is relearned.
-The discussion (\S\ref{sec:discussion}) argues that the natural next
-instrument is meta-control over \emph{memory} --- learned triggers for
-snapshot and restore --- for which our oracle is the pre-registered upper
-bound.
+Sections~\ref{sec:memory} and~\ref{sec:discussion} then take the argument one
+step further: we decompose the oracle's gain, build the corresponding learned
+mechanism, measure what fraction of the ceiling it collects, and map --- with
+pre-registered negative results --- exactly where the remainder is hiding.
 
 \section{Related Work}
 \label{sec:related}
@@ -528,6 +547,141 @@ existential to distributional: \textbf{Brains trained this way improve
 post-switch recovery, across training draws}, at $\sim$9\% relative composite
 --- and $\sim$18\% of the O2 ceiling.
 
+\section{Decomposing and Collecting the Restoration Headroom}
+\label{sec:memory}
+
+The O2 ceiling of \S\ref{sec:ladder} restores the learner's policy network,
+world model, and both Adam states together --- an aggregate bound that says
+nothing about which component carries the value. This section reports the
+follow-up campaign (all gates pre-registered before results; frozen
+replication-seed-1 Brain; evaluation protocol throughout, so the archived
+$n{=}16$ no-swap arm of \S\ref{sec:replication} serves as the matched
+control).
+
+\subsection{Where the $+0.25$ lives}
+\label{sec:decomp}
+
+We re-ran the restore oracle with the snapshot \emph{scope-filtered}:
+actor/critic heads only; heads plus encoder; world model only; or the full
+original snapshot (partial scopes carry no optimizer state).
+
+\begin{table}[t]
+  \centering
+  \caption{\textbf{Decomposing the restoration ceiling} (evaluation protocol,
+  $n{=}8$/arm vs.\ the archived matched control; share $=$ arm gain $/$
+  full-snapshot gain).}
+  \label{tab:decomp}
+  \small
+  \begin{tabular}{lcccc}
+    \toprule
+    Restore scope & \composite{} & gain & share of $H$ & $p$ \\
+    \midrule
+    none (control)        & 0.6202 & ---       & ---     & --- \\
+    world model only      & 0.6003 & $-0.0200$ & $-8\%$  & 0.42 \\
+    heads only            & 0.8383 & $+0.2180$ & $90\%$  & $9\times10^{-8}$ \\
+    heads $+$ encoder     & 0.8546 & $+0.2343$ & $96\%$  & $4\times10^{-8}$ \\
+    full (original O2)    & 0.8636 & $+0.2434$ & $100\%$ & $3\times10^{-8}$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Three facts follow (Table~\ref{tab:decomp}). First, the ceiling is
+\emph{protocol-robust}: the full snapshot re-anchors at $+0.2434$ under the
+evaluation protocol, matching the box-protocol $+0.249$. Second, the
+knowledge worth restoring lives almost entirely in the \textbf{policy heads}
+($\sim$90\%; the encoder adds $\sim$7 points, optimizer state $\sim$4), and
+the \textbf{world-model share is null} --- restoring the WM alone transports
+nothing (directionally negative). On an instrument whose regimes share
+dynamics and differ only in reward, ``mixture of world models'' fails at its
+own oracle upper bound; the mixture worth keeping is over policy heads. Third,
+the premium does \emph{not} grow with task difficulty: at three cyclic regimes
+the full-restore gain over the same trained learner is $+0.2351$ --- flat, not
+growing --- so regime count does not raise memory's value on this family; the
+whole benchmark just gets harder.
+
+\subsection{A learned mechanism collects half the heads slice}
+\label{sec:headbank}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig3_memory.pdf}
+  \caption{\textbf{Decomposing and collecting the restoration ceiling}
+  (evaluation protocol; dotted line = matched no-swap control).
+  \textbf{(a)}~Scope-filtered restore oracles: the policy heads carry
+  $\sim$90\% of the ceiling; the world model carries none.
+  \textbf{(b)}~De-oracling the heads bank: with oracle timing and identity the
+  bank reproduces the oracle; a self-supervised value-loss trigger with
+  $K{=}2$ flip selection retains 52\% of the slice (blue); faster triggering
+  and content-addressed selection (vermillion) are adjudicated negatives ---
+  churn-bound and drift-bound respectively (\S\ref{sec:gap-anatomy}).}
+  \label{fig:memory}
+\end{figure}
+
+The decomposition licenses a cheap method: a $K{=}2$ \emph{bank} of
+actor/critic head weights, with the two oracle ingredients --- \emph{when} to
+swap and \emph{which} slot --- replaced one at a time. With oracle timing and
+identity, the bank reproduces the heads-scope oracle exactly ($0.8409$ vs.\
+$0.8383$, $p=0.84$): a mechanism-equivalence rung, so everything below is
+attributable to the trigger and selection, not the plumbing. Replacing the
+trigger with a self-supervised change-point detector on the learner's own
+per-update value loss (EMA baseline, threshold calibrated on archived control
+traces before any scored run) and degenerate $K{=}2$ selection
+(``flip to the other slot'') gives the paper's method result:
+
+\begin{center}
+\textbf{$+0.1188$ composite over the matched control} ($n{=}16$,
+$p=4.7\times10^{-7}$) --- \textbf{52\% of the oracle heads slice with zero
+oracle information and no controller retraining}, reaching the 80\%-recovery
+threshold on 99--100\% of switches.
+\end{center}
+
+The estimate converged under sample extension ($+0.1180$ at $n{=}8$), the
+criterion of \S\ref{sec:mirages}.
+
+\subsection{The anatomy of the remaining gap}
+\label{sec:gap-anatomy}
+
+Between the learned rung ($52\%$) and the oracle rung ($101\%$) sits a gap we
+adjudicated with four pre-registered probes, each a clean negative with an
+identified mechanism:
+
+\begin{enumerate}[leftmargin=1.4em, itemsep=0.15em]
+  \item \textbf{Trigger precision is not the cost.} Hardening the detector
+  threshold raised in-run precision from $0.69$ to $0.94$ (matching its desk
+  calibration) and moved the composite by $+0.0007$: at $\sim$2 false fires
+  per run, a wrong flip is self-repairing.
+  \item \textbf{Detection lag is not recoverable by faster detection.} A
+  per-step, model-free success-collapse detector cut median detection lag
+  from $2{,}048^{+}$ to $280$ steps with perfect recall --- and \emph{lowered}
+  the gain to $+0.0916$. Under a success statistic, a false flip
+  \emph{guarantees} its own secondary collapse (the wrongly loaded head
+  fails, the detector correctly fires again), so each false fire costs two
+  cooldowns of churn; live precision fell to $0.65$ at $15$ fires/run.
+  Precision-is-free is cadence-bounded.
+  \item \textbf{Content-addressed selection fails for a representational
+  reason, not an informational one.} Selecting slots by banked-critic value
+  fit, or by a banked world-model reward head used as a regime fingerprint,
+  both collapse to the control: banked heads are scored through a trunk that
+  has \emph{kept training} since banking, so the always-fresh live head wins
+  the error comparison and the selector almost never restores (restore rates
+  $2\%$ and $16\%$ of fires, with well-calibrated triggers). Drift between
+  banking and scoring, not absence of identity signal, is the obstruction ---
+  and it is the same obstruction a per-event world-model trigger meets (its
+  reward head is chronically underconfident at goal events; per-event
+  prediction error carried precision $0.02$--$0.04$ in shadow calibration).
+  \item \textbf{Difficulty does not rescue the program} (\S\ref{sec:decomp}):
+  the restoration premium is flat in regime count.
+\end{enumerate}
+
+The residual $\sim$0.10 is therefore structural to \{$K{=}2$ flip $+$
+self-supervised trigger\}: first-exposure spawn dynamics plus detection
+economics, with no single knob left. The one mechanism-level idea that
+attacks both at once --- \emph{drift-robust fingerprints}, banking the
+scoring path alongside each slot so matching data keeps the current head
+(false-fire suppression) and mismatching data addresses the right one
+($K{>}2$ selection) --- is the natural next rung, and we release the bank,
+triggers, and probes to make it a one-afternoon experiment.
+
 \section{Three Mirages and a Criterion}
 \label{sec:mirages}
 
@@ -604,22 +758,24 @@ same way: dynamics levers modulate the \emph{speed} of relearning; memory
 levers change \emph{whether relearning is necessary}. On our instrument the
 speed channel is worth $\sim$0.05 and the necessity channel $\sim$0.25.
 
-\paragraph{The next instrument: learned restoration.}
-O2 is an oracle in two places --- \emph{when} to restore (ground-truth switch
-times) and \emph{what} to restore (ground-truth regime identity). Both are
-learnable targets: the Brain's own observation already carries switch-timing
-signals (surprise spikes), and selection among $K{=}2$ snapshots is a single
-bit. The follow-up program, pre-registered in outline, therefore replaces the
-inert code dimensions of the action space with memory-facing levers ---
-snapshot commit, restore trigger, slot selection --- and asks what fraction
-of the $+0.249$ a \emph{learned} trigger recovers, with the decomposition of
-the O2 snapshot (policy vs.\ world model vs.\ optimizer state) as the routing
-experiment. The four replicated Brains of \S\ref{sec:replication} are the
-baseline arm of that comparison. Buffer-selection results
-suggest the selection half is where the difficulty
-concentrates~\citep{isele2018selectivereplay,kessler2023continualdreamer};
-our regime pair, differing only in reward, makes the world-model component of
-the snapshot nearly free to bank, which the decomposition can exploit.
+\paragraph{From oracle to method: what a learned restore collects.}
+O2 is an oracle in two places --- \emph{when} to restore and \emph{what} to
+restore. Section~\ref{sec:memory} ran that program: the decomposition routed
+the value to the policy heads (and, contrary to our own prior design
+intuition, \emph{away} from the world model --- the component our regime pair
+makes nearly free to bank turns out to carry nothing worth banking); a
+self-supervised trigger then collected 52\% of the routed slice with zero
+oracle bits. The anticipated difficulty inverted: buffer-selection results
+suggested selection is where difficulty
+concentrates~\citep{isele2018selectivereplay,kessler2023continualdreamer},
+and our selection probes do fail --- but for a drift reason that also caps
+every faster-trigger design, while the \emph{when} half proved learnable at
+half the ceiling on the first attempt. Notably, these results also bound
+what a \emph{Brain-in-the-loop} restore gate could add: it would act at the
+same per-update cadence (same lag floor), and the one thing it could learn
+beyond the static detector --- fire suppression --- is measured to be worth
+$+0.0007$. The remaining structural gap belongs to drift-robust addressing,
+not to more meta-control.
 
 \paragraph{For the neuromodulation literature.}
 Our negative pathway result does not contradict demonstrations that gating
@@ -645,11 +801,15 @@ metric's scope. The instrument was chosen to make the control ladder
 affordable; porting the ladder to richer benchmarks is future work, not a
 claim we make.
 
-\textbf{O2 is an aggregate bound.} The snapshot restores policy, world model,
-and optimizer state together; we have not yet attributed the $+0.249$ among
-them. It bounds knowledge restoration in aggregate and is not evidence for
-any particular memory mechanism --- notably, naive replay can interfere in
-exactly this regime type~\citep{kessler2023continualdreamer}.
+\textbf{Memory-arm scope.} The decomposition and head-bank arms
+(\S\ref{sec:memory}) use one controller draw (replication seed 1) at
+$n{=}8$--$16$ evaluation seeds; the scope shares and the 52\%-of-slice method
+number are for that draw, and the churn/lag economics of \S\ref{sec:gap-anatomy}
+could differ on instruments with denser reward or slower switching. The
+restoration result is not evidence for any particular \emph{replay} mechanism
+--- naive replay can interfere in exactly this regime
+type~\citep{kessler2023continualdreamer} --- but it does adjudicate against
+world-model banking on this family, at its oracle upper bound.
 
 \textbf{Controller scope.} The Brain is a small MLP with a fixed 15-d
 interface and no recurrence; its observation carries no regime identity. A
