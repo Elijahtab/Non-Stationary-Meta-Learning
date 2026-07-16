@@ -122,6 +122,31 @@ could cut the lag from ~2,048 steps to ~tens; (ii) **drift-robust fingerprints**
 scoring path) — not for K=2 score, but for K>2 generality. The mem-Brain (box) drops to
 third: its measurable edge over the static detector is now bounded small at this cadence.
 
+## Per-step trigger addendum (2026-07-16, LOOP-0014 — the trigger family is complete)
+
+A per-step, model-free success-collapse detector (fast/slow success EMAs at episode
+terminations, mid-rollout flip; three-iteration shadow calibration disclosed in log 0012 —
+per-event WM prediction error is unusable, precision 0.02–0.04) cut detection lag exactly as
+designed: **median 280 steps** (vs 2,048+ per-update), recall 1.00. **The composite went
+DOWN: +0.0916 (40% of slice, n=8) vs +0.1188** — P-S1a and P-S1b both FAIL.
+
+**Mechanism (the finding):** under a success-collapse statistic, a false flip *guarantees*
+its own secondary collapse — the wrongly-loaded head fails, the detector correctly fires
+again, and each false fire costs ~2 cooldowns of churn. Live precision degraded to 0.65 at
+15.5 fires/run (shadow cluster-precision ~0.9 cannot see the fire→flip→collapse feedback).
+So the t15 result "precision is free" is **cadence-bounded**: free at ~2 false fires/run
+(per-update detector), expensive at ~8 (per-step). Faster detection trades lag for churn at
+unfavorable rates on this instrument.
+
+**Where this leaves the method:** the per-update value-loss trigger at threshold 1.0 —
+**+0.1188, n=16, 52% of the oracle heads slice, zero oracle bits** — is the program's
+learned-memory method. The residual ~0.10 gap is structural to {K=2 flip + self-supervised
+trigger}: detection economics plus first-exposure spawn dynamics, not any single knob
+(threshold ✗, precision ✗, lag ✗ — all adjudicated). The one remaining mechanism-level idea
+that attacks BOTH residuals at once is drift-robust fingerprint selection (stay put when the
+incoming data matches the active head's fingerprint → false fires become no-ops; restore the
+matching slot when it doesn't → selection for K>2) — a future rung, after the paper.
+
 ## Links
 
 Raw: `evals/g3_*`, `evals/wave1_scores.json` (local) · adjudicator `scripts/score_wave1.py g3` ·
