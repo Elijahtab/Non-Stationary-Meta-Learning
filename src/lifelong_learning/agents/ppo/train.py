@@ -220,6 +220,9 @@ class InnerTrainState:
     head_bank_active: int = 0
     head_bank_value_ema: float | None = None
     head_bank_cooldown: int = 0
+    # Scratch WM module for drift-robust fingerprint scoring (reward_fp): banked WMs are
+    # loaded here for evaluation so the live world model is never touched by selection.
+    head_bank_scratch_wm: object = field(default=None, repr=False)
     # --- per-step trigger (LOOP-0014, log 0012): success-collapse detector on episode
     # terminations, model-free. At a goal swap the per-episode success rate falls
     # ~0.9 -> ~0 within a handful of terminal events (16 envs terminate every ~3 steps),
@@ -440,6 +443,11 @@ def _head_bank_snapshot(state) -> dict:
             for k, v in s.world_model.state_dict().items()
             if k.startswith(WM_REWARD_HEAD_PREFIX)
         }
+    if s.head_bank_select == "reward_fp":
+        # Drift-robust fingerprint (LOOP-0015): bank the ENTIRE world model so the slot's
+        # regime signature is scored in its own frozen feature space (~1.5M params/slot,
+        # scoring-only — never loaded into the live learner).
+        snap["wm_full"] = copy.deepcopy(s.world_model.state_dict())
     return snap
 
 
@@ -517,6 +525,42 @@ def _head_bank_select_reward_error(state) -> int:
     return best_slot
 
 
+def _head_bank_select_reward_fp(state) -> int:
+    """Drift-robust content addressing (LOOP-0015, log 0013): each slot's fingerprint is
+    its entire banked world model, scored in its OWN frozen feature space on the freshest
+    (obs, action) -> reward transitions — the fix for the LOOP-0013 drift null, where
+    banked heads scored through the live trunk always lost to the fresh head. The ACTIVE
+    slot is scored by the live WM ('no switch happened' is exactly what the live model
+    represents), so at K=2 the selector is a fire verifier: flip on true switches, stay
+    on false fires (the LOOP-0014 churn suppressor). Banked WMs are classifiers only —
+    restores load policy heads only."""
+    s = state
+    candidates = sorted(set(s.head_bank) | {s.head_bank_active})
+    if len(candidates) == 1:
+        return s.head_bank_active
+    obs = s.buffer.obs.reshape((-1,) + s.obs_shape)
+    actions = s.buffer.actions.reshape(-1).long()
+    rewards = s.buffer.extrinsic_rewards.reshape(-1)
+    if s.head_bank_scratch_wm is None:
+        s.head_bank_scratch_wm = copy.deepcopy(s.world_model)
+    best_slot, best_err = s.head_bank_active, None
+    with torch.no_grad():
+        for slot in candidates:
+            if slot == s.head_bank_active:
+                model = s.world_model
+            else:
+                fp = s.head_bank[slot].get("wm_full")
+                if fp is None:
+                    continue
+                s.head_bank_scratch_wm.load_state_dict(fp)
+                model = s.head_bank_scratch_wm
+            _, pred_reward = model.forward(obs, actions)
+            err = torch.mean((pred_reward - rewards) ** 2).item()
+            if best_err is None or err < best_err:
+                best_slot, best_err = slot, err
+    return best_slot
+
+
 def _head_bank_switch(state, target_slot: int) -> None:
     """Bank the active slot's heads; load the target slot's if previously banked (else the
     current heads keep running — a warm start for a never-seen slot)."""
@@ -558,6 +602,8 @@ def _head_bank_surprise_check(state, value_loss_now: float) -> None:
                       if k != s.head_bank_active and k not in s.head_bank]
             if unused:
                 target = unused[0]
+            elif s.head_bank_select == "reward_fp":
+                target = _head_bank_select_reward_fp(s)
             elif s.head_bank_select == "reward_error":
                 target = _head_bank_select_reward_error(s)
             else:  # value_error
@@ -692,9 +738,10 @@ def init_inner_training(
             raise ValueError(
                 f"head_bank_trigger must be oracle|surprise|step_surprise, got {head_bank_trigger!r}"
             )
-        if head_bank_select not in ("oracle", "other", "value_error", "reward_error"):
+        if head_bank_select not in ("oracle", "other", "value_error", "reward_error", "reward_fp"):
             raise ValueError(
-                f"head_bank_select must be oracle|other|value_error|reward_error, got {head_bank_select!r}"
+                "head_bank_select must be oracle|other|value_error|reward_error|reward_fp, "
+                f"got {head_bank_select!r}"
             )
         if head_bank_trigger == "oracle" and head_bank_select != "oracle":
             raise ValueError("the oracle trigger pairs only with oracle selection")

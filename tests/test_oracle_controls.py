@@ -387,6 +387,51 @@ def test_head_bank_content_addressing_spawns_then_selects():
         state.envs.close()
 
 
+def test_head_bank_reward_fp_scores_in_frozen_feature_space():
+    cfg = _tiny_cfg()
+    state = init_inner_training(ENV_ID, cfg, head_bank_slots=2,
+                                head_bank_trigger="surprise", head_bank_select="reward_fp")
+    try:
+        from lifelong_learning.agents.ppo.train import (
+            _head_bank_select_reward_fp,
+            _head_bank_snapshot,
+            _head_bank_load,
+        )
+        run_inner_update(state)
+        # Craft slot 1: a full-WM fingerprint whose reward head is biased far positive.
+        other = _head_bank_snapshot(state)
+        assert "wm_full" in other, "reward_fp slots must bank the full WM"
+        other["wm_full"]["reward_head.bias"] = other["wm_full"]["reward_head.bias"] + 50.0
+        state.head_bank[1] = other
+        live_wm = {k: v.clone() for k, v in state.world_model.state_dict().items()}
+        live_model = {k: v.clone() for k, v in state.model.state_dict().items()}
+
+        # Rewards near zero: the live WM (active slot) fits better -> stay.
+        state.buffer.extrinsic_rewards = torch.zeros_like(state.buffer.extrinsic_rewards)
+        assert _head_bank_select_reward_fp(state) == 0
+        # Rewards near +50: slot 1's banked fingerprint fits better -> flip.
+        state.buffer.extrinsic_rewards = torch.full_like(state.buffer.extrinsic_rewards, 50.0)
+        assert _head_bank_select_reward_fp(state) == 1
+        # Selection must never touch the live world model (scratch module only).
+        for k, v in state.world_model.state_dict().items():
+            assert torch.allclose(v, live_wm[k]), f"live WM {k} mutated by selection"
+
+        # Restoring an fp slot loads policy heads only — the live WM stays live.
+        _head_bank_load(state, other)
+        for k, v in state.world_model.state_dict().items():
+            assert torch.allclose(v, live_wm[k]), f"restore touched live WM {k}"
+        changed = any(
+            not torch.allclose(v, live_model[k])
+            for k, v in state.model.state_dict().items()
+            if k.startswith(("actor_head.", "critic_head."))
+        ) or all(
+            torch.allclose(other["policy"][k], live_model[k]) for k in other["policy"]
+        )
+        assert changed, "restore loaded neither heads nor was a no-op copy"
+    finally:
+        state.envs.close()
+
+
 def test_head_bank_step_trigger_fires_on_success_collapse():
     cfg = _tiny_cfg()
     state = init_inner_training(ENV_ID, cfg, head_bank_slots=2,

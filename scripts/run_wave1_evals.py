@@ -142,6 +142,20 @@ def build_jobs(batch: str, eval_seeds: list[int]) -> list[dict]:
                           "--head_bank_select", "other", "--head_bank_step_shadow"],
                 "num_regimes": 2,
             })
+    elif batch == "fp":
+        # LOOP-0015 (pre-reg: research-log 0013): drift-robust fingerprint selection —
+        # same trigger as the method arm; any delta is selection behavior (flip on true
+        # switches, stay on false fires).
+        model = _brain_ckpt("brain_model.pt")
+        for e in eval_seeds:
+            jobs.append({
+                "run_name": f"g3_fp_e{e}",
+                "ckpt": model,
+                "eval_seed": e,
+                "extra": ["--head_bank_slots", "2", "--head_bank_trigger", "surprise",
+                          "--head_bank_select", "reward_fp"],
+                "num_regimes": 2,
+            })
     elif batch == "ar1t15":
         # LOOP-0013 addendum (pre-reg: research-log 0011): trigger hardening — the K=2 flip
         # at the desk calibration's precision-optimal threshold.
@@ -240,7 +254,7 @@ def run_eval(job: dict, gpu: int, out_root: Path, log_dir: Path, threads: int) -
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "ar1x", "ar1t15", "stp", "stpcal"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "ar1x", "ar1t15", "stp", "stpcal", "fp"])
     p.add_argument("--eval-seeds", type=int, nargs="+", default=[1, 2, 3, 4, 5, 6, 7, 8])
     p.add_argument("--gpus", type=int, nargs="+", default=[0])
     p.add_argument("--concurrency", type=int, default=1,

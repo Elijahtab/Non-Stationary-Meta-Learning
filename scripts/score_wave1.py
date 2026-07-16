@@ -76,6 +76,13 @@ G3_SWITCHES = list(range(100000, 800000, 100000))
 G3_WINDOW_STEPS = 4 * 2048
 STP_WINDOW_STEPS = 4096                     # per-step trigger: much tighter TP window
 STP_RECALL_SWITCHES = G3_SWITCHES[1:]       # first switch structurally exempt (log 0012)
+FP_ARMS = {  # LOOP-0015 (log 0013): drift-robust fingerprint selection
+    "control": "evals/loop9_s1_model_e*",
+    "heads_swap": "evals/wave1_decomp_heads_e*",
+    "g3_ar1": "evals/g3_ar1_e*",            # blind K=2 flip, the method reference (n=16)
+    "g3_ar1re": "evals/g3_ar1re_e*",         # drift-bound fingerprint (the null being fixed)
+    "g3_fp": "evals/g3_fp_e*",
+}
 
 
 def score_arm_full(pattern: str, staging: Path) -> list[dict]:
@@ -335,9 +342,75 @@ def adjudicate_stp(a: dict[str, dict]) -> dict:
     return res
 
 
+def _fp_behavior_stats(pattern: str) -> dict:
+    """Per-fire selection behavior (log 0013): a fire inside the TP window SHOULD flip
+    (restore the other regime's slot; the first fire's spawn counts); a fire outside it
+    SHOULD stay (false-fire suppression). Reconstructed from the logged fire steps and
+    the head_bank_active trace (one entry per fire, value = active slot AFTER)."""
+    import json as _json
+
+    should_flip = did_flip = should_stay = did_stay = 0
+    for d in sorted(glob.glob(str(REPO_ROOT / pattern))):
+        js = glob.glob(str(Path(d) / "**" / "*_data.json"), recursive=True)
+        if not js:
+            continue
+        data = _json.load(open(js[0]))
+        fired = [int(step) for step, _ in data.get("brain_neuromod/head_bank_trigger_fired", [])]
+        active = {int(step): int(v) for step, v in data.get("brain_neuromod/head_bank_active", [])}
+        prev = 0
+        for f in fired:
+            after = active.get(f, prev)
+            flipped = after != prev
+            prev = after
+            in_window = any(0 <= f - sw <= G3_WINDOW_STEPS for sw in G3_SWITCHES)
+            if in_window:
+                should_flip += 1
+                did_flip += flipped
+            else:
+                should_stay += 1
+                did_stay += not flipped
+    return {
+        "flip_when_should": did_flip / max(1, should_flip),
+        "stay_when_should": did_stay / max(1, should_stay),
+        "window_fires": should_flip,
+        "off_window_fires": should_stay,
+    }
+
+
+def adjudicate_fp(a: dict[str, dict]) -> dict:
+    """LOOP-0015 gates (log 0013): P-FP1 selection behavior, P-FP2 non-inferiority."""
+    c = a["control"]["composites"]
+    heads_gain = float(np.mean(a["heads_swap"]["composites"]) - np.mean(c))
+    ar1 = welch(a["g3_ar1"]["composites"], c)
+    re_ = welch(a["g3_ar1re"]["composites"], c)
+    fp = welch(a["g3_fp"]["composites"], c)
+    trig = _g3_trigger_stats(FP_ARMS["g3_fp"])
+    beh = _fp_behavior_stats(FP_ARMS["g3_fp"])
+    p_fp1 = beh["flip_when_should"] >= 0.75 and beh["stay_when_should"] >= 0.75
+    p_fp2 = fp["delta"] >= ar1["delta"] - 0.02
+    dividend = fp["delta"] >= ar1["delta"] + 0.02
+    res = {"heads_gain_ref": heads_gain, "ar1_ref": ar1, "ar1re_ref": re_, "fp": fp,
+           "trigger": trig, "behavior": beh,
+           "P_FP1": {"pass": bool(p_fp1)}, "P_FP2": {"pass": bool(p_fp2)},
+           "suppression_dividend": bool(dividend)}
+    print(f"\noracle heads slice = {heads_gain:+.4f} | ar1 flip {ar1['delta']:+.4f} | "
+          f"drift-bound fp {re_['delta']:+.4f}")
+    print(f"g3_fp (n={a['g3_fp']['n']}): gain {fp['delta']:+.4f} (p={fp['p']:.3g}) "
+          f"= {fp['delta'] / heads_gain:+.1%} of slice")
+    print(f"trigger: precision {trig['precision']:.2f} recall {trig['recall']:.2f} "
+          f"fires/run {trig['fires_per_run']:.1f}")
+    print(f"behavior: flip-when-should {beh['flip_when_should']:.2f} "
+          f"({beh['window_fires']} window fires), stay-when-should {beh['stay_when_should']:.2f} "
+          f"({beh['off_window_fires']} off-window fires)")
+    print(f"P-FP1 (flip>=0.75 AND stay>=0.75): {'PASS' if p_fp1 else 'FAIL'}")
+    print(f"P-FP2 (gain >= ar1 - 0.02 = {ar1['delta'] - 0.02:+.4f}): {'PASS' if p_fp2 else 'FAIL'}")
+    print(f"secondary — suppression dividend (gain >= ar1 + 0.02): {'YES' if dividend else 'no'}")
+    return res
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "t15", "stp"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "t15", "stp", "fp"])
     p.add_argument("--h2", type=float, default=None, help="K=2 headroom H from the ladder (k3 only)")
     p.add_argument("--json-out", default="evals/wave1_scores.json")
     args = p.parse_args(argv)
@@ -363,6 +436,9 @@ def main(argv: list[str] | None = None) -> int:
     elif args.batch == "stp":
         arms = summarize(STP_ARMS)
         res = adjudicate_stp(arms)
+    elif args.batch == "fp":
+        arms = summarize(FP_ARMS)
+        res = adjudicate_fp(arms)
     else:
         if args.h2 is None:
             p.error("k3 needs --h2 (the ladder's H)")

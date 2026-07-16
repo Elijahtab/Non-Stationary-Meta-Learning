@@ -381,10 +381,11 @@ def main():
                         "change-point detector (A-R1), or the per-step reward-violation "
                         "streak detector (LOOP-0014 — attacks the lag wall).")
     p.add_argument("--head_bank_select", type=str, default="oracle",
-                   choices=["oracle", "other", "value_error", "reward_error"],
+                   choices=["oracle", "other", "value_error", "reward_error", "reward_fp"],
                    help="Head-bank slot selection: ground-truth regime id, K=2 flip, "
-                        "banked-critic value error, or banked-WM-reward-head error "
-                        "(the regime fingerprint; note 0013 / log 0010).")
+                        "banked-critic value error, banked-reward-head error (drift-bound, "
+                        "note 0013), or the drift-robust full-WM fingerprint "
+                        "(LOOP-0015 / log 0013).")
     p.add_argument("--head_bank_surprise_threshold", type=float, default=1.0,
                    help="Surprise-trigger threshold (calibrated 1.0: precision .84 recall .85 "
                         "on archived control traces; scripts/calibrate_surprise_trigger.py).")
