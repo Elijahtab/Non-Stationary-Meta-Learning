@@ -46,3 +46,4 @@ Rough division of labor:
 - [0011 — Wave-0 desk probes: screening power (H4 dies), dead-dim noise (B1 premise real), the 0.95 facet](./0011-wave0-desk-probes.md)
 - [0012 — The ceiling decomposed: ~90% of the zero-forgetting headroom lives in the policy heads; MoWM rung null](./0012-ceiling-decomposition.md)
 - [0013 — Learned WHEN works (54% of the slice, no oracle), learned WHICH fails via value fit — the selection frontier](./0013-learned-trigger-selection-gap.md)
+- [0015 — New-instrument port: dynamics-differing regime pairs — candidate generation, master-level decision PROPOSED](./0015-instrument-port-dynamics-regimes.md)
