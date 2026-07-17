@@ -90,7 +90,8 @@ flat log_std, not from inspecting gradients directly.
   behind the Wave-1 gate).
 - **Paper (note 0008):** add IQM + stratified CI to C1/C5 methods; add the hit95 exploratory
   facet to C1 results + limitations.
-- **Wave 0 remaining:** W0c (encoder-dormancy probe build — C4's blind spot) and W0e
+- **Wave 0 remaining:** ~~W0c~~ (**DONE 2026-07-17, LOOP-0016 / [note 0014](./0014-encoder-dormancy-probe.md):
+  C4 scope-corrected — conv1 dormancy accumulates 0.13→0.48 while heads fall**) and W0e
   (`eval_brain.py` mechanism-flag plumbing — unlocks Wave-1 free home ladders, G-DECOMP first).
 
 ## Links

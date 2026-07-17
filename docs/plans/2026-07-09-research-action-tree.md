@@ -29,6 +29,11 @@ through `_snapshot_learner`/`_restore_learner` + `init_inner_training` + `eval_b
 end-to-end (banked at first switch, restored on revisits, flags in eval config.txt) — **the
 G-DECOMP ladder is now launch-ready as free home evals.** Remaining before Wave 1: W0c
 (encoder-dormancy probe build) — and a human go for the ladder itself (never-idle pause).
+**W0c DONE 2026-07-17** (LOOP-0016, $0, 8/8, pre-reg log 0014): **P-W0c1 FAILED — first-conv-layer
+encoder dormancy accumulates (0.13→0.48 median, τ-robust) while conv2/3 and heads fall** →
+paper C4 scope-corrected ([note 0014](../research-notes/0014-encoder-dormancy-probe.md));
+**branch F's activation condition is now met** (rising dormancy observed, layer-local, at 8×8)
+— any F intervention run remains a NEW registration + human call.
 
 **WAVE 1 RESOLVED 2026-07-14 same-day** ([LOOP-0011](../autoresearch-loops/LOOP-0011-wave1-oracle-rungs.md),
 [note 0012](../research-notes/0012-ceiling-decomposition.md), pre-reg [log 0008](../research-log/0008-2026-07-14-wave1-oracle-rungs-preregistration.md)):

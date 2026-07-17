@@ -53,8 +53,8 @@ individually positive), an estimate that \emph{converges} rather than decays as
 evaluation samples grow. \textbf{(2)~The modulation pathway is inert and the
 targeted pathology is absent:} feeding ground-truth regime identity through the
 learned gating channel does nothing; perfectly timed critic damping
-\emph{hurts}; and the dormant-unit fraction falls rather than accumulates over
-the run. \textbf{(3)~The bottleneck is knowledge restoration, not learning
+\emph{hurts}; and the dormant-unit fraction of the learner's heads falls
+rather than accumulates over the run. \textbf{(3)~The bottleneck is knowledge restoration, not learning
 dynamics:} a zero-forgetting oracle that restores the learner's stored state at
 each regime switch gains $+0.249$ composite on the same instrument---roughly
 $5\times$ the trained-controller effect. \textbf{(4)~The ceiling decomposes,
@@ -132,10 +132,12 @@ own stored state at each switch.
   \item \textbf{Mechanism results} (\S\ref{sec:ladder}): the learned
   gating pathway is inert even when driven by ground-truth regime identity;
   perfectly timed critic damping hurts (post-switch critic ``whiplash'' is
-  functional re-fitting, not a pathology); and dormant-unit fraction
-  \emph{falls} from 0.9 to 0.35 over the run, so plasticity
-  loss~\citep{dohare2024plasticity,sokar2023dormant} is not the operative
-  failure mode at this horizon.
+  functional re-fitting, not a pathology); and the \emph{head} dormant-unit
+  fraction \emph{falls} from 0.9 to 0.35 over the run, so plasticity
+  loss~\citep{dohare2024plasticity,sokar2023dormant} in the policy/value
+  heads is not the operative failure mode at this horizon (a follow-up probe
+  finds first-layer \emph{encoder} dormancy does accumulate ---
+  \S\ref{sec:ladder}, plasticity probe).
   \item \textbf{A reliability methodology} (\S\ref{sec:mirages}): three
   effects that passed small-sample screens died under replication; the one
   real effect survived a convergence-vs-decay criterion and strict protocol
@@ -226,10 +228,12 @@ line shows deep learners lose plasticity under prolonged
 non-stationarity~\citep{dohare2024plasticity,abbas2023plasticity,lyle2022capacity,lyle2023plasticity,kumar2021implicit},
 with dormant neurons as a diagnostic~\citep{sokar2023dormant} and resets as a
 remedy~\citep{nikishin2022primacy,nikishin2023injection}. We measure the
-dormant-fraction diagnostic directly and find it \emph{falling} at our
-horizon --- consistent with the literature's own scale observations (plasticity
-loss emerges over thousands of tasks or billions of
-frames~\citep{abbas2023plasticity,nikishin2023injection}) --- and note the
+dormant-fraction diagnostic directly and find it \emph{falling} in the
+actor/critic heads at our horizon --- consistent with the literature's own
+scale observations (plasticity loss emerges over thousands of tasks or
+billions of frames~\citep{abbas2023plasticity,nikishin2023injection}) ---
+though it does accumulate in the first encoder layer, layer-locally and
+much earlier than that literature would predict --- and note the
 survey observation that hard resets work \emph{because the replay buffer
 restores the discarded knowledge}~\citep{klein2024plasticitysurvey}: memory
 sets the restoration ceiling even inside the plasticity literature.
@@ -445,11 +449,21 @@ $+0.249$ is the first experiment of the follow-up program.
 \textbf{Plasticity probe.} Alongside the ladder we measured the dormant-unit
 fraction~\citep{sokar2023dormant} of the inner learner's actor/critic heads
 over the run. It \emph{falls} from $0.9$ (fresh initialization) to $0.35$ and
-never re-accumulates across switches. Plasticity loss --- the failure mode
-targeted by reset-style
-interventions~\citep{dohare2024plasticity,nikishin2022primacy} --- is absent
-at this horizon and scope, consistent with that literature's own observation
-that the effect needs much longer non-stationary exposure~\citep{abbas2023plasticity,nikishin2023injection}.
+never re-accumulates across switches (replicated at the evaluation protocol:
+$0.79 \to 0.52$ actor, $0.79 \to 0.61$ critic, median over 8 seeds). A
+follow-up pre-registered probe extended the measurement to the encoder and
+\emph{corrects the scope} of this claim: dormancy in the \emph{first} conv
+layer accumulates monotonically ($0.13 \to 0.48$ at the same threshold,
+robust at $\tau{=}0.1$) while the two deeper conv layers stay flat or fall.
+Plasticity loss --- the failure mode targeted by reset-style
+interventions~\citep{dohare2024plasticity,nikishin2022primacy} --- is
+therefore absent in the heads at this horizon, consistent with that
+literature's own observation that the effect needs much longer
+non-stationary exposure~\citep{abbas2023plasticity,nikishin2023injection},
+but present layer-locally at the input layer. Whether the first-layer
+accumulation carries any composite cost is untested (no intervention has
+been run against it); every arm reported here, including the oracle
+ceiling, trained under it.
 
 \section{Does Training the Controller Help?}
 \label{sec:replication}
@@ -830,8 +844,10 @@ tested claim.
 \textbf{Statistical scope.} Four training seeds bound what we can say about
 the training-draw distribution (one of four was negative); the pooled claim
 is about evaluation-seed uncertainty given these Brains, plus directionality.
-The dormant-fraction probe covers the actor/critic heads at this horizon;
-encoder-side dormancy was not separately measured. \composite{} is one facet
+The dormant-fraction probe originally covered the actor/critic heads; the
+follow-up encoder probe (8 seeds, pre-registered) found first-conv-layer
+accumulation ($0.13 \to 0.48$) whose behavioral cost, if any, is unmeasured
+--- no intervention has been run against it. \composite{} is one facet
 of recovery; we report \hit80{} alongside but make no reliability claims.
 
 \section*{Reproducibility statement}
