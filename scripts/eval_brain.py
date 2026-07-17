@@ -194,6 +194,7 @@ def eval_brain(args):
         head_bank_surprise_threshold=getattr(args, "head_bank_surprise_threshold", 1.0),
         head_bank_step_threshold=getattr(args, "head_bank_step_threshold", 0.25),
         head_bank_step_shadow=getattr(args, "head_bank_step_shadow", False),
+        dormancy_probe_interval=getattr(args, "dormancy_probe_interval", 0),
     )
 
     sig = SignalExtractor(
@@ -395,6 +396,10 @@ def main():
                         "terminations (model-free; LOOP-0014).")
     p.add_argument("--head_bank_step_shadow", action="store_true",
                    help="step_surprise calibration mode: log would-be fires, never switch.")
+    p.add_argument("--dormancy_probe_interval", type=int, default=0,
+                   help="W0c probe (LOOP-0016 / research-log 0014): every N updates, log "
+                        "dormant fractions for the encoder convs + heads (probe-only, no "
+                        "resets). 0 = off.")
 
     args = p.parse_args()
     eval_brain(args)

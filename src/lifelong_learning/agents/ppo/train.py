@@ -197,6 +197,11 @@ class InnerTrainState:
     # restore plasticity; the dormant-fraction probe is logged. 0 == off.
     redo_interval: int = 0
 
+    # --- LOOP-0016 / W0c: probe-only dormancy trajectory (research-log 0014) ---
+    # Every dormancy_probe_interval updates, log dormant fractions for the encoder convs
+    # + actor/critic heads. Measurement only — no resets, no optimizer writes. 0 == off.
+    dormancy_probe_interval: int = 0
+
     # --- O2 oracle rung (research note 0005): policy-swap headroom topline ---
     # DIAGNOSTIC ceiling, never a method: bank the full learner (model, world model,
     # optimizer states) per regime at switch-away and restore it on regime revisit —
@@ -346,6 +351,52 @@ def redo_reset_heads(model, optimizer, obs, tau: float = REDO_TAU) -> dict:
             if in_layer.bias is not None:
                 _reset_adam_state(optimizer, in_layer.bias, rows=dormant)
             _reset_adam_state(optimizer, out_layer.weight, cols=dormant)
+    return fractions
+
+
+# LOOP-0016 / W0c (research-log 0014): the C4 dormancy statistic extended to the encoder,
+# probe-only. Primary tau is REDO_TAU (comparability with the recovered C4 heads
+# trajectory); 0.1 is logged as a descriptive-only secondary (`dormancy10_*`).
+DORMANCY_TAU_SECONDARY = 0.1
+
+
+def dormancy_probe(model, obs, tau: float = REDO_TAU,
+                   tau_secondary: float = DORMANCY_TAU_SECONDARY) -> dict:
+    """Measure dormant fractions at the three encoder convs (per-channel: mean |post-ReLU|
+    over batch x spatial — the Sokar 2023 conv convention) and the actor/critic head hidden
+    layers (per-unit, identical to redo_reset_heads). Score = mean_abs / (layer mean + 1e-9);
+    dormant iff score <= tau. Pure measurement: no resets, no optimizer writes, no RNG
+    consumption. Returns {"dormancy_<site>": frac, "dormancy10_<site>": frac}."""
+    activations: dict = {}
+
+    def _hook(name):
+        def _capture(module, inp, out):
+            activations[name] = out.detach()
+        return _capture
+
+    sites = {
+        "conv1": model.encoder[1],
+        "conv2": model.encoder[3],
+        "conv3": model.encoder[5],
+        "actor": model.actor_head[1],
+        "critic": model.critic_head[1],
+    }
+    handles = [module.register_forward_hook(_hook(name)) for name, module in sites.items()]
+    try:
+        with torch.no_grad():
+            model(obs)
+    finally:
+        for h in handles:
+            h.remove()
+
+    fractions: dict = {}
+    for name, act in activations.items():
+        # conv sites: (B, C, H, W) -> per-channel; head sites: (B, units) -> per-unit
+        mean_abs = act.abs().mean(dim=(0, 2, 3)) if act.dim() == 4 else act.abs().mean(dim=0)
+        score = mean_abs / (mean_abs.mean() + 1e-9)
+        n = float(mean_abs.numel())
+        fractions[f"dormancy_{name}"] = float((score <= tau).sum()) / n
+        fractions[f"dormancy10_{name}"] = float((score <= tau_secondary).sum()) / n
     return fractions
 
 
@@ -692,6 +743,7 @@ def init_inner_training(
     plasticity_norm: bool = False,
     surprise_spike_threshold: float = 0.0,
     redo_interval: int = 0,
+    dormancy_probe_interval: int = 0,
     critic_lr_oracle_scale: float = 0.0,
     policy_swap_topline: bool = False,
     policy_swap_scope: str = "full",
@@ -957,6 +1009,7 @@ def init_inner_training(
         current_mode_regime=start_regime,
         surprise_spike_threshold=surprise_spike_threshold,
         redo_interval=redo_interval,
+        dormancy_probe_interval=dormancy_probe_interval,
         policy_swap_topline=policy_swap_topline,
         policy_swap_scope=policy_swap_scope,
         head_bank_slots=head_bank_slots,
@@ -1393,6 +1446,11 @@ def run_inner_update(state: InnerTrainState) -> dict:
         redo_fractions = redo_reset_heads(s.model, s.optimizer, s.obs_t)
         for head, frac in redo_fractions.items():
             s.logger.scalar(f"brain_neuromod/redo_dormant_fraction_{head}", frac, s.global_step)
+
+    # LOOP-0016 / W0c: probe-only dormancy trajectory (encoder + heads); pre-reg log 0014.
+    if s.dormancy_probe_interval > 0 and update % s.dormancy_probe_interval == 0:
+        for name, frac in dormancy_probe(s.model, s.obs_t).items():
+            s.logger.scalar(f"brain_neuromod/{name}", frac, s.global_step)
 
     for k, v in avg_stats.items():
         s.logger.scalar(k, v, s.global_step)

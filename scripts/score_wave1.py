@@ -83,6 +83,11 @@ FP_ARMS = {  # LOOP-0015 (log 0013): drift-robust fingerprint selection
     "g3_ar1re": "evals/g3_ar1re_e*",         # drift-bound fingerprint (the null being fixed)
     "g3_fp": "evals/g3_fp_e*",
 }
+DORM_ARMS = {  # LOOP-0016 / W0c (log 0014): encoder-dormancy probe
+    "control": "evals/loop9_s1_model_e*",    # archived, same Brain/protocol/seeds
+    "dorm": "evals/dorm_e*",
+}
+DORM_SITES = ("conv1", "conv2", "conv3", "actor", "critic")
 
 
 def score_arm_full(pattern: str, staging: Path) -> list[dict]:
@@ -408,9 +413,86 @@ def adjudicate_fp(a: dict[str, dict]) -> dict:
     return res
 
 
+def _dorm_window_stats(pattern: str, prefix: str = "dormancy") -> dict:
+    """LOOP-0016 (log 0014): per-run windowed trajectory stats for each probe site. The
+    per-update dormant-fraction series splits into 8 equal windows; rise = f8 - min(f1..f4)
+    (accumulation vs the early-training trough), fall = f8 - f1 (the C4 shape). Returns
+    per-site medians over runs."""
+    import json as _json
+
+    per_site: dict[str, dict[str, list[float]]] = {
+        s: {"f1": [], "f8": [], "rise": [], "fall": []} for s in DORM_SITES}
+    runs = 0
+    for d in sorted(glob.glob(str(REPO_ROOT / pattern))):
+        js = glob.glob(str(Path(d) / "**" / "*_data.json"), recursive=True)
+        if not js:
+            continue
+        data = _json.load(open(js[0]))
+        got_any = False
+        for site in DORM_SITES:
+            series = data.get(f"brain_neuromod/{prefix}_{site}", [])
+            if len(series) < 16:
+                continue
+            got_any = True
+            vals = np.array([v for _, v in sorted(series, key=lambda pt: pt[0])], dtype=float)
+            f = [float(w.mean()) for w in np.array_split(vals, 8)]
+            per_site[site]["f1"].append(f[0])
+            per_site[site]["f8"].append(f[-1])
+            per_site[site]["rise"].append(f[-1] - min(f[:4]))
+            per_site[site]["fall"].append(f[-1] - f[0])
+        runs += int(got_any)
+    return {"runs": runs, "sites": {
+        s: {k: (float(np.median(v)) if v else None) for k, v in d.items()}
+        for s, d in per_site.items()}}
+
+
+def adjudicate_dorm(a: dict[str, dict]) -> dict:
+    """LOOP-0016 gates (log 0014): P-W0c2 (instrument integrity) read FIRST; only if it
+    passes is P-W0c1 (encoder no-accumulation) read."""
+    stats = _dorm_window_stats(DORM_ARMS["dorm"])
+    stats10 = _dorm_window_stats(DORM_ARMS["dorm"], prefix="dormancy10")
+    w = welch(a["dorm"]["composites"], a["control"]["composites"])
+
+    heads_fall_ok = all(
+        stats["sites"][s]["fall"] is not None and stats["sites"][s]["fall"] < 0
+        for s in ("actor", "critic"))
+    inert_ok = (w["p"] > 0.05) and (abs(w["delta"]) < 0.02)
+    p_w0c2 = heads_fall_ok and inert_ok
+
+    conv_rises = {s: stats["sites"][s]["rise"] for s in ("conv1", "conv2", "conv3")}
+    p_w0c1 = all(r is not None and r <= 0.05 for r in conv_rises.values())
+    near = [s for s, r in conv_rises.items() if r is not None and abs(r - 0.05) <= 0.02]
+
+    res = {"probe_runs": stats["runs"], "tau025": stats["sites"], "tau10": stats10["sites"],
+           "composite_vs_control": w,
+           "P_W0c2": {"pass": bool(p_w0c2), "heads_fall_ok": bool(heads_fall_ok),
+                      "composite_inert_ok": bool(inert_ok)},
+           "P_W0c1": {"pass": (bool(p_w0c1) if p_w0c2 else None), "conv_rises": conv_rises},
+           "extend_to_16": near}
+    print(f"\ncomposite: dorm vs control delta {w['delta']:+.4f} (p={w['p']:.3g})   "
+          f"probe runs with trajectories: {stats['runs']}")
+    for s in DORM_SITES:
+        d = stats["sites"][s]
+        if d["f1"] is None:
+            print(f"  {s:<6} NO TRAJECTORY DATA")
+            continue
+        print(f"  {s:<6} f1 {d['f1']:.3f} -> f8 {d['f8']:.3f}   "
+              f"rise(vs early trough) {d['rise']:+.3f}   fall {d['fall']:+.3f}")
+    print(f"P-W0c2 (heads fall < 0 AND composite inert |d|<0.02, p>0.05): "
+          f"{'PASS' if p_w0c2 else 'FAIL'}  "
+          f"[heads_fall {'ok' if heads_fall_ok else 'FAIL'}, inert {'ok' if inert_ok else 'FAIL'}]")
+    if p_w0c2:
+        print(f"P-W0c1 (median rise <= +0.05 for every conv): {'PASS' if p_w0c1 else 'FAIL'}")
+    else:
+        print("P-W0c1: NOT READ (P-W0c2 failed -- instrument invalid per log 0014)")
+    if near:
+        print(f"Extension rule (within +/-0.02 of the +0.05 bar): extend {', '.join(near)} to n=16")
+    return res
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "t15", "stp", "fp"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "t15", "stp", "fp", "dorm"])
     p.add_argument("--h2", type=float, default=None, help="K=2 headroom H from the ladder (k3 only)")
     p.add_argument("--json-out", default="evals/wave1_scores.json")
     args = p.parse_args(argv)
@@ -439,6 +521,9 @@ def main(argv: list[str] | None = None) -> int:
     elif args.batch == "fp":
         arms = summarize(FP_ARMS)
         res = adjudicate_fp(arms)
+    elif args.batch == "dorm":
+        arms = summarize(DORM_ARMS)
+        res = adjudicate_dorm(arms)
     else:
         if args.h2 is None:
             p.error("k3 needs --h2 (the ladder's H)")
