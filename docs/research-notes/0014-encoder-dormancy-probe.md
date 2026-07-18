@@ -62,3 +62,27 @@ eval's `*_data.json`, adjudicated numbers in `evals/wave1_scores.json` (local).
 
 (τ=0.1: conv1 0.219→0.516; conv2/3 and heads fall — same picture. f1 is the first-eighth
 mean, so it already sits below the fresh-init values the LOOP-0007 scout probe reported.)
+
+## Addendum 2026-07-17 — the intervention rung: resets don't stick (LOOP-0017)
+
+**P-F1a FAIL** ([log 0015](../research-log/0015-2026-07-17-conv1-redo-preregistration.md),
+`redoc1_e1..8`): conv1-targeted ReDo every 10 updates could not hold dormancy down — the
+probe trajectory ends **higher** than untreated (f8 **0.550** with resets vs 0.479 without;
+rise +0.442 vs +0.318). Re-initialised channels re-die within the reset cadence. Composite
+unmoved (−0.0127 vs control, p=0.581; above the −0.02 harm bar). P-F1b not read per the
+gate order.
+
+**Reading — the accumulation is an attractor, not damage.** A reset-repairable pathology
+would stay down between resets; instead the training signal actively drives first-layer
+channels back to dormancy. The natural mechanism: the 21-channel one-hot MiniGrid input is
+mostly constant planes at 8×8 (fixed walls, few object types), so filters reading
+uninformative planes have nothing to learn — conv1 "dormancy" reads as **converged
+input-layer sparsity**, which is why it accumulates early (LOOP-0016) yet the system still
+reaches the +0.25 restoration ceiling above it. This *strengthens* the C4 story rather than
+weakening it: reset-style interventions are doubly inert here — the heads never need them
+(LOOP-0007) and the input layer won't hold them (this rung).
+
+**Branch F closes again**, now with both of its edges measured. A cadence-1 variant is the
+one re-registration the pre-reg's risk clause contemplated; the attractor reading argues it
+would maximize churn for the same re-death, so it is NOT launched — user's call if wanted.
+Adjudicated numbers: `evals/wave1_scores.json` (`redoc1`).

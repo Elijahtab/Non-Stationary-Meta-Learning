@@ -460,10 +460,15 @@ interventions~\citep{dohare2024plasticity,nikishin2022primacy} --- is
 therefore absent in the heads at this horizon, consistent with that
 literature's own observation that the effect needs much longer
 non-stationary exposure~\citep{abbas2023plasticity,nikishin2023injection},
-but present layer-locally at the input layer. Whether the first-layer
-accumulation carries any composite cost is untested (no intervention has
-been run against it); every arm reported here, including the oracle
-ceiling, trained under it.
+but present layer-locally at the input layer. A pre-registered
+ReDo-style intervention against it failed at the mechanism level:
+resetting dormant first-layer channels every 10 updates left end-of-run
+dormancy \emph{higher} than untreated ($0.55$ vs $0.48$; re-initialised
+channels re-die within the cadence) and moved \composite{} by nothing
+($-0.013$, $p{=}0.58$). We therefore read the first-layer accumulation as
+converged input-layer sparsity --- one-hot grid observations contain mostly
+constant planes --- rather than progressive damage; every arm reported
+here, including the oracle ceiling, trained under it.
 
 \section{Does Training the Controller Help?}
 \label{sec:replication}
@@ -846,9 +851,11 @@ the training-draw distribution (one of four was negative); the pooled claim
 is about evaluation-seed uncertainty given these Brains, plus directionality.
 The dormant-fraction probe originally covered the actor/critic heads; the
 follow-up encoder probe (8 seeds, pre-registered) found first-conv-layer
-accumulation ($0.13 \to 0.48$) whose behavioral cost, if any, is unmeasured
---- no intervention has been run against it. \composite{} is one facet
-of recovery; we report \hit80{} alongside but make no reliability claims.
+accumulation ($0.13 \to 0.48$), and the follow-up reset intervention could
+neither hold it down nor move \composite{} --- consistent with converged
+input sparsity, though a causal cost bound remains open. \composite{} is
+one facet of recovery; we report \hit80{} alongside but make no
+reliability claims.
 
 \section*{Reproducibility statement}
 The benchmark, scorer, and evaluation adapters were frozen before the

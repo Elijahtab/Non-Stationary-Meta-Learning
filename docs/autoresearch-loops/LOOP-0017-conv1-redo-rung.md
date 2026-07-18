@@ -1,11 +1,20 @@
-# LOOP-0017 — conv1-targeted ReDo rung / branch F (2026-07-17, open)
+# LOOP-0017 — conv1-targeted ReDo rung / branch F (2026-07-17, closed same-day)
 
 **Goal:** Branch F's first live-targeted intervention: LOOP-0016 found first-conv-layer
 dormancy accumulating (0.125→0.479) while everything downstream falls — does eliminating it
 move the composite? User green-light 2026-07-17 ($0/home). Registered expectation: a null is
 likely (the oracle encoder slice bounds the prize at ~+0.016, below the +0.05 MDE) and
 informative — it becomes the "behaviorally cheap" bound in the paper's C4 paragraph.
-**Verdict:** OPEN — launch pending (tests green, pre-reg committed).
+**Verdict:** CLOSED 2026-07-17 (8/8 clean, ~61 min GPU) — **P-F1a FAIL at the mechanism
+level: resets don't stick.** conv1 dormancy ends HIGHER with resets than without (f8 0.550
+vs 0.479 untreated; rise +0.442) — re-initialised channels re-die within the 10-update
+cadence. Composite unmoved (−0.0127, p=0.581; no harm flag). P-F1b not read per gate order.
+**Reading: the accumulation is a converged input-sparsity attractor, not reset-repairable
+damage — branch F closes with both edges measured** (heads never needed resets, LOOP-0007;
+the input layer won't hold them, this rung). Paper plasticity-probe paragraph + limitations
+updated. The cadence-1 re-registration contemplated by the pre-reg's risk clause is NOT
+launched (attractor reading argues it buys churn, not retention) — user's call. Anatomy:
+[note 0014 §Addendum](../research-notes/0014-encoder-dormancy-probe.md).
 
 ## Hardware
 
@@ -45,9 +54,8 @@ $0; ~1.1 h GPU wall-clock.
 
 ## Pickup state
 
-Batch launches after the LOOP-0018 pre-launch commit (both mechanisms committed together;
-redoc1 runs first, ipcal after it completes). On completion: `score_wave1.py redoc1` →
-P-F1a then P-F1b → outcome into note 0014 (addendum) + paper plasticity-probe paragraph
-(the bound either way) → close this note + register row. If P-F1b PASSES (≥ +0.05):
-surprising and important — encoder plasticity was load-bearing; the follow-on (new
-registration, human call) is a redoc1 + head-bank composition arm.
+Loop CLOSED; records updated in the close-out commit (note 0014 addendum, paper ×2 sites,
+register + indexes). Nothing launches from here without a user call: the only recorded
+follow-on is the cadence-1 re-registration (one re-run allowed by log 0015's risk clause;
+recommendation AGAINST — the attractor reading says re-death, not slow cadence, is the
+mechanism). LOOP-0018 (ipcal batch) was in flight on the same GPU at close-out.
