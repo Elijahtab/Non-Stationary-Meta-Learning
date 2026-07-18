@@ -1,10 +1,12 @@
 # 0015 — New-instrument port: dynamics-differing regime pairs (candidate generation)
 
-**Status:** ✅ APPROVED 2026-07-17 (user: all three decision points — env edit, IP-1,
-calibration). The `regime_effect="action_flip"` mode is built (register row updated same
-commit; default byte-identical, regression-tested); the calibration rung is pre-registered
-as [log 0016](../research-log/0016-2026-07-17-action-flip-calibration-preregistration.md)
-and runs as [LOOP-0018](../autoresearch-loops/LOOP-0018-action-flip-calibration.md).
+**Status:** ❌ IP-1 RESOLVED DEAD 2026-07-17 same-day (LOOP-0018 calibration, $0): **C-IP-a
+FAIL + C-IP-b FAIL** — see §Calibration outcome below. The `regime_effect="action_flip"`
+mode stays in the tree (built, tested, default-off) but earns no ladder. IP-2 remains the
+recorded fallback, requiring a fresh user call. Approval trail: user approved all three
+decision points (env edit, IP-1, calibration) 2026-07-17; pre-reg
+[log 0016](../research-log/0016-2026-07-17-action-flip-calibration-preregistration.md);
+runs [LOOP-0018](../autoresearch-loops/LOOP-0018-action-flip-calibration.md).
 Originally proposed as candidate generation only:
 **Hypothesis (one sentence):** on an instrument whose regimes differ in *transition dynamics*
 rather than reward alone, the regime signal outlives the learner's within-lag adaptation, so
@@ -97,8 +99,39 @@ approved; the numbers above are design targets, not registered thresholds yet.
 2. Which candidate first — recommendation: **IP-1**, with IP-2 as the tunable backup?
 3. Green-light the calibration rung (~1 home-eval afternoon, $0) once (1) lands?
 
+## Calibration outcome (2026-07-17, LOOP-0018 — both gates FAIL, IP-1 dead)
+
+- **C-IP-a FAIL — no headroom.** Flip-control composite **0.9532** (hit80 1.000): the
+  instrument is nearly saturated. The registered risk ("the flip may be too easy") was the
+  outcome, and for a structural reason the draft under-weighted: swapping left↔right maps
+  every policy to its mirror, and the mirror is *equally competent* — PPO re-reaches it in
+  a handful of episodes, so there is nothing to forget. Worse, the O2-analog restore
+  **hurts** (−0.0373, p=0.034): restoring a stale snapshot when adaptation is nearly free
+  is counterproductive — a clean new instance of the O1 "well-timed interventions can
+  hurt" family.
+- **C-IP-b FAIL — no persistent signal.** Median WM next-state-error persistence at true
+  switches: **0 updates** (56 switches). Turn transitions move one direction feature in a
+  21×H×W prediction, so the flip's error contribution dilutes into the mean; the dense
+  "next-state head carries the WHICH" bet fails at least in mean-error form here.
+  **Scope note (honest):** this reading is confounded by C-IP-a — with adaptation this
+  fast, live-side adaptation erases the signal in policy space too. The claim that
+  transfers: on every instrument *tested so far*, the regime signal dies inside the
+  learner's adaptation lag. "Instrument-general" remains unproven, not proven.
+- **What the $0 bought:** the port died at the calibration rung, before any ladder spend —
+  the gates did their job. The mode stays in the codebase (default-off, regression-tested)
+  as infrastructure for any future variant.
+- **Open decision (user's, not pre-approved):** IP-2 (slippery-floor, difficulty tunable
+  via slip probability p — a knob IP-1 lacked) is the recorded fallback. Its case improved
+  in one way (stochastic dynamics can't be mirrored away — asymmetric competence between
+  regimes) and worsened in another (C-IP-b suggests mean WM error is a weak readout; an
+  IP-2 registration should gate on a *turn-transition-conditioned* or per-feature error
+  instead). Recommendation: only worth it if the learned-WHICH matters to the paper's
+  story; the method result (+0.1188 blind flip) stands without it.
+
 ## Links
 
 Selection-family anatomy: [note 0013](./0013-learned-trigger-selection-gap.md) · fork:
 [2026-07-16 hand-off](../hand-offs/2026-07-16-memory-campaign-complete.md) §Next steps ·
 manifest (immutable surfaces): [config/research_manifest.toml](../../config/research_manifest.toml)
+· calibration numbers: `evals/wave1_scores.json` (`ipcal`) · loop:
+[LOOP-0018](../autoresearch-loops/LOOP-0018-action-flip-calibration.md)

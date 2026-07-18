@@ -1,10 +1,18 @@
-# LOOP-0018 — IP-1 action-flip instrument calibration (2026-07-17, open)
+# LOOP-0018 — IP-1 action-flip instrument calibration (2026-07-17, closed same-day)
 
 **Goal:** Decide, for ~2 GPU-hours, whether the IP-1 port (regimes differ in *dynamics* —
 odd regimes mirror left/right — with reward fixed) buys the program a live learned-WHICH:
 the recorded escape hatch from the selection family's three deaths (note 0013). User
 approval 2026-07-17 of note 0015's three decision points (master env edit, IP-1, calibration).
-**Verdict:** OPEN — launch queued behind LOOP-0017's batch (same GPU).
+**Verdict:** CLOSED 2026-07-17 (16/16 clean, ~2 h GPU) — **C-IP-a FAIL + C-IP-b FAIL: IP-1
+is a dead instrument.** Flip-control composite 0.9532 (hit80 1.000) — a mirrored policy is
+equally competent, so the flip has ~no forgetting cost; the O2-analog restore HURTS
+(−0.0373, p=0.034 — new member of the O1 "oracle interventions can hurt" family); WM
+next-state-error persistence at true switches: median 0 updates (56 switches; the flip's
+error dilutes into the full-grid mean). The port dies at the calibration rung, before any
+ladder spend — the gates did their job. IP-2 (slippery-floor) remains the recorded
+fallback, fresh user call required. Anatomy + honest scope notes:
+[note 0015 §Calibration outcome](../research-notes/0015-instrument-port-dynamics-regimes.md).
 
 ## Hardware
 
@@ -42,9 +50,11 @@ routes around) · [LOOP-0013](./LOOP-0013-selection-rung.md) (the selection fron
 
 ## Pickup state
 
-Launch `run_wave1_evals.py ipcal` once the redoc1 batch releases the GPU. On completion:
-`score_wave1.py ipcal` → C-IP-a and C-IP-b → note 0015 gains a §Calibration outcome →
-close this note + register row → report. Both gates pass → next rungs (EACH a new
-registration + user go): flip-instrument decomposition ladder, then the fingerprint
-selector re-run scored by next-state error. C-IP-a fail → IP-2 is the fallback, user call.
-C-IP-b fail → the WHICH frontier closes instrument-generally at this scale; paper sentence.
+Loop CLOSED; records updated in the close-out commit (note 0015 §Calibration outcome,
+register + indexes). The `action_flip` mode stays in the tree as default-off
+infrastructure. Nothing launches from here without a user call. Open decisions on the
+user's desk after this loop: (1) IP-2 slippery-floor registration — the recorded fallback,
+with note 0015's recommendation to gate any future C-IP-b on a turn-conditioned WM error
+rather than the mean; (2) the paper/venue track (v2 + the day's C4/plasticity edits still
+need their first Overleaf compile); (3) the Vast console destroy-confirmation check
+(LOOP-0009 box). GPU idle at close-out; no box exists.
