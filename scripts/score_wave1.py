@@ -88,6 +88,15 @@ DORM_ARMS = {  # LOOP-0016 / W0c (log 0014): encoder-dormancy probe
     "dorm": "evals/dorm_e*",
 }
 DORM_SITES = ("conv1", "conv2", "conv3", "actor", "critic")
+REDOC1_ARMS = {  # LOOP-0017 / branch F (log 0015): conv1-targeted ReDo
+    "control": "evals/loop9_s1_model_e*",    # archived
+    "redoc1": "evals/redoc1_e*",
+}
+IPCAL_ARMS = {  # LOOP-0018 / IP-1 calibration (log 0016): action-flip instrument
+    "ipflip_ctrl": "evals/ipflip_ctrl_e*",
+    "ipflip_o2": "evals/ipflip_o2_e*",
+}
+UPDATE_STEPS = 2048                          # 16 envs x 128 steps per inner update
 
 
 def score_arm_full(pattern: str, staging: Path) -> list[dict]:
@@ -490,9 +499,108 @@ def adjudicate_dorm(a: dict[str, dict]) -> dict:
     return res
 
 
+def adjudicate_redoc1(a: dict[str, dict]) -> dict:
+    """LOOP-0017 gates (log 0015): P-F1a mechanism (conv1 accumulation eliminated) read
+    FIRST; only then P-F1b (composite payoff, MDE-honest at +0.05)."""
+    stats = _dorm_window_stats(REDOC1_ARMS["redoc1"])
+    conv1 = stats["sites"]["conv1"]
+    w = welch(a["redoc1"]["composites"], a["control"]["composites"])
+
+    p_f1a = (conv1["f8"] is not None and conv1["f8"] <= 0.15
+             and conv1["rise"] is not None and conv1["rise"] <= 0.05)
+    p_f1b = (w["delta"] >= 0.05) and (w["p"] < 0.05)
+    harm = w["delta"] <= -0.02
+    near = abs(w["delta"] - 0.05) <= 0.02
+    if conv1["f8"] is not None:
+        near = near or abs(conv1["f8"] - 0.15) <= 0.02
+
+    res = {"probe_runs": stats["runs"], "conv1": conv1, "sites": stats["sites"],
+           "composite_vs_control": w,
+           "P_F1a": {"pass": bool(p_f1a)},
+           "P_F1b": {"pass": (bool(p_f1b) if p_f1a else None)},
+           "harm_flag": bool(harm), "extend_to_16": bool(near)}
+    print(f"\ncomposite: redoc1 vs control delta {w['delta']:+.4f} (p={w['p']:.3g})")
+    for s in DORM_SITES:
+        d = stats["sites"][s]
+        if d["f1"] is None:
+            print(f"  {s:<6} NO TRAJECTORY DATA")
+            continue
+        print(f"  {s:<6} f1 {d['f1']:.3f} -> f8 {d['f8']:.3f}   rise {d['rise']:+.3f}   fall {d['fall']:+.3f}")
+    print(f"P-F1a (conv1 f8 <= 0.15 AND rise <= +0.05): {'PASS' if p_f1a else 'FAIL'}")
+    if p_f1a:
+        print(f"P-F1b (delta >= +0.05, p < 0.05): {'PASS' if p_f1b else 'FAIL'}"
+              + ("" if p_f1b else "  -> registered null reading: first-layer plasticity"
+                                 " loss is behaviorally cheap (< +0.05) at this horizon"))
+    else:
+        print("P-F1b: NOT READ (mechanism did not hold dormancy down)")
+    if harm:
+        print("HARM flag: delta <= -0.02 (the O1 precedent -- intervention hurts)")
+    if near:
+        print("Extension rule: deciding quantity within its +/-0.02 band -> extend to n=16")
+    return res
+
+
+def _wm_error_persistence(pattern: str, switches: list[int]) -> dict:
+    """LOOP-0018 C-IP-b (log 0016): per true switch, how many consecutive post-switch
+    UPDATES the WM next-state error stays above baseline_mean + 2*baseline_sd, where
+    baseline = the 20 updates before the switch. The dense debug/wm_raw_error_mean series
+    is bucketed to per-update means first. Returns the median persistence (updates)."""
+    import json as _json
+    import statistics as _st
+
+    persistences = []
+    for d in sorted(glob.glob(str(REPO_ROOT / pattern))):
+        js = glob.glob(str(Path(d) / "**" / "*_data.json"), recursive=True)
+        if not js:
+            continue
+        series = _json.load(open(js[0])).get("debug/wm_raw_error_mean", [])
+        if not series:
+            continue
+        buckets: dict[int, list[float]] = {}
+        for step, v in series:
+            buckets.setdefault(int(step) // UPDATE_STEPS, []).append(float(v))
+        upd = {u: float(np.mean(vs)) for u, vs in buckets.items()}
+        for sw in switches:
+            u0 = sw // UPDATE_STEPS
+            base = [upd[u] for u in range(u0 - 20, u0) if u in upd]
+            if len(base) < 10:
+                continue
+            thr = float(np.mean(base)) + 2.0 * float(np.std(base))
+            k = 0
+            while (u0 + k) in upd and upd[u0 + k] > thr:
+                k += 1
+            persistences.append(k)
+    return {"median_persistence_updates": (_st.median(persistences) if persistences else None),
+            "n_switches_measured": len(persistences)}
+
+
+def adjudicate_ipcal(a: dict[str, dict]) -> dict:
+    """LOOP-0018 gates (log 0016): C-IP-a headroom, C-IP-b regime-signal persistence."""
+    ctrl = a["ipflip_ctrl"]["composites"]
+    o2 = welch(a["ipflip_o2"]["composites"], ctrl)
+    pers = _wm_error_persistence(IPCAL_ARMS["ipflip_ctrl"], G3_SWITCHES)
+
+    c_ip_a = (o2["delta"] >= 0.10) and (o2["p"] < 0.05)
+    med = pers["median_persistence_updates"]
+    c_ip_b = med is not None and med >= 4
+    near = abs(o2["delta"] - 0.10) <= 0.02
+
+    res = {"o2_vs_ctrl": o2, "wm_persistence": pers,
+           "C_IP_a": {"pass": bool(c_ip_a)}, "C_IP_b": {"pass": bool(c_ip_b)},
+           "extend_to_16": bool(near)}
+    print(f"\nipflip O2 ceiling vs ctrl: delta {o2['delta']:+.4f} (p={o2['p']:.3g})")
+    print(f"WM next-state-error persistence at true switches: median "
+          f"{med} updates over {pers['n_switches_measured']} switches")
+    print(f"C-IP-a (ceiling >= +0.10, p<0.05): {'PASS' if c_ip_a else 'FAIL'}")
+    print(f"C-IP-b (persistence >= 4 updates): {'PASS' if c_ip_b else 'FAIL'}")
+    if near:
+        print("Extension rule: ceiling within +/-0.02 of +0.10 -> extend to n=16")
+    return res
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "t15", "stp", "fp", "dorm"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "t15", "stp", "fp", "dorm", "redoc1", "ipcal"])
     p.add_argument("--h2", type=float, default=None, help="K=2 headroom H from the ladder (k3 only)")
     p.add_argument("--json-out", default="evals/wave1_scores.json")
     args = p.parse_args(argv)
@@ -524,6 +632,12 @@ def main(argv: list[str] | None = None) -> int:
     elif args.batch == "dorm":
         arms = summarize(DORM_ARMS)
         res = adjudicate_dorm(arms)
+    elif args.batch == "redoc1":
+        arms = summarize(REDOC1_ARMS)
+        res = adjudicate_redoc1(arms)
+    elif args.batch == "ipcal":
+        arms = summarize(IPCAL_ARMS)
+        res = adjudicate_ipcal(arms)
     else:
         if args.h2 is None:
             p.error("k3 needs --h2 (the ladder's H)")

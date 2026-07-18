@@ -202,6 +202,13 @@ class InnerTrainState:
     # + actor/critic heads. Measurement only — no resets, no optimizer writes. 0 == off.
     dormancy_probe_interval: int = 0
 
+    # --- LOOP-0017 / branch F: conv1-targeted ReDo (research-log 0015) ---
+    # Every redo_conv1_interval updates, reset dormant conv1 channels (the layer LOOP-0016
+    # found accumulating 0.13->0.48) — redo_reset_heads mechanics applied to the input
+    # conv: re-init incoming filters, zero bias, zero conv2's incoming weights for the
+    # reset channels, clear Adam moments. 0 == off.
+    redo_conv1_interval: int = 0
+
     # --- O2 oracle rung (research note 0005): policy-swap headroom topline ---
     # DIAGNOSTIC ceiling, never a method: bank the full learner (model, world model,
     # optimizer states) per regime at switch-away and restore it on regime revisit —
@@ -398,6 +405,51 @@ def dormancy_probe(model, obs, tau: float = REDO_TAU,
         fractions[f"dormancy_{name}"] = float((score <= tau).sum()) / n
         fractions[f"dormancy10_{name}"] = float((score <= tau_secondary).sum()) / n
     return fractions
+
+
+def redo_reset_conv1(model, optimizer, obs, tau: float = REDO_TAU) -> float:
+    """LOOP-0017 / branch F (research-log 0015): ReDo applied to the first encoder conv —
+    the layer whose dormancy LOOP-0016 found accumulating while everything downstream
+    falls. Same mechanics as redo_reset_heads at channel granularity: a channel whose
+    normalized mean-abs post-ReLU activation (over batch x spatial) is <= tau is reset —
+    incoming filter re-initialised (orthogonal), bias zeroed, conv2's incoming weights
+    for that channel zeroed (so the reset does not perturb the output immediately), Adam
+    moments cleared for the touched slices. Returns the dormant fraction (the probe)."""
+    activations: dict = {}
+
+    def _capture(module, inp, out):
+        activations["conv1"] = out.detach()
+
+    handle = model.encoder[1].register_forward_hook(_capture)
+    try:
+        with torch.no_grad():
+            model(obs)
+    finally:
+        handle.remove()
+
+    act = activations["conv1"]                      # (B, C, H, W)
+    mean_abs = act.abs().mean(dim=(0, 2, 3))
+    score = mean_abs / (mean_abs.mean() + 1e-9)
+    dormant = (score <= tau).nonzero(as_tuple=True)[0]
+    fraction = float(dormant.numel()) / float(mean_abs.numel())
+    if dormant.numel() == 0:
+        return fraction
+
+    conv1, conv2 = model.encoder[0], model.encoder[2]
+    with torch.no_grad():
+        flat = torch.empty(
+            dormant.numel(), conv1.weight[0].numel(), device=conv1.weight.device
+        )
+        torch.nn.init.orthogonal_(flat, gain=np.sqrt(2))
+        conv1.weight[dormant] = flat.view(dormant.numel(), *conv1.weight.shape[1:])
+        if conv1.bias is not None:
+            conv1.bias[dormant] = 0.0
+        conv2.weight[:, dormant] = 0.0
+        _reset_adam_state(optimizer, conv1.weight, rows=dormant)
+        if conv1.bias is not None:
+            _reset_adam_state(optimizer, conv1.bias, rows=dormant)
+        _reset_adam_state(optimizer, conv2.weight, cols=dormant)
+    return fraction
 
 
 # O1 oracle-timed critic damp (research note 0005): damp window length. The damp covers
@@ -717,6 +769,7 @@ def init_inner_training(
     episodes_per_regime: int | None = None,
     start_regime: int = 0,
     num_regimes: int = 2,
+    regime_effect: str = "goal_swap",
     run_name: str | None = None,
     save_dir: str = "checkpoints",
     save_every_updates: int = 50,
@@ -744,6 +797,7 @@ def init_inner_training(
     surprise_spike_threshold: float = 0.0,
     redo_interval: int = 0,
     dormancy_probe_interval: int = 0,
+    redo_conv1_interval: int = 0,
     critic_lr_oracle_scale: float = 0.0,
     policy_swap_topline: bool = False,
     policy_swap_scope: str = "full",
@@ -830,6 +884,7 @@ def init_inner_training(
                 episodes_per_regime=episodes_per_regime,
                 start_regime=start_regime,
                 num_regimes=num_regimes,
+                regime_effect=regime_effect,
                 record_stats=False,
                 shared_step_counter=regime_step_counter,
             )
@@ -1010,6 +1065,7 @@ def init_inner_training(
         surprise_spike_threshold=surprise_spike_threshold,
         redo_interval=redo_interval,
         dormancy_probe_interval=dormancy_probe_interval,
+        redo_conv1_interval=redo_conv1_interval,
         policy_swap_topline=policy_swap_topline,
         policy_swap_scope=policy_swap_scope,
         head_bank_slots=head_bank_slots,
@@ -1451,6 +1507,11 @@ def run_inner_update(state: InnerTrainState) -> dict:
     if s.dormancy_probe_interval > 0 and update % s.dormancy_probe_interval == 0:
         for name, frac in dormancy_probe(s.model, s.obs_t).items():
             s.logger.scalar(f"brain_neuromod/{name}", frac, s.global_step)
+
+    # LOOP-0017 / branch F: conv1-targeted ReDo; log the pre-reset dormant fraction.
+    if s.redo_conv1_interval > 0 and update % s.redo_conv1_interval == 0:
+        frac = redo_reset_conv1(s.model, s.optimizer, s.obs_t)
+        s.logger.scalar("brain_neuromod/redo_conv1_dormant_fraction", frac, s.global_step)
 
     for k, v in avg_stats.items():
         s.logger.scalar(k, v, s.global_step)

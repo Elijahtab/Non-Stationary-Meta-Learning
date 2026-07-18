@@ -178,6 +178,7 @@ def eval_brain(args):
         steps_per_regime=args.steps_per_regime,
         start_regime=0,
         num_regimes=args.num_regimes,
+        regime_effect=getattr(args, "regime_effect", "goal_swap"),
         run_name=args.run_name or "eval_brain",
         save_every_updates=args.save_every_updates,
         anneal_lr=False,  # Brain controls LR
@@ -195,6 +196,7 @@ def eval_brain(args):
         head_bank_step_threshold=getattr(args, "head_bank_step_threshold", 0.25),
         head_bank_step_shadow=getattr(args, "head_bank_step_shadow", False),
         dormancy_probe_interval=getattr(args, "dormancy_probe_interval", 0),
+        redo_conv1_interval=getattr(args, "redo_conv1_interval", 0),
     )
 
     sig = SignalExtractor(
@@ -400,6 +402,15 @@ def main():
                    help="W0c probe (LOOP-0016 / research-log 0014): every N updates, log "
                         "dormant fractions for the encoder convs + heads (probe-only, no "
                         "resets). 0 = off.")
+    p.add_argument("--redo_conv1_interval", type=int, default=0,
+                   help="Branch F rung (LOOP-0017 / research-log 0015): every N updates, "
+                        "ReDo-reset dormant conv1 channels (the accumulating layer). 0 = off.")
+    p.add_argument("--regime_effect", type=str, default="goal_swap",
+                   choices=["goal_swap", "action_flip"],
+                   help="IP-1 instrument mode (LOOP-0018 / note 0015): goal_swap = the "
+                        "frozen benchmark's reward switch; action_flip = odd regimes mirror "
+                        "left/right with the reward mapping fixed (dynamics-differing "
+                        "regimes).")
 
     args = p.parse_args()
     eval_brain(args)

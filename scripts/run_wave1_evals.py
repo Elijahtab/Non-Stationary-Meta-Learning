@@ -169,6 +169,38 @@ def build_jobs(batch: str, eval_seeds: list[int]) -> list[dict]:
                 "extra": ["--dormancy_probe_interval", "1"],
                 "num_regimes": 2,
             })
+    elif batch == "redoc1":
+        # LOOP-0017 / branch F (pre-reg: research-log 0015): conv1-targeted ReDo every 10
+        # updates (single disclosed config), probe kept on for mechanism verification.
+        # References archived: control loop9_s1_model_e* (n=16) + dorm_e* trajectories.
+        model = _brain_ckpt("brain_model.pt")
+        for e in eval_seeds:
+            jobs.append({
+                "run_name": f"redoc1_e{e}",
+                "ckpt": model,
+                "eval_seed": e,
+                "extra": ["--redo_conv1_interval", "10", "--dormancy_probe_interval", "1"],
+                "num_regimes": 2,
+            })
+    elif batch == "ipcal":
+        # LOOP-0018 / IP-1 calibration (pre-reg: research-log 0016): the action-flip
+        # instrument's control + O2-analog ceiling. Brain = same loop9 s1 ep130 (scale-
+        # blind; descriptive caveat registered — its normalizer was fit on goal_swap).
+        model = _brain_ckpt("brain_model.pt")
+        arms = [
+            ("ctrl", ["--regime_effect", "action_flip"]),
+            ("o2", ["--regime_effect", "action_flip",
+                    "--policy_swap_topline", "--swap_scope", "full"]),
+        ]
+        for arm, extra in arms:
+            for e in eval_seeds:
+                jobs.append({
+                    "run_name": f"ipflip_{arm}_e{e}",
+                    "ckpt": model,
+                    "eval_seed": e,
+                    "extra": extra,
+                    "num_regimes": 2,
+                })
     elif batch == "ar1t15":
         # LOOP-0013 addendum (pre-reg: research-log 0011): trigger hardening — the K=2 flip
         # at the desk calibration's precision-optimal threshold.
@@ -267,7 +299,7 @@ def run_eval(job: dict, gpu: int, out_root: Path, log_dir: Path, threads: int) -
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "ar1x", "ar1t15", "stp", "stpcal", "fp", "dorm"])
+    p.add_argument("batch", choices=["ladder", "k3", "g3", "g3re", "ar1x", "ar1t15", "stp", "stpcal", "fp", "dorm", "redoc1", "ipcal"])
     p.add_argument("--eval-seeds", type=int, nargs="+", default=[1, 2, 3, 4, 5, 6, 7, 8])
     p.add_argument("--gpus", type=int, nargs="+", default=[0])
     p.add_argument("--concurrency", type=int, default=1,

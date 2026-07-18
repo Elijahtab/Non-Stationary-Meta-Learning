@@ -1,8 +1,11 @@
 # 0015 — New-instrument port: dynamics-differing regime pairs (candidate generation)
 
-**Status:** 📋 PROPOSED 2026-07-17 — candidate generation only. This is a **benchmark-design
-decision at master level** (the env surface is immutable; new wrappers/registrations need a
-decisions-register row and explicit user approval). **No code has been changed.**
+**Status:** ✅ APPROVED 2026-07-17 (user: all three decision points — env edit, IP-1,
+calibration). The `regime_effect="action_flip"` mode is built (register row updated same
+commit; default byte-identical, regression-tested); the calibration rung is pre-registered
+as [log 0016](../research-log/0016-2026-07-17-action-flip-calibration-preregistration.md)
+and runs as [LOOP-0018](../autoresearch-loops/LOOP-0018-action-flip-calibration.md).
+Originally proposed as candidate generation only:
 **Hypothesis (one sentence):** on an instrument whose regimes differ in *transition dynamics*
 rather than reward alone, the regime signal outlives the learner's within-lag adaptation, so
 the learned WHICH (content-addressed slot selection) — adjudicated dead on the current

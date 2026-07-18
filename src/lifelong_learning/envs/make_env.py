@@ -39,7 +39,9 @@ def make_env(env_id: str, seed: int, record_stats: bool = True, **kwargs):
     # One-Hot encode observations: (H, W, 3) → (21, H, W) float tensor
     env = OneHotPartialObsWrapper(env, dict_mode=False)
 
-    # Regime switching: swaps which goal is "good" vs "bad"
+    # Regime switching: swaps which goal is "good" vs "bad" (default), or — IP-1
+    # action_flip mode (note 0015, master-approved 2026-07-17) — mirrors the turn
+    # actions in odd regimes with the reward mapping fixed.
     env = RegimeGoalSwapWrapper(
         env,
         steps_per_regime=kwargs.get("steps_per_regime"),
@@ -48,6 +50,7 @@ def make_env(env_id: str, seed: int, record_stats: bool = True, **kwargs):
         num_regimes=num_regimes,
         seed=seed,
         shared_step_counter=kwargs.get("shared_step_counter"),
+        regime_effect=kwargs.get("regime_effect", "goal_swap"),
     )
 
     return env
